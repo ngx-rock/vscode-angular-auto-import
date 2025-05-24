@@ -14,7 +14,7 @@
   "contributes": {
     "commands": [
       {
-        "command": "angular-auto-import.Reindex",
+        "command": "angular-auto-import.reindex",
         "title": "Reindex"
       }
     ]
