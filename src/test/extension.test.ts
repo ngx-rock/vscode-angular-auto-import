@@ -295,6 +295,128 @@ suite('Angular Library Indexing and Importing Test Suite', () => {
             );
         });
     });
+
+    suite('Built-in Standalone Element Importing', () => {
+        const standaloneCompFileName = 'my-standalone.component.ts';
+        const standaloneCompPath = path.join(testProjectPath, 'src', 'app', standaloneCompFileName);
+
+        const initialContentNoImports = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-my-standalone',
+  template: \`<div>Standalone content with no imports array.</div>\`,
+  standalone: true
+})
+export class MyStandaloneComponent {}`;
+
+        const initialContentEmptyImports = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-my-standalone',
+  template: \`<div>Standalone content with empty imports array.</div>\`,
+  standalone: true,
+  imports: []
+})
+export class MyStandaloneComponent {}`;
+
+        const initialContentWithExistingImports = `
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common'; // A placeholder existing import
+
+@Component({
+  selector: 'app-my-standalone',
+  template: \`<div>Standalone content with existing imports.</div>\`,
+  standalone: true,
+  imports: [CommonModule]
+})
+export class MyStandaloneComponent {}`;
+
+        const testCases = [
+            { name: "no initial imports array", content: initialContentNoImports },
+            { name: "empty initial imports array", content: initialContentEmptyImports },
+            { name: "existing initial imports array", content: initialContentWithExistingImports },
+        ];
+
+        testCases.forEach(tc => {
+            test(`should import NgIf into standalone component with ${tc.name}`, async () => {
+                fs.writeFileSync(standaloneCompPath, tc.content);
+                const standaloneCompUri = vscode.Uri.file(standaloneCompPath);
+
+                await vscode.commands.executeCommand('angular-auto-import.importBuiltInElement', {
+                    className: 'NgIf',
+                    sourcePackage: '@angular/common',
+                    activeHtmlFileUri: standaloneCompUri // Using this to point to the TS file directly for the command
+                });
+
+                const updatedContent = fs.readFileSync(standaloneCompPath, 'utf-8');
+                assert.ok(updatedContent.includes('import { NgIf } from \'@angular/common\';'), 'ES6 import for NgIf not found');
+                
+                // Check imports array robustly
+                const componentDecoratorMatch = updatedContent.match(/@Component\s*\(\s*(\{[\s\S]*?\})\s*\)/);
+                assert.ok(componentDecoratorMatch && componentDecoratorMatch[1], 'Could not find @Component decorator content');
+                const decoratorContent = componentDecoratorMatch[1];
+                const importsArrayMatch = decoratorContent.match(/imports\s*:\s*\[([\s\S]*?)\]/);
+                assert.ok(importsArrayMatch && importsArrayMatch[1], 'Could not find imports array in @Component');
+                assert.ok(importsArrayMatch[1].includes('NgIf'), 'NgIf not found in imports array');
+                if (tc.name === "existing initial imports array") {
+                    assert.ok(importsArrayMatch[1].includes('CommonModule'), 'Existing CommonModule import was removed');
+                }
+            });
+        });
+
+        test('should import AsyncPipe into standalone component (initially no imports array)', async () => {
+            fs.writeFileSync(standaloneCompPath, initialContentNoImports);
+            const standaloneCompUri = vscode.Uri.file(standaloneCompPath);
+
+            await vscode.commands.executeCommand('angular-auto-import.importBuiltInElement', {
+                className: 'AsyncPipe',
+                sourcePackage: '@angular/common',
+                activeHtmlFileUri: standaloneCompUri
+            });
+
+            const updatedContent = fs.readFileSync(standaloneCompPath, 'utf-8');
+            assert.ok(updatedContent.includes('import { AsyncPipe } from \'@angular/common\';'), 'ES6 import for AsyncPipe not found');
+            const componentDecoratorMatch = updatedContent.match(/@Component\s*\(\s*(\{[\s\S]*?\})\s*\)/);
+            assert.ok(componentDecoratorMatch && componentDecoratorMatch[1], 'Could not find @Component decorator content for AsyncPipe');
+            const decoratorContent = componentDecoratorMatch[1];
+            const importsArrayMatch = decoratorContent.match(/imports\s*:\s*\[([\s\S]*?)\]/);
+            assert.ok(importsArrayMatch && importsArrayMatch[1].includes('AsyncPipe'), 'AsyncPipe not found in imports array');
+        });
+
+        test('idempotency: should not duplicate NgIf import or in imports array', async () => {
+            fs.writeFileSync(standaloneCompPath, initialContentEmptyImports); // Start with empty imports
+            const standaloneCompUri = vscode.Uri.file(standaloneCompPath);
+
+            // First import
+            await vscode.commands.executeCommand('angular-auto-import.importBuiltInElement', {
+                className: 'NgIf',
+                sourcePackage: '@angular/common',
+                activeHtmlFileUri: standaloneCompUri
+            });
+            // Second import (should be idempotent)
+            await vscode.commands.executeCommand('angular-auto-import.importBuiltInElement', {
+                className: 'NgIf',
+                sourcePackage: '@angular/common',
+                activeHtmlFileUri: standaloneCompUri
+            });
+
+            const updatedContent = fs.readFileSync(standaloneCompPath, 'utf-8');
+            
+            const es6ImportOccurrences = (updatedContent.match(/import { NgIf } from '@angular\/common';/g) || []).length;
+            assert.strictEqual(es6ImportOccurrences, 1, 'NgIf ES6 import should appear only once');
+
+            const componentDecoratorMatch = updatedContent.match(/@Component\s*\(\s*(\{[\s\S]*?\})\s*\)/);
+            assert.ok(componentDecoratorMatch && componentDecoratorMatch[1], 'Could not find @Component decorator content for idempotency check');
+            const decoratorContent = componentDecoratorMatch[1];
+            const importsArrayMatch = decoratorContent.match(/imports\s*:\s*\[([\s\S]*?)\]/);
+            assert.ok(importsArrayMatch && importsArrayMatch[1], 'Could not find imports array for idempotency check');
+            
+            const ngIfInImportsArrayOccurrences = (importsArrayMatch[1].match(/\bNgIf\b/g) || []).length;
+            assert.strictEqual(ngIfInImportsArrayOccurrences, 1, 'NgIf should appear only once in imports array');
+        });
+    });
 });
 
 // Helper to ensure extension exports are available for testing

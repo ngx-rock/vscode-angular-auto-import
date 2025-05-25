@@ -17,3 +17,11 @@ Angular Auto Import now extends its capabilities to your project's dependencies!
 *   Generates correct import statements for these elements (e.g., `import { LibComponent } from 'my-lib';`).
 
 This helps you quickly integrate elements from your favorite Angular libraries without manually writing import statements.
+
+### Standalone Built-in Element Imports
+
+For modern Angular standalone components, the extension now helps you import precisely what you need:
+
+*   **Specific Imports:** Get suggestions and quick fixes for individual built-in directives (like `NgIf`, `NgForOf`, `NgOptimizedImage`) and pipes (like `AsyncPipe`, `DatePipe`) directly from their Angular framework packages (e.g., `@angular/common`).
+*   **Automatic `@Component.imports` Update:** When you accept a suggestion, the chosen directive or pipe is automatically added to your standalone component's `imports` array, making it immediately available in your template.
+*   **Best Practices:** This encourages fine-grained dependencies, aligning with Angular's standalone component philosophy, rather than always importing larger modules like `CommonModule` just for these common elements.

@@ -287,6 +287,50 @@ class AngularIndexer {
     this.parser.setLanguage(TypeScript);
   }
 
+  public static isComponentStandalone(filePath: string, fileContent?: string): boolean {
+    const content = fileContent || fs.readFileSync(filePath, 'utf-8');
+    const parser = new Parser(); // Consider sharing parser instance if performance becomes an issue
+    parser.setLanguage(TypeScript);
+    const tree = parser.parse(content);
+    const rootNode = tree.rootNode;
+    let isStandalone = false;
+
+    function findStandaloneInDecorator(node: Parser.SyntaxNode) {
+        if (node.type === 'decorator' && node.firstChild?.type === 'call_expression') {
+            const callExpr = node.firstChild;
+            const funcIdent = callExpr.childForFieldName('function');
+            if (funcIdent && content.slice(funcIdent.startIndex, funcIdent.endIndex) === 'Component') {
+                const args = callExpr.childForFieldName('arguments');
+                if (args) {
+                    const objectNode = args.children.find(child => child.type === 'object');
+                    if (objectNode) {
+                        for (const propAssignment of objectNode.children) {
+                            if (propAssignment.type === 'property_assignment' || propAssignment.type === 'pair') {
+                                const keyNode = propAssignment.childForFieldName('key');
+                                const valueNode = propAssignment.childForFieldName('value');
+                                if (keyNode && valueNode && content.slice(keyNode.startIndex, keyNode.endIndex) === 'standalone') {
+                                    if (valueNode.type === 'true' || (valueNode.type === 'identifier' && content.slice(valueNode.startIndex, valueNode.endIndex) === 'true')) {
+                                        isStandalone = true;
+                                        return; // Found it
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (isStandalone) return;
+        for (const child of node.children) {
+            if (isStandalone) break;
+            findStandaloneInDecorator(child);
+        }
+    }
+
+    findStandaloneInDecorator(rootNode);
+    return isStandalone;
+  }
+
   public setProjectRoot(projectPath: string) {
     this.projectRootPath = projectPath;
     console.log(`AngularIndexer: Project root set to ${projectPath}`);
@@ -1048,6 +1092,186 @@ function getRelativeFilePath(fromFileAbs: string, toFileAbsNoExt: string): strin
   return relative.startsWith('.') ? relative : `./${relative}`;
 }
 
+function importStandaloneBuiltInElement(className: string, sourcePackage: string, targetFilePathAbs: string): boolean {
+  try {
+    if (!fs.existsSync(targetFilePathAbs)) {
+      vscode.window.showErrorMessage(`Target file not found: ${targetFilePathAbs}`);
+      return false;
+    }
+    let fileContents = fs.readFileSync(targetFilePathAbs, 'utf-8');
+    const importStatement = `import { ${className} } from '${sourcePackage}';`;
+
+    // Check if the exact import already exists
+    const escapedPackage = sourcePackage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const importRegex = new RegExp(`import\\s*{[^}]*\\b${className}\\b[^}]*}\\s*from\\s*['"]${escapedPackage}['"]`);
+    if (importRegex.test(fileContents)) {
+      console.log(`${className} from ${sourcePackage} is already imported in ${path.basename(targetFilePathAbs)}.`);
+      return true; // Already imported
+    }
+
+    // Add the import statement
+    // Basic: add to the top. More sophisticated: add after last import.
+    const lines = fileContents.split('\n');
+    let lastImportIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].match(/^import\s+.*\s+from\s+['"].*['"];?$/)) {
+        lastImportIndex = i;
+      }
+    }
+    lines.splice(lastImportIndex + 1, 0, importStatement);
+    fileContents = lines.join('\n');
+
+    fs.writeFileSync(targetFilePathAbs, fileContents);
+    console.log(`Imported ${className} from ${sourcePackage} into ${path.basename(targetFilePathAbs)}.`);
+    // Formatting might be needed, can be triggered by a command
+    // setTimeout(() => vscode.commands.executeCommand('editor.action.formatDocument'), 100); // Delay formatting until after all changes
+
+    // Step 2: Add to @Component.imports array if it's a standalone component
+    // We need to re-read content as it was modified by adding ES6 import
+    fileContents = fs.readFileSync(targetFilePathAbs, 'utf-8');
+    // We also need to ensure this component is indeed standalone before modifying its imports.
+    // Assuming the command/caller ensures this check, or we add it here.
+    // For now, let's assume this function is called when it's known to be a standalone component.
+    // A shared parser instance would be ideal if this function is called frequently.
+    const parser = new Parser();
+    parser.setLanguage(TypeScript);
+    const updatedFileContents = addSymbolToComponentImportsArray(className, fileContents, parser);
+
+    if (updatedFileContents !== fileContents) {
+        fs.writeFileSync(targetFilePathAbs, updatedFileContents);
+        console.log(`Added ${className} to @Component.imports in ${path.basename(targetFilePathAbs)}.`);
+    }
+
+    setTimeout(() => vscode.commands.executeCommand('editor.action.formatDocument'), 100);
+    return true;
+
+  } catch (e) {
+    console.error(`Error importing built-in element ${className} or updating imports array:`, e);
+    vscode.window.showErrorMessage(`Error importing ${className}: ${e instanceof Error ? e.message : String(e)}`);
+    return false;
+  }
+}
+
+// Helper function to add a symbol to the @Component decorator's 'imports' array
+// Similar to addImportToAnnotation but specifically for `imports: []` and takes className directly.
+function addSymbolToComponentImportsArray(symbolName: string, fileContent: string, parser: Parser): string {
+  const tree = parser.parse(fileContent);
+  const rootNode = tree.rootNode;
+  let newFileContent = fileContent;
+  let componentDecoratorNode: Parser.SyntaxNode | null = null;
+  let decoratorObjectNode: Parser.SyntaxNode | null = null;
+
+  // Find @Component decorator
+  rootNode.children.forEach(node => {
+    if (node.type === 'export_statement' && node.firstChild?.type === 'class_declaration') { // export class ...
+        node.firstChild.children.forEach(classChild => {
+            if (classChild.type === 'decorator' && classChild.firstChild?.type === 'call_expression') {
+                const callExpr = classChild.firstChild;
+                const funcIdent = callExpr.childForFieldName('function');
+                if (funcIdent && fileContent.slice(funcIdent.startIndex, funcIdent.endIndex) === 'Component') {
+                    componentDecoratorNode = callExpr;
+                }
+            }
+        });
+    } else if (node.type === 'class_declaration') { // class ... (might have decorator)
+        node.children.forEach(classChild => {
+            if (classChild.type === 'decorator' && classChild.firstChild?.type === 'call_expression') {
+                const callExpr = classChild.firstChild;
+                const funcIdent = callExpr.childForFieldName('function');
+                if (funcIdent && fileContent.slice(funcIdent.startIndex, funcIdent.endIndex) === 'Component') {
+                    componentDecoratorNode = callExpr;
+                }
+            }
+        });
+    }
+  });
+  
+  if (!componentDecoratorNode) return fileContent; // No @Component decorator found
+
+  const argsNode = componentDecoratorNode.childForFieldName('arguments');
+  if (argsNode) {
+    decoratorObjectNode = argsNode.children.find(child => child.type === 'object') || null;
+  }
+
+  if (!decoratorObjectNode) return fileContent; // No object literal in @Component arguments
+
+  let importsArrayNode: Parser.SyntaxNode | null = null;
+  let importsArrayContent = "";
+  let importsPropertyExists = false;
+
+  for (const propNode of decoratorObjectNode.children) {
+    if (propNode.type === 'property_assignment' || propNode.type === 'pair') {
+      const keyNode = propNode.childForFieldName('key');
+      if (keyNode && fileContent.slice(keyNode.startIndex, keyNode.endIndex) === 'imports') {
+        importsPropertyExists = true;
+        const valueNode = propNode.childForFieldName('value');
+        if (valueNode && valueNode.type === 'array') {
+          importsArrayNode = valueNode;
+          // Check if symbolName is already in the imports array
+          for(const elementNode of importsArrayNode.children) {
+            if (elementNode.type === 'identifier' && fileContent.slice(elementNode.startIndex, elementNode.endIndex) === symbolName) {
+              return fileContent; // Already imported
+            }
+          }
+          importsArrayContent = fileContent.slice(importsArrayNode.startIndex + 1, importsArrayNode.endIndex - 1).trim();
+        }
+        break;
+      }
+    }
+  }
+
+  const decoratorObjectStartIndex = decoratorObjectNode.startIndex;
+  const decoratorObjectEndIndex = decoratorObjectNode.endIndex;
+  const originalDecoratorText = fileContent.slice(decoratorObjectStartIndex, decoratorObjectEndIndex);
+  let newDecoratorText = originalDecoratorText;
+
+  if (importsArrayNode) { // 'imports' array exists
+    const newImportsList = importsArrayContent ? `${importsArrayContent.replace(/,\s*$/, '')}, ${symbolName}` : symbolName;
+    const importsArrayStartIndex = importsArrayNode.startIndex - decoratorObjectStartIndex;
+    const importsArrayEndIndex = importsArrayNode.endIndex - decoratorObjectStartIndex;
+    newDecoratorText = originalDecoratorText.substring(0, importsArrayStartIndex + 1) + newImportsList + originalDecoratorText.substring(importsArrayEndIndex -1);
+
+  } else { // 'imports' array does not exist, or 'imports' property itself doesn't exist
+    const newImportsProperty = `imports: [${symbolName}]`;
+    if (decoratorObjectNode.children.filter(c => c.type !== '{' && c.type !== '}').length === 0 ) { // Empty object {}
+        newDecoratorText = `{ ${newImportsProperty} }`;
+    } else {
+        // Find a place to insert the new 'imports' property.
+        // Attempt to insert after 'standalone: true' or 'templateUrl' or 'selector'
+        let lastKnownPropEndIndex = -1;
+        const commonProps = ['standalone', 'selector', 'templateUrl', 'styleUrls', 'template', 'styles'];
+        for (const propNode of decoratorObjectNode.children) {
+            if (propNode.type === 'property_assignment' || propNode.type === 'pair') {
+                const keyNode = propNode.childForFieldName('key');
+                if (keyNode && commonProps.includes(fileContent.slice(keyNode.startIndex, keyNode.endIndex))) {
+                    lastKnownPropEndIndex = propNode.endIndex - decoratorObjectStartIndex;
+                }
+            }
+        }
+
+        if (lastKnownPropEndIndex !== -1) {
+            // Insert after the last known property
+            const before = originalDecoratorText.substring(0, lastKnownPropEndIndex);
+            const after = originalDecoratorText.substring(lastKnownPropEndIndex);
+            // Check if a comma is needed
+            const needsComma = !before.trim().endsWith(',') && !before.trim().endsWith('{');
+            newDecoratorText = before + (needsComma ? ',' : '') + ` ${newImportsProperty}` + after;
+        } else {
+            // Insert at the beginning of the object (after '{')
+            const firstBraceIndex = originalDecoratorText.indexOf('{');
+            const before = originalDecoratorText.substring(0, firstBraceIndex + 1);
+            const after = originalDecoratorText.substring(firstBraceIndex + 1);
+            const needsComma = after.trim().length > 0 && !after.trim().startsWith('}') && !after.trim().startsWith(',');
+            newDecoratorText = before + ` ${newImportsProperty}` + (needsComma ? ',' : '') + after;
+        }
+    }
+  }
+  
+  newFileContent = fileContent.substring(0, decoratorObjectStartIndex) + newDecoratorText + fileContent.substring(decoratorObjectEndIndex);
+  return newFileContent;
+}
+
+
 function importElementToFile(element: AngularElementData, componentFilePathAbs: string): boolean {
   try {
     if (!currentProjectPath) {
@@ -1235,21 +1459,21 @@ function importElement(element?: AngularElementData): boolean {
   const currentFileAbs = activeEditor.document.fileName;
 
   // Heuristic: if current file is HTML, find corresponding TS. Otherwise, assume current file is the TS file.
-  let activeComponentFileAbs = currentFileAbs;
+  let activeComponentTsFileAbs = currentFileAbs;
   if (currentFileAbs.endsWith('.html')) {
-    activeComponentFileAbs = switchFileType(currentFileAbs, '.ts');
+    activeComponentTsFileAbs = switchFileType(currentFileAbs, '.ts');
   }
 
 
-  if (!fs.existsSync(activeComponentFileAbs)) {
-    vscode.window.showErrorMessage(`Component file not found for ${path.basename(currentFileAbs)}. Expected ${path.basename(activeComponentFileAbs)} or current file is not a .ts file.`);
+  if (!fs.existsSync(activeComponentTsFileAbs)) {
+    vscode.window.showErrorMessage(`Component file not found for ${path.basename(currentFileAbs)}. Expected ${path.basename(activeComponentTsFileAbs)} or current file is not a .ts file.`);
     return false;
   }
 
-  const success = importElementToFile(element, activeComponentFileAbs);
+  const success = importElementToFile(element, activeComponentTsFileAbs);
 
   if (success) {
-    vscode.window.showInformationMessage(`${element.type} '${element.name}' (selector: x) imported successfully into ${path.basename(activeComponentFileAbs)}.`);
+    vscode.window.showInformationMessage(`${element.type} '${element.name}' (selector: ${element.selector}) imported successfully into ${path.basename(activeComponentTsFileAbs)}.`);
   } else {
     // importElementToFile should show its own error
   }
@@ -1427,14 +1651,47 @@ export async function activate(activationContext: vscode.ExtensionContext) {
         )
     );
 
-    const importCmd = vscode.commands.registerCommand('angular-auto-import.importElement', (selector: string) => {
+    // Command to import regular indexed elements
+    const importElementCmd = vscode.commands.registerCommand('angular-auto-import.importElement', (selector: string) => {
       if (!angularIndexer) {
         vscode.window.showErrorMessage('❌ Indexer not available.'); return;
       }
       const element = angularIndexer.getElement(selector);
-      importElement(element);
+      if (element) { // Check if element is found
+        importElement(element); // Calls the original importElement function
+      } else {
+        vscode.window.showErrorMessage(`Element with selector '${selector}' not found in index.`);
+      }
     });
-    activationContext.subscriptions.push(importCmd);
+    activationContext.subscriptions.push(importElementCmd);
+
+    // Command to import built-in standalone elements (NgIf, AsyncPipe, etc.)
+    const importBuiltInCmd = vscode.commands.registerCommand('angular-auto-import.importBuiltInElement', (params: {className: string, sourcePackage: string, activeHtmlFileUri?: vscode.Uri }) => {
+        const { className, sourcePackage, activeHtmlFileUri } = params;
+        if (!className || !sourcePackage) {
+            vscode.window.showErrorMessage('Missing className or sourcePackage for built-in import.');
+            return;
+        }
+        let targetTsFile: string | undefined;
+        const activeEditor = vscode.window.activeTextEditor;
+
+        if (activeHtmlFileUri) { // If URI is passed (e.g. from quick fix on HTML)
+            targetTsFile = switchFileType(activeHtmlFileUri.fsPath, '.ts');
+        } else if (activeEditor) { // Fallback to active editor (e.g. from completion item in TS file)
+            targetTsFile = activeEditor.document.fileName;
+            if (targetTsFile.endsWith('.html')) {
+                 targetTsFile = switchFileType(targetTsFile, '.ts');
+            }
+        }
+
+        if (targetTsFile && fs.existsSync(targetTsFile)) {
+            importStandaloneBuiltInElement(className, sourcePackage, targetTsFile);
+        } else {
+            vscode.window.showErrorMessage(`Could not determine target TypeScript file to import ${className}.`);
+        }
+    });
+    activationContext.subscriptions.push(importBuiltInCmd);
+
 
     const manualImportCmd = vscode.commands.registerCommand('angular-auto-import.manual.importElement', async () => {
       if (!angularIndexer) {
@@ -1463,51 +1720,61 @@ export async function activate(activationContext: vscode.ExtensionContext) {
                 if (!angularIndexer) return [];
                 const linePrefix = document.lineAt(position).text.slice(0, position.character);
                 const suggestions: CompletionItem[] = [];
+                const activeHtmlFile = document.uri.fsPath;
+                const activeComponentTsFile = switchFileType(activeHtmlFile, '.ts');
+                let isCurrentComponentStandalone = false;
+                if (fs.existsSync(activeComponentTsFile)) {
+                    isCurrentComponentStandalone = AngularIndexer.isComponentStandalone(activeComponentTsFile);
+                }
+
 
                 const tagRegex = /<([a-zA-Z0-9-]*)$/;
                 const tagMatch = tagRegex.exec(linePrefix);
-                const pipeRegex = /\|\s*([a-zA-Z0-9]*)$/;
+                const pipeRegex = /\|\s*([a-zA-Z0-9_]*)$/; // Allow underscore for pipe names
                 const pipeMatch = pipeRegex.exec(linePrefix);
+                const attributeRegex = /\s+([a-zA-Z0-9-\*\[\]\(\)]*)$/; // For *ngIf, [ngClass], (click), etc.
+                const attributeMatch = attributeRegex.exec(linePrefix);
 
-                const currentWordRange = document.getWordRangeAtPosition(position, /[a-zA-Z0-9-]+/);
+
+                const currentWordRange = document.getWordRangeAtPosition(position, /[a-zA-Z0-9-*\[\]\(\)]+/);
                 const currentWord = currentWordRange ? document.getText(currentWordRange) : "";
 
+                // 1. Suggestions from indexed elements (custom components/directives/pipes)
                 for (const selector of angularIndexer.getAllSelectors()) {
                   const element = angularIndexer.getElement(selector);
                   if (!element) continue;
 
                   let match = false;
-                  let itemKind: vscode.CompletionItemKind;
+                  let itemKind: vscode.CompletionItemKind = vscode.CompletionItemKind.Class;
                   let insertText = selector;
 
-                  if (tagMatch && (element.type === 'component' || element.type === 'directive')) {
-                    if (selector.toLowerCase().startsWith(tagMatch[1].toLowerCase())) {
-                      match = true;
-                      itemKind = vscode.CompletionItemKind.Class;
-                    }
+                  if (tagMatch && (element.type === 'component' || element.type === 'directive')) { // Directive can be on tag
+                    if (selector.toLowerCase().startsWith(tagMatch[1].toLowerCase())) match = true;
                   } else if (pipeMatch && element.type === 'pipe') {
                     if (selector.toLowerCase().startsWith(pipeMatch[1].toLowerCase())) {
-                      match = true;
-                      itemKind = vscode.CompletionItemKind.Function;
+                        match = true;
+                        itemKind = vscode.CompletionItemKind.Function;
                     }
-                  } else if (!tagMatch && !pipeMatch && currentWord.length > 0) { // General completion if not in specific context
-                    if (selector.toLowerCase().startsWith(currentWord.toLowerCase())) {
-                      match = true;
-                      itemKind = element.type === 'pipe' ? vscode.CompletionItemKind.Function : vscode.CompletionItemKind.Class;
-                      // For general completion, decide if it's a tag or pipe based on context or offer both?
-                      // For now, assume if it's a component/directive, user wants to type a tag.
-                      // If it's a pipe, they might be typing it after a `|`.
-                      // This part might need more sophisticated context detection.
-                      // Defaulting to selector for now.
-                    }
+                  } else if (attributeMatch && (element.type === 'directive' || element.type === 'component') && currentWord.length > 0) {
+                    // For attributes like [myDir] or *myStructuralDir
+                    // Remove brackets/asterisk for matching if selector is just the name
+                    const simpleSelector = selector.replace(/[\[\]\*]/g, '');
+                    const simpleCurrentWord = currentWord.replace(/[\[\]\*]/g, '');
+                    if (simpleSelector.toLowerCase().startsWith(simpleCurrentWord.toLowerCase())) match = true;
+                  }
+                   else if (!tagMatch && !pipeMatch && !attributeMatch && currentWord.length > 0) { 
+                    // General typing, could be start of a tag or attribute
+                     if (selector.toLowerCase().startsWith(currentWord.toLowerCase())) {
+                        match = true;
+                        itemKind = element.type === 'pipe' ? vscode.CompletionItemKind.Function : vscode.CompletionItemKind.Class;
+                     }
                   }
 
-
                   if (match) {
-                    const item = new CompletionItem(selector, itemKind!);
-                    item.insertText = insertText; // For tags, just the selector. For pipes, just the name.
-                    item.detail = `Angular Auto-Import: ${element.type}`;
-                    item.documentation = new vscode.MarkdownString(`Import \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector/Pipe Name: \`${selector}\``);
+                    const item = new CompletionItem(selector, itemKind);
+                    item.insertText = insertText; 
+                    item.detail = `Auto-Import: ${element.type} (${element.isLibraryElement ? 'library' : 'local'})`;
+                    item.documentation = new vscode.MarkdownString(`Import \`${element.name}\` (${element.type}) from \`${element.isLibraryElement ? element.path.split(path.sep+'node_modules'+path.sep)[1]?.split(path.sep)[0] : element.path}\`.\n\nSelector/Name: \`${selector}\``);
                     item.command = {
                       title: `Import ${element.name}`,
                       command: 'angular-auto-import.importElement',
@@ -1516,10 +1783,73 @@ export async function activate(activationContext: vscode.ExtensionContext) {
                     suggestions.push(item);
                   }
                 }
+
+                // 2. Suggestions for built-in Angular standalone elements (NgIf, AsyncPipe, etc.)
+                if (isCurrentComponentStandalone) {
+                    for (const builtIn of BUILTIN_ANGULAR_ELEMENT_LIST) {
+                        let match = false;
+                        let itemKind: vscode.CompletionItemKind = builtIn.type === 'directive' ? vscode.CompletionItemKind.Struct : vscode.CompletionItemKind.Function;
+                        let insertText = ""; // Will be determined by templateMatcher
+                        let matchedTemplateKeyword = "";
+
+                        // Try to match based on template usage context
+                        if (pipeMatch && builtIn.type === 'pipe' && builtIn.templateMatcher?.test(pipeMatch[1])) {
+                            match = true;
+                            insertText = pipeMatch[1].match(builtIn.templateMatcher)![0]; // Use the matched part for insertion
+                            matchedTemplateKeyword = insertText;
+                        } else if (attributeMatch && builtIn.type === 'directive' && builtIn.templateMatcher?.test(attributeMatch[1])) {
+                            match = true;
+                            insertText = attributeMatch[1].match(builtIn.templateMatcher)![0];
+                             // For structural directives, ensure '*' is part of insert text if that's how it's matched
+                            if (insertText.startsWith('ng') && !attributeMatch[1].startsWith('*') && (builtIn.className === 'NgIf' || builtIn.className === 'NgForOf')) {
+                                // This is tricky. If user types `ngIf` we suggest `*ngIf`.
+                                // If they type `*ngIf` it matches directly.
+                                // For now, let's assume the matcher includes the syntax if needed.
+                                // Example: templateMatcher for NgIf could be /\*?ngIf/i
+                            }
+                            matchedTemplateKeyword = insertText;
+                        } else if (tagMatch && builtIn.type === 'directive' && builtIn.templateMatcher?.test(tagMatch[1])) {
+                            // Less common for built-ins like NgIf to be suggested this way, but possible for NgOptimizedImage
+                             match = true;
+                             insertText = tagMatch[1].match(builtIn.templateMatcher)![0];
+                             matchedTemplateKeyword = insertText;
+                        } else if (!pipeMatch && !attributeMatch && !tagMatch && currentWord.length > 0 && builtIn.templateMatcher?.test(currentWord)) {
+                            // General typing, check if current word matches any part of template usage
+                            match = true;
+                            insertText = currentWord.match(builtIn.templateMatcher)![0];
+                            matchedTemplateKeyword = insertText;
+                        }
+
+
+                        if (match && matchedTemplateKeyword) {
+                             // Refine insertText based on common usage
+                            if (builtIn.className === 'NgIf' && !matchedTemplateKeyword.startsWith('*')) insertText = `*${matchedTemplateKeyword}`;
+                            if (builtIn.className === 'NgForOf' && !matchedTemplateKeyword.startsWith('*')) insertText = `*${matchedTemplateKeyword}`;
+                            if (builtIn.type === 'pipe' && pipeMatch && pipeMatch[1].length >=2 ) insertText = matchedTemplateKeyword; // User already typing pipe name
+                            else if (builtIn.type === 'pipe') insertText = builtIn.templateMatcher!.source.replace(/\\/g, '').split('|')[0]; // Default to first alias
+
+                            const item = new CompletionItem(`${insertText} (${builtIn.type})`, itemKind);
+                            item.insertText = new vscode.SnippetString( (builtIn.className === 'NgIf' || builtIn.className === 'NgForOf') && !insertText.startsWith('*') ? `*${insertText}` : insertText );
+                            item.detail = `Built-in Standalone: ${builtIn.type}`;
+                            item.documentation = new vscode.MarkdownString(`Import \`${builtIn.className}\` from \`${builtIn.sourcePackage}\` (used as \`${insertText}\`).`);
+                            item.command = {
+                                title: `Import ${builtIn.className}`,
+                                command: 'angular-auto-import.importBuiltInElement',
+                                arguments: [{ className: builtIn.className, sourcePackage: builtIn.sourcePackage, activeHtmlFileUri: document.uri }]
+                            };
+                            // Ensure it's suggested if user is typing something that matches
+                            if (currentWord && builtIn.templateMatcher.test(currentWord)) {
+                                suggestions.push(item);
+                            } else if ( (pipeMatch && builtIn.type === 'pipe') || (attributeMatch && builtIn.type === 'directive')) {
+                                suggestions.push(item); // Suggest if context matches (e.g. after '|')
+                            }
+                        }
+                    }
+                }
                 return suggestions;
               },
             },
-            '<', '|', ' ' // Trigger characters
+            '<', '|', ' ', '*', '[' // Trigger characters
         )
     );
 
@@ -1546,6 +1876,8 @@ export function deactivate() {
   console.log('Angular Auto-Import extension deactivated.');
 }
 
+import { BUILTIN_ANGULAR_ELEMENT_LIST } from './angular-builtins'; // Import the list
+
 export class QuickfixImportProvider implements vscode.CodeActionProvider {
   public static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
   // Common Angular Language Service error codes for missing components/pipes
@@ -1557,6 +1889,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     'NG6004', // The pipe '%name%' could not be found!
     -998001, -998002, -998003, // Common codes from some linters/language services for unknown elements/pipes
     70001, // Example from a linter for unknown HTML tag
+    // Add more codes if necessary based on linter outputs
   ];
 
   constructor(private indexer: AngularIndexer) {} // Store the indexer instance
@@ -1567,83 +1900,129 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       context: vscode.CodeActionContext,
       token: vscode.CancellationToken
   ): vscode.ProviderResult<(vscode.Command | vscode.CodeAction)[]> {
-    if (!this.indexer) {
-      console.warn("QuickfixProvider: Indexer not available.");
+    if (!this.indexer && !BUILTIN_ANGULAR_ELEMENT_LIST) { // Check both
+      console.warn("QuickfixProvider: Indexer or BuiltInElements not available.");
       return [];
     }
     const actions: vscode.CodeAction[] = [];
+    const activeHtmlFile = document.uri; // URI of the HTML file
+    const correspondingTsFile = switchFileType(activeHtmlFile.fsPath, '.ts');
+    let isCurrentComponentStandalone = false;
+    if (fs.existsSync(correspondingTsFile)) {
+        isCurrentComponentStandalone = AngularIndexer.isComponentStandalone(correspondingTsFile);
+    }
+
 
     for (const diagnostic of context.diagnostics) {
       if (this.isFixableDiagnostic(diagnostic)) {
-        const quickFixes = this.createQuickFixesForDiagnostic(document, diagnostic);
-        actions.push(...quickFixes);
+        const extractedTerm = this.extractTermFromDiagnostic(document, diagnostic);
+        if (extractedTerm) {
+            // 1. Check indexed custom elements
+            if (this.indexer) {
+                const elementData = this.indexer.getElement(extractedTerm.originalTerm); // Try original term first
+                if (elementData) {
+                    const action = this.createCodeActionForIndexedElement(elementData, extractedTerm.originalTerm, diagnostic);
+                    if (action) actions.push(action);
+                } else {
+                    // Try variations if direct match fails (e.g. with/without brackets)
+                    const variations = this.generateSearchVariations(extractedTerm.term);
+                    for (const variation of variations) {
+                        const elData = this.indexer.getElement(variation);
+                        if (elData) {
+                             const action = this.createCodeActionForIndexedElement(elData, variation, diagnostic);
+                             if (action) actions.push(action);
+                             break; // Found a match
+                        }
+                    }
+                    // Also try partial matches from indexer
+                    const partialMatches = this.findPartialMatchesInIndex(extractedTerm.term);
+                     partialMatches.forEach(matchData => {
+                        const partialAction = this.createCodeActionForIndexedElement(matchData, matchData.selector, diagnostic);
+                        if (partialAction) actions.push(partialAction);
+                    });
+                }
+            }
+
+            // 2. Check built-in standalone elements IF the current component is standalone
+            if (isCurrentComponentStandalone) {
+                for (const builtIn of BUILTIN_ANGULAR_ELEMENT_LIST) {
+                    if (builtIn.templateMatcher && builtIn.templateMatcher.test(extractedTerm.term)) {
+                        const action = this.createCodeActionForBuiltIn(builtIn, extractedTerm.term, diagnostic, activeHtmlFile);
+                        if (action) actions.push(action);
+                    }
+                }
+            }
+        }
       }
     }
     return actions;
   }
 
   private isFixableDiagnostic(diagnostic: vscode.Diagnostic): boolean {
-    if (diagnostic.source && diagnostic.source.toLowerCase().includes('angular')) { // Prioritize Angular's own diagnostics
-      if (diagnostic.code) {
-        const codeStr = String(diagnostic.code);
-        if (QuickfixImportProvider.fixesDiagnosticCode.some(c => String(c) === codeStr)) {
-          return true;
-        }
+    if (diagnostic.source && diagnostic.source.toLowerCase().includes('angular')) {
+      if (diagnostic.code && QuickfixImportProvider.fixesDiagnosticCode.some(c => String(c) === String(diagnostic.code))) {
+        return true;
       }
     }
-    // Generic message checks as fallback
     const message = diagnostic.message.toLowerCase();
     return message.includes('is not a known element') ||
-        (message.includes('pipe') && message.includes('could not be found')) ||
-        message.includes('unknown html tag') || // For some HTML linters
-        message.includes('unknown element') ||
-        message.includes('unknown pipe');
+           (message.includes('pipe') && message.includes('could not be found')) ||
+           message.includes('unknown html tag') ||
+           message.includes('unknown element') ||
+           message.includes('the property') && message.includes('does not exist on type') && (message.includes('ngif') || message.includes('ngfor')) || // For *ngIf, *ngFor issues
+           message.includes('unknown pipe');
   }
 
-  private createQuickFixesForDiagnostic(
-      document: vscode.TextDocument,
-      diagnostic: vscode.Diagnostic
-  ): vscode.CodeAction[] {
-    const actions: vscode.CodeAction[] = [];
-    let extractedTerm = document.getText(diagnostic.range).trim(); // Term directly from diagnostic range
-    const message = diagnostic.message;
-    let termFromMessage: string | null = null;
+  private extractTermFromDiagnostic(document: vscode.TextDocument, diagnostic: vscode.Diagnostic): { term: string, originalTerm: string } | null {
+    let extractedTerm = document.getText(diagnostic.range).trim();
+    const originalTerm = extractedTerm; // Keep the very original text from diagnostic range
 
-    // Try to extract term more reliably from message patterns
-    const knownElementMatch = /['"]([^'"]+)['"]\s+is\s+not\s+a\s+known\s+element/i.exec(message);
-    if (knownElementMatch && knownElementMatch[1]) {
-      termFromMessage = knownElementMatch[1];
-    } else {
-      const pipeMatch = /(?:pipe|The pipe)\s+['"]([^'"]+)['"]\s+(?:could not be found|is not found)/i.exec(message);
-      if (pipeMatch && pipeMatch[1]) {
-        termFromMessage = pipeMatch[1];
-      } else {
-        const unknownHtmlTagMatch = /unknown html tag\s+['"]([^'"]+)['"]/i.exec(message);
-        if (unknownHtmlTagMatch && unknownHtmlTagMatch[1]) {
-          termFromMessage = unknownHtmlTagMatch[1];
-        }
-      }
-    }
+    // More robust extraction from message patterns
+    const knownElementMatch = /['"]([^'"]+)['"]\s+is\s+not\s+a\s+known\s+element/i.exec(diagnostic.message);
+    if (knownElementMatch && knownElementMatch[1]) extractedTerm = knownElementMatch[1];
 
-    const selectorToSearch = this.extractSelector(termFromMessage || extractedTerm);
+    const pipeMatch = /(?:pipe|The pipe)\s+['"]([^'"]+)['"]\s+(?:could not be found|is not found)/i.exec(diagnostic.message);
+    if (pipeMatch && pipeMatch[1]) extractedTerm = pipeMatch[1];
+    
+    const unknownHtmlTagMatch = /unknown html tag\s+['"]([^'"]+)['"]/i.exec(diagnostic.message);
+    if (unknownHtmlTagMatch && unknownHtmlTagMatch[1]) extractedTerm = unknownHtmlTagMatch[1];
 
-    if (selectorToSearch) {
-      const elementData = this.indexer.getElement(selectorToSearch);
-      if (elementData) {
-        const action = this.createCodeAction(elementData, selectorToSearch, selectorToSearch, diagnostic);
-        if (action) actions.push(action);
-      } else {
-        const partialMatches = this.findPartialMatches(selectorToSearch);
-        partialMatches.forEach(matchData => {
-          const partialAction = this.createCodeAction(matchData, matchData.selector, selectorToSearch, diagnostic);
-          if (partialAction) actions.push(partialAction);
-        });
-      }
-    }
-    return actions;
+    // For structural directives like *ngIf="...", diagnostic range might be just "ngIf" or the expression.
+    // We need to ensure we get the directive name itself.
+    if (diagnostic.message.includes("property 'ngIf' does not exist")) extractedTerm = "ngIf";
+    if (diagnostic.message.includes("property 'ngFor' does not exist")) extractedTerm = "ngFor";
+
+
+    // Remove <, >, attributes, quotes, etc.
+    // Example: <my-comp ... -> my-comp
+    // Example: [myDir]="..." -> myDir
+    // Example: *myDir -> myDir
+    // Example: 'myPipe' -> myPipe
+    let term = extractedTerm.replace(/^<([\w-]+)[\s\S]*?>?$/, '$1'); // Tag
+    term = term.replace(/^\[([\w-]+)\][\s\S]*$/, '$1'); // Attribute [input]
+    term = term.replace(/^\(([\w-]+)\)[\s\S]*$/, '$1'); // Attribute (output)
+    term = term.replace(/^\*([\w-]+)[\s\S]*$/, '$1');   // Structural *ngIf
+    term = term.replace(/['"`]/g, ''); // Remove quotes for pipes or string attributes
+
+    return { term: term.split(/\s+/)[0], originalTerm }; // Take the first part if there are spaces
+  }
+  
+  private generateSearchVariations(term: string): string[] {
+    const variations = new Set<string>();
+    variations.add(term);
+    // If term is 'myDir', search for '[myDir]' or '*myDir' etc.
+    // If term is '[myDir]', search for 'myDir'
+    if (term.startsWith('[') && term.endsWith(']')) variations.add(term.slice(1, -1));
+    else variations.add(`[${term}]`);
+
+    if (term.startsWith('*')) variations.add(term.slice(1));
+    else variations.add(`*${term}`);
+    
+    return Array.from(variations);
   }
 
-  private extractSelector(text: string): string {
+
+  private findPartialMatchesInIndex(searchTerm: string): Array<AngularElementData & {selector: string}> {
     // Remove < > and attributes if present, e.g. <my-comp ...> -> my-comp
     text = text.replace(/^<([a-zA-Z0-9-]+)[\s\S]*?>?$/, '$1');
     // If it was a pipe expression like 'value | myPipe', text might be 'myPipe'
@@ -1653,7 +2032,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     return text.trim().split(/\s+/)[0]; // Take the first part if there are spaces (e.g. attributes)
   }
 
-  private findPartialMatches(searchTerm: string): Array<AngularElementData & {selector: string}> {
+  private findPartialMatchesInIndex(searchTerm: string): Array<AngularElementData & {selector: string}> { // Renamed from findPartialMatches
     if (!this.indexer) return [];
     const matches: Array<AngularElementData & {selector: string}> = [];
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -1661,45 +2040,55 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     for (const indexedSelector of this.indexer.getAllSelectors()) {
       const element = this.indexer.getElement(indexedSelector);
       if (element) {
-        // Prioritize matches where the indexed selector *starts with* the search term (more relevant for typos)
-        // or if the search term is a substring of the indexed selector.
-        if (indexedSelector.toLowerCase().startsWith(lowerSearchTerm) ||
-            indexedSelector.toLowerCase().includes(lowerSearchTerm) ||
-            lowerSearchTerm.includes(indexedSelector.toLowerCase())) { // For cases where diagnostic gives a partial name
+        const lowerIndexedSelector = indexedSelector.toLowerCase();
+        if (lowerIndexedSelector.startsWith(lowerSearchTerm) ||
+            lowerIndexedSelector.includes(lowerSearchTerm) ||
+            lowerSearchTerm.includes(lowerIndexedSelector)) {
           matches.push({ ...element, selector: indexedSelector });
         }
       }
     }
-    // Sort by relevance: exact start, then includes, then by length
     return matches.sort((a,b) => {
       const aStarts = a.selector.toLowerCase().startsWith(lowerSearchTerm);
       const bStarts = b.selector.toLowerCase().startsWith(lowerSearchTerm);
       if (aStarts && !bStarts) return -1;
       if (!aStarts && bStarts) return 1;
       return a.selector.length - b.selector.length;
-    }).slice(0, 5); // Limit to 5 suggestions
+    }).slice(0, 3); // Limit suggestions
   }
 
-  private createCodeAction(
+  private createCodeActionForIndexedElement(
       element: AngularElementData,
-      elementActualSelector: string,
-      originalTermFromDiagnostic: string,
-      diagnostic?: vscode.Diagnostic
-  ): vscode.CodeAction | null {
-    const actionTitle = `Import ${element.name} (${element.type}) for <${elementActualSelector}>`;
+      matchedSelector: string, // The selector string that matched (could be a variation)
+      diagnostic: vscode.Diagnostic
+  ): vscode.CodeAction {
+    const actionTitle = `Import ${element.name} (${element.type}) ${element.isLibraryElement ? 'from ' + element.path.split(path.sep+'node_modules'+path.sep)[1]?.split(path.sep)[0] : ''}`;
     const action = new vscode.CodeAction(actionTitle, vscode.CodeActionKind.QuickFix);
-
     action.command = {
       title: `Import ${element.type} ${element.name}`,
       command: 'angular-auto-import.importElement',
-      arguments: [elementActualSelector]
+      arguments: [matchedSelector] // Use the matched selector for the command
     };
+    action.diagnostics = [diagnostic];
+    action.isPreferred = true; // Custom elements are usually preferred
+    return action;
+  }
 
-    if (diagnostic) {
-      action.diagnostics = [diagnostic];
-    }
-    // Prefer if it's a direct match for a component/directive or an exact match for a pipe
-    action.isPreferred = (elementActualSelector.toLowerCase() === originalTermFromDiagnostic.toLowerCase());
+  private createCodeActionForBuiltIn(
+      builtIn: BuiltInAngularElement,
+      termFromDiagnostic: string,
+      diagnostic: vscode.Diagnostic,
+      activeHtmlFileUri: vscode.Uri
+  ): vscode.CodeAction {
+    const actionTitle = `Import ${builtIn.className} from ${builtIn.sourcePackage} (for ${termFromDiagnostic})`;
+    const action = new vscode.CodeAction(actionTitle, vscode.CodeActionKind.QuickFix);
+    action.command = {
+        title: `Import ${builtIn.className}`,
+        command: 'angular-auto-import.importBuiltInElement',
+        arguments: [{ className: builtIn.className, sourcePackage: builtIn.sourcePackage, activeHtmlFileUri }]
+    };
+    action.diagnostics = [diagnostic];
+    action.isPreferred = true; // Built-ins are often what the user wants for common tasks
     return action;
   }
 }
