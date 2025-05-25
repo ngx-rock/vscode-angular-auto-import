@@ -15,17 +15,20 @@ interface ComponentInfo {
   lastModified: number;
   hash: string;
   type: 'component' | 'directive' | 'pipe';
+  isLibraryElement?: boolean; // Optional for backward compatibility with cache
 }
 
 class AngularElementData {
   path: string; // Relative to project root
   name: string;
   type: 'component' | 'directive' | 'pipe';
+  isLibraryElement: boolean;
 
-  constructor(path: string, name: string, type: 'component' | 'directive' | 'pipe') {
+  constructor(path: string, name: string, type: 'component' | 'directive' | 'pipe', isLibraryElement: boolean = false) {
     this.path = path;
     this.name = name;
     this.type = type;
+    this.isLibraryElement = isLibraryElement;
   }
 }
 
@@ -331,13 +334,20 @@ class AngularIndexer {
 
   private parseAngularElementWithTreeSitter(filePath: string, content: string): ComponentInfo | null {
     if (!this.projectRootPath) {
-      console.error("❌ AngularIndexer.projectRootPath is not set. Cannot determine relative path for Tree-sitter parsing.");
-      // Fallback or return null if projectRootPath is essential for relative path generation
-      return this.parseAngularElementWithRegex(filePath, content);
+      console.error("❌ AngularIndexer.projectRootPath is not set. Cannot determine relative path or library status for Tree-sitter parsing.");
+      return this.parseAngularElementWithRegex(filePath, content); // Regex also needs projectRootPath, but call it for consistency
     }
 
+    // Determine if the file is part of a library based on its absolute path
+    // A file is a library element if its path includes '/node_modules/' *and* this node_modules is relevant to the project root.
+    // Simple check: if 'node_modules' is in the path segments *after* the project root part.
+    const relativePathForLibCheck = path.relative(this.projectRootPath, filePath);
+    const isLibraryElement = relativePathForLibCheck.includes('node_modules') || filePath.includes(path.sep + 'node_modules' + path.sep);
+    // console.log(`File: ${filePath}, Relative: ${relativePathForLibCheck}, IsLibrary: ${isLibraryElement}`);
+
+
     try {
-      // console.log(`🔍 Parsing file with Tree-sitter: ${path.basename(filePath)}`);
+      // console.log(`🔍 Parsing file with Tree-sitter: ${path.basename(filePath)}, isLibrary: ${isLibraryElement}`);
       const tree = this.parser.parse(content);
       const rootNode = tree.rootNode;
       let foundElement: ComponentInfo | null = null;
@@ -375,26 +385,23 @@ class AngularIndexer {
         let elementType: 'component' | 'directive' | 'pipe' | undefined;
         let pipeNameValue: string | undefined;
 
+        // Attempt 1: Parse Decorators
         const decorators = classNode.children.filter(child => child.type === 'decorator');
-        // console.log(`🎨 Found ${decorators.length} decorators for ${elementName}`);
-
         for (const decoratorNode of decorators) {
           const callExprNode = decoratorNode.firstChild;
           if (callExprNode && callExprNode.type === 'call_expression') {
             const funcIdentNode = callExprNode.childForFieldName('function');
             if (funcIdentNode && funcIdentNode.type === 'identifier') {
-              const decoratorName = content.slice(funcIdentNode.startIndex, funcIdentNode.endIndex);
-              // console.log(`🏷️ Found decorator: @${decoratorName} for ${elementName}`);
-
-              if (decoratorName === 'Component') {
+              const decoratorNameText = content.slice(funcIdentNode.startIndex, funcIdentNode.endIndex);
+              if (decoratorNameText === 'Component') {
                 elementType = 'component';
                 selector = this.extractSelectorFromDecorator(callExprNode, content);
-                break;
-              } else if (decoratorName === 'Directive') {
+                break; 
+              } else if (decoratorNameText === 'Directive') {
                 elementType = 'directive';
                 selector = this.extractSelectorFromDecorator(callExprNode, content);
                 break;
-              } else if (decoratorName === 'Pipe') {
+              } else if (decoratorNameText === 'Pipe') {
                 elementType = 'pipe';
                 pipeNameValue = this.extractPipeNameFromDecorator(callExprNode, content);
                 break;
@@ -403,17 +410,63 @@ class AngularIndexer {
           }
         }
 
+        // Attempt 2: Parse static ɵcmp, ɵdir, ɵpipe properties if decorators didn't yield results
+        if (elementName && !elementType) { // Only proceed if decorators didn't define the type
+            const classBody = classNode.childForFieldName('body'); // class_body in tree-sitter
+            if (classBody) {
+                for (const memberNode of classBody.children) {
+                    if (memberNode.type === 'public_static_field_definition' || memberNode.type === 'field_definition') { // field_definition can also have static keyword
+                        let isStatic = memberNode.type === 'public_static_field_definition';
+                        if (memberNode.type === 'field_definition') {
+                            for (const child of memberNode.children) {
+                                if (child.type === 'static_keyword') isStatic = true;
+                            }
+                        }
+                        if (!isStatic) continue;
+
+                        const nameNode = memberNode.childForFieldName('name');
+                        const valueNode = memberNode.childForFieldName('value');
+
+                        if (nameNode && valueNode && nameNode.type === 'property_identifier') {
+                            const staticPropName = content.slice(nameNode.startIndex, nameNode.endIndex);
+                            // console.log(`Found static property: ${staticPropName} in ${elementName}`);
+                            
+                            if (valueNode.type === 'call_expression') {
+                                if (staticPropName === 'ɵcmp') {
+                                    elementType = 'component';
+                                    selector = this.extractArgumentFromStaticDeclaration(valueNode, 1, content); // Selector is usually 2nd arg (index 1)
+                                    // console.log(`Parsed ${elementName} as component via ɵcmp, selector: ${selector}`);
+                                    break;
+                                } else if (staticPropName === 'ɵdir') {
+                                    elementType = 'directive';
+                                    selector = this.extractArgumentFromStaticDeclaration(valueNode, 1, content); // Selector is usually 2nd arg (index 1)
+                                    // console.log(`Parsed ${elementName} as directive via ɵdir, selector: ${selector}`);
+                                    break;
+                                } else if (staticPropName === 'ɵpipe') {
+                                    elementType = 'pipe';
+                                    pipeNameValue = this.extractArgumentFromStaticDeclaration(valueNode, 1, content); // Pipe name is usually 2nd arg (index 1)
+                                    // console.log(`Parsed ${elementName} as pipe via ɵpipe, name: ${pipeNameValue}`);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         if (elementName && elementType) {
           const finalSelector = elementType === 'pipe' ? pipeNameValue : selector;
           if (finalSelector) {
-            // console.log(`✅ Successfully parsed ${elementType}: ${elementName} with selector: ${finalSelector}`);
+            // console.log(`✅ Successfully parsed ${elementType} (${filePath.endsWith('.d.ts')? 'd.ts' : 'ts'}): ${elementName} with selector: ${finalSelector}`);
             return {
-              path: path.relative(this.projectRootPath, filePath),
+              path: path.relative(this.projectRootPath, filePath), // Store path relative to project root
               name: elementName,
               selector: finalSelector,
               lastModified: fs.statSync(filePath).mtime.getTime(),
               hash: this.generateHash(content),
-              type: elementType
+              type: elementType,
+              isLibraryElement: isLibraryElement
             };
           } else {
             // console.log(`⚠️ No selector/name found for ${elementType}: ${elementName} in ${path.basename(filePath)}`);
@@ -448,18 +501,30 @@ class AngularIndexer {
   private extractSelectorFromDecorator(decoratorCallExpressionNode: Parser.SyntaxNode, content: string): string | undefined {
     const argsNode = decoratorCallExpressionNode.childForFieldName('arguments');
     if (argsNode) {
-      const objectNode = argsNode.children.find((child: Parser.SyntaxNode) => child.type === 'object');
+      // First child of arguments is usually an 'object' node containing properties
+      const objectNode = argsNode.children.find((child: Parser.SyntaxNode) => child.type === 'object' || child.type === 'object_pattern');
       if (objectNode) {
         for (const propNode of objectNode.children) {
+          // Properties can be 'property_assignment' or 'pair' (in some contexts like JSON-like objects)
           if (propNode.type === 'property_assignment' || propNode.type === 'pair') {
-            const nameNode = propNode.childForFieldName('key') || propNode.children.find(c => c.type === 'property_identifier');
-            const valueNode = propNode.childForFieldName('value') || propNode.children.find(c => c.type === 'string');
+            const nameNode = propNode.childForFieldName('key') || propNode.children.find(c => c.type === 'property_identifier' || c.type === 'identifier');
+            const valueNode = propNode.childForFieldName('value');
 
-            if (nameNode && valueNode && (nameNode.type === 'property_identifier' || nameNode.type === 'identifier') && valueNode.type === 'string') {
+            if (nameNode && valueNode) {
               const propName = content.slice(nameNode.startIndex, nameNode.endIndex);
               if (propName === 'selector') {
-                const selectorValue = content.slice(valueNode.startIndex, valueNode.endIndex);
-                return selectorValue.slice(1, -1);
+                // Value node can be a 'string' or 'template_string'
+                if (valueNode.type === 'string') {
+                  const selectorValue = content.slice(valueNode.startIndex, valueNode.endIndex);
+                  return selectorValue.slice(1, -1); // Remove quotes
+                } else if (valueNode.type === 'template_string') {
+                     // Template strings are `template_content` for tree-sitter-typescript
+                     // For simple template strings like `selector: \`my-selector\``
+                     const templateContent = valueNode.children.find(c => c.type === 'string_fragment' || c.type === 'template_content');
+                     if (templateContent) {
+                         return content.slice(templateContent.startIndex, templateContent.endIndex);
+                     }
+                }
               }
             }
           }
@@ -472,18 +537,25 @@ class AngularIndexer {
   private extractPipeNameFromDecorator(decoratorCallExpressionNode: Parser.SyntaxNode, content: string): string | undefined {
     const argsNode = decoratorCallExpressionNode.childForFieldName('arguments');
     if (argsNode) {
-      const objectNode = argsNode.children.find((child: Parser.SyntaxNode) => child.type === 'object');
+      const objectNode = argsNode.children.find((child: Parser.SyntaxNode) => child.type === 'object' || child.type === 'object_pattern');
       if (objectNode) {
         for (const propNode of objectNode.children) {
           if (propNode.type === 'property_assignment' || propNode.type === 'pair') {
-            const nameNode = propNode.childForFieldName('key') || propNode.children.find(c => c.type === 'property_identifier');
-            const valueNode = propNode.childForFieldName('value') || propNode.children.find(c => c.type === 'string');
-
-            if (nameNode && valueNode && (nameNode.type === 'property_identifier' || nameNode.type === 'identifier') && valueNode.type === 'string') {
+            const nameNode = propNode.childForFieldName('key') || propNode.children.find(c => c.type === 'property_identifier' || c.type === 'identifier');
+            const valueNode = propNode.childForFieldName('value');
+            
+            if (nameNode && valueNode) {
               const propName = content.slice(nameNode.startIndex, nameNode.endIndex);
               if (propName === 'name') {
-                const nameValue = content.slice(valueNode.startIndex, valueNode.endIndex);
-                return nameValue.slice(1, -1);
+                if (valueNode.type === 'string') {
+                  const nameValue = content.slice(valueNode.startIndex, valueNode.endIndex);
+                  return nameValue.slice(1, -1); // Remove quotes
+                } else if (valueNode.type === 'template_string') {
+                    const templateContent = valueNode.children.find(c => c.type === 'string_fragment' || c.type === 'template_content');
+                    if (templateContent) {
+                        return content.slice(templateContent.startIndex, templateContent.endIndex);
+                    }
+                }
               }
             }
           }
@@ -493,11 +565,42 @@ class AngularIndexer {
     return undefined;
   }
 
+  // Helper for static ɵcmp, ɵdir, ɵpipe declarations
+  private extractArgumentFromStaticDeclaration(callExpressionNode: Parser.SyntaxNode, argumentIndex: number, content: string): string | undefined {
+    const argsNode = callExpressionNode.childForFieldName('arguments');
+    if (argsNode && argsNode.children.length > argumentIndex) {
+        const targetArgNode = argsNode.children[argumentIndex];
+        // Argument can be a 'string' (e.g. "my-selector") or 'identifier' (e.g. referring to a const)
+        // or template_string
+        if (targetArgNode) {
+            if (targetArgNode.type === 'string') {
+                const argValue = content.slice(targetArgNode.startIndex, targetArgNode.endIndex);
+                return argValue.slice(1, -1); // Remove quotes
+            } else if (targetArgNode.type === 'template_string') {
+                // For simple template strings like \`my-selector\`
+                const templateContent = targetArgNode.children.find(c => c.type === 'string_fragment' || c.type === 'template_content');
+                if (templateContent) {
+                    return content.slice(templateContent.startIndex, templateContent.endIndex);
+                }
+            }
+            // Less commonly, it might be an identifier if the selector is defined as a const elsewhere,
+            // or an array_literal (e.g. for `exportAs`). For selectors, we mostly expect strings.
+            // console.log(`Static declaration argument type not handled: ${targetArgNode.type} for index ${argumentIndex}`);
+        }
+    }
+    return undefined;
+  }
+
   private parseAngularElementWithRegex(filePath: string, content: string): ComponentInfo | null {
     if (!this.projectRootPath) {
-      console.error("AngularIndexer.projectRootPath is not set for regex parsing. Cannot determine relative path.");
+      console.error("AngularIndexer.projectRootPath is not set for regex parsing. Cannot determine relative path or library status.");
       return null;
     }
+
+    const relativePathForLibCheck = path.relative(this.projectRootPath, filePath);
+    const isLibraryElement = relativePathForLibCheck.includes('node_modules') || filePath.includes(path.sep + 'node_modules' + path.sep);
+    // console.log(`File (regex): ${filePath}, Relative: ${relativePathForLibCheck}, IsLibrary: ${isLibraryElement}`);
+
     const selectorRegex = /selector:\s*['"]([^'"]*)['"]/;
     const pipeNameRegex = /name:\s*['"]([^'"]*)['"]/;
     const classNameRegex = /export\s+class\s+(\w+)/;
@@ -521,12 +624,13 @@ class AngularIndexer {
 
     if (selector) {
       return {
-        path: path.relative(this.projectRootPath, filePath),
+        path: path.relative(this.projectRootPath, filePath), // Store path relative to project root
         name: classNameMatch[1],
         selector,
         lastModified: fs.statSync(filePath).mtime.getTime(),
         hash: this.generateHash(content),
-        type: elementType
+        type: elementType,
+        isLibraryElement: isLibraryElement
       };
     }
     return null;
@@ -575,17 +679,20 @@ class AngularIndexer {
       const parsed = this.parseAngularElementWithTreeSitter(filePath, content);
 
       if (parsed) {
-        if (cached && cached.selector !== parsed.selector) { // Selector might change
+        if (cached && cached.selector !== parsed.selector) {
           this.selectorToElement.delete(cached.selector);
         }
-        this.fileCache.set(filePath, parsed);
-        this.selectorToElement.set(parsed.selector, new AngularElementData(parsed.path, parsed.name, parsed.type));
-        console.log(`Updated index: ${parsed.selector} (${parsed.type}) -> ${parsed.path}`);
+        this.fileCache.set(filePath, parsed); // parsed now contains isLibraryElement
+        this.selectorToElement.set(
+            parsed.selector,
+            new AngularElementData(parsed.path, parsed.name, parsed.type, parsed.isLibraryElement || false)
+        );
+        console.log(`Updated index: ${parsed.selector} (${parsed.type}${parsed.isLibraryElement ? ', lib' : ''}) -> ${parsed.path}`);
       } else {
         if (cached) {
           this.fileCache.delete(filePath);
           this.selectorToElement.delete(cached.selector);
-          console.log(`Removed from index (parse failed or no longer valid): ${cached.selector} from ${filePath}`);
+          console.log(`Removed from index (parse failed/no longer valid): ${cached.selector} from ${filePath}`);
         }
       }
       await this.saveIndexToWorkspace(context);
@@ -635,9 +742,10 @@ class AngularIndexer {
 
       if (storedCache && storedIndex) {
         this.fileCache = new Map(Object.entries(storedCache));
+        // Ensure isLibraryElement is handled, defaulting to false if not present in old cache
         this.selectorToElement = new Map(Object.entries(storedIndex).map(([key, value]) => [
           key,
-          new AngularElementData(value.path, value.name, value.type)
+          new AngularElementData(value.path, value.name, value.type, value.isLibraryElement || false)
         ]));
         console.log(`AngularIndexer: Loaded ${this.selectorToElement.size} elements from workspace cache.`);
         // Ensure projectRootPath is set if loading from cache, it might not be set yet if extension just started
@@ -679,7 +787,10 @@ class AngularIndexer {
   }
 
   private getAngularFiles(basePath: string): string[] {
-    const angularFiles: string[] = [];
+    const projectAngularFiles: string[] = []; // For files relative to project root
+    const libraryAngularFiles: string[] = []; // For absolute paths from node_modules
+
+    // --- Part 1: Scan project files (excluding node_modules initially) ---
     const gitIgnorePath = path.join(basePath, '.gitignore');
     let gitIgnorePatterns: string[] = [];
 
@@ -690,80 +801,215 @@ class AngularIndexer {
             .map(line => line.trim())
             .filter(line => line && !line.startsWith('#'));
       } catch (e) {
-        console.warn("Could not read or parse .gitignore", e);
+        console.warn("Could not read or parse .gitignore for project files", e);
       }
     }
 
-    // Convert basic gitignore patterns to regex. For robust solution, use a library like 'ignore'.
     const gitIgnoreRegexes = gitIgnorePatterns.map(pattern => {
-      // Basic conversion:
-      // Ends with / -> directory
-      // Starts with / -> root
-      // * -> [^/]*
-      // ** -> .*
       let regexPattern = pattern;
-      if (regexPattern.startsWith('/')) regexPattern = '^' + regexPattern.substring(1); // Anchor to root
-      else if (!regexPattern.includes('/')) regexPattern = '(?:^|/)' + regexPattern; // Match anywhere if no slash
-
-      regexPattern = regexPattern
-          .replace(/\./g, '\\.')
-          .replace(/\*\*/g, '.*') // Greedy match for **
-          .replace(/\*/g, '[^/]*') // Non-greedy for * within path segment
-          .replace(/\?/g, '[^/]');
-
-      if (regexPattern.endsWith('/')) regexPattern += '.*'; // Match anything inside a dir
-      else regexPattern += '(?:$|/.*)'; // Match file or anything inside if it's a dir pattern without trailing /
-
-      try {
-        return new RegExp(regexPattern);
-      } catch (e) {
-        // console.warn(`Invalid gitignore pattern converted to regex: ${pattern}`, e);
-        return null;
-      }
+      if (regexPattern.startsWith('/')) regexPattern = '^' + regexPattern.substring(1);
+      else if (!regexPattern.includes('/')) regexPattern = '(?:^|/)' + regexPattern;
+      regexPattern = regexPattern.replace(/\./g, '\\.').replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]');
+      if (regexPattern.endsWith('/')) regexPattern += '.*';
+      else regexPattern += '(?:$|/.*)';
+      try { return new RegExp(regexPattern); } catch (e) { return null; }
     }).filter(r => r !== null) as RegExp[];
 
-
     const isGitIgnored = (relativePath: string): boolean => {
-      // Normalize path separators for comparison
       const normalizedPath = relativePath.replace(/\\/g, '/');
       return gitIgnoreRegexes.some(regex => regex.test(normalizedPath));
     };
 
-    const excludedDirs = new Set(['node_modules', '.git', 'dist', 'build', 'out', '.vscode', '.angular']);
+    const projectExcludedDirs = new Set(['node_modules', '.git', 'dist', 'build', 'out', '.vscode', '.angular']); // Standard exclusions for project scan
 
-    const traverseDirectory = (currentDirPath: string) => {
+    const traverseProjectDirectory = (currentDirPath: string) => {
       try {
         const files = fs.readdirSync(currentDirPath);
         files.forEach((file) => {
           const fullPath = path.join(currentDirPath, file);
           const relativePathToRoot = path.relative(basePath, fullPath);
 
-          if (isGitIgnored(relativePathToRoot)) {
-            return;
-          }
+          if (isGitIgnored(relativePathToRoot)) return;
 
           try {
             const stat = fs.statSync(fullPath);
             if (stat.isDirectory()) {
-              if (!excludedDirs.has(file)) {
-                traverseDirectory(fullPath);
+              if (!projectExcludedDirs.has(file)) { // Use project specific exclusions
+                traverseProjectDirectory(fullPath);
               }
             } else if (file.match(/\.(component|directive|pipe)\.ts$/)) {
-              angularFiles.push(relativePathToRoot);
+              projectAngularFiles.push(relativePathToRoot); // Store relative path for project files
             }
-          } catch (error) {
-            // console.warn(`Skipping ${fullPath} due to stat error:`, error);
+          } catch (statError) {
+            // console.warn(`Skipping ${fullPath} in project scan due to stat error:`, statError);
           }
         });
-      } catch (error) {
-        // console.warn(`Error reading directory ${currentDirPath}:`, error);
+      } catch (readDirError) {
+        // console.warn(`Error reading project directory ${currentDirPath}:`, readDirError);
       }
     };
 
     if (fs.existsSync(basePath) && fs.statSync(basePath).isDirectory()) {
-      traverseDirectory(basePath);
+      console.log(`AngularIndexer: Scanning project path for Angular files: ${basePath}`);
+      traverseProjectDirectory(basePath);
+      console.log(`AngularIndexer: Found ${projectAngularFiles.length} potential Angular files in project (excluding node_modules).`);
     }
-    return angularFiles;
+
+    // --- Part 2: Scan node_modules for library files ---
+    console.log(`AngularIndexer: Starting scan of node_modules dependencies in ${basePath}`);
+    const packageJsonPath = path.join(basePath, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      try {
+        const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf-8');
+        const packageJson = JSON.parse(packageJsonContent);
+        // As per requirement, only 'dependencies'. If 'devDependencies' are needed, they can be added.
+        const dependencies = packageJson.dependencies || {};
+
+        for (const depName in dependencies) {
+          const libPath = path.join(basePath, 'node_modules', depName);
+          if (!fs.existsSync(libPath) || !fs.statSync(libPath).isDirectory()) {
+            // console.log(`AngularIndexer: Dependency ${depName} not found or not a directory at ${libPath}`);
+            continue;
+          }
+
+          const libPackageJsonPath = path.join(libPath, 'package.json');
+          let libPackageJson: any = {};
+          if (fs.existsSync(libPackageJsonPath)) {
+            try {
+                 libPackageJson = JSON.parse(fs.readFileSync(libPackageJsonPath, 'utf-8'));
+            } catch (e) {
+                console.warn(`AngularIndexer: Could not parse package.json for ${depName}`, e);
+            }
+          }
+            
+          const entryPointDirectories: Set<string> = new Set(); // Stores absolute paths to directories to scan
+
+          const addDirContainingFile = (filePathField: string | undefined) => {
+            if (filePathField) {
+              const dir = path.dirname(path.resolve(libPath, filePathField)); 
+              if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
+                entryPointDirectories.add(dir);
+              }
+            }
+          };
+            
+          const addDirIfExists = (dirPathField: string | undefined) => {
+              if (dirPathField) {
+                  const absoluteDirPath = path.resolve(libPath, dirPathField);
+                  if(fs.existsSync(absoluteDirPath) && fs.statSync(absoluteDirPath).isDirectory()){
+                      entryPointDirectories.add(absoluteDirPath);
+                  }
+              }
+          };
+
+          addDirContainingFile(libPackageJson.typings);
+          addDirContainingFile(libPackageJson.types);
+          addDirContainingFile(libPackageJson.module);
+          addDirContainingFile(libPackageJson.main); 
+
+          if (libPackageJson.exports) {
+            const exportsField = libPackageJson.exports;
+            if (typeof exportsField === 'string') {
+              addDirContainingFile(exportsField);
+            } else if (typeof exportsField === 'object' && exportsField !== null) {
+              Object.values(exportsField).forEach((value: any) => {
+                if (typeof value === 'string') {
+                  addDirContainingFile(value);
+                } else if (typeof value === 'object' && value !== null) {
+                  addDirContainingFile(value.types);
+                  addDirContainingFile(value.import);
+                  addDirContainingFile(value.default);
+                }
+              });
+            }
+          }
+            
+          if (entryPointDirectories.size === 0) { 
+              const commonLibDirs = ['dist', 'lib', 'esm2015', 'fesm2015', 'esm5', 'fesm5', 'bundles', 'src', 'out', 'release'];
+              commonLibDirs.forEach(dir => addDirIfExists(dir));
+          }
+          entryPointDirectories.add(libPath); // Always consider the root
+
+          const scannedFilesForLib = new Set<string>(); 
+          const visitedDirsForLib = new Set<string>();
+
+          const traverseLibraryDirectory = (currentLibScanPath: string, depth: number = 0) => {
+            if (depth > 7 || visitedDirsForLib.has(currentLibScanPath)) { 
+                return; 
+            }
+            visitedDirsForLib.add(currentLibScanPath);
+
+            try {
+              const items = fs.readdirSync(currentLibScanPath);
+              items.forEach((item) => {
+                const fullItemPath = path.resolve(currentLibScanPath, item); 
+                
+                if (item === 'node_modules' || item === '.git' || item.startsWith('.')) { 
+                    return;
+                }
+
+                try {
+                  const stat = fs.statSync(fullItemPath);
+                  if (stat.isDirectory()) {
+                    const lowerItem = item.toLowerCase();
+                    if (!['test', 'tests', 'doc', 'docs', 'e2e', 'examples', '__tests__', 'spec', 'fixture', 'fixtures', 'demo', 'sample', 'samples', 'assets', 'coverage', 'scripts', 'tools', 'benchmark', 'jest', 'storybook', '.github', '.husky'].includes(lowerItem)) {
+                      traverseLibraryDirectory(fullItemPath, depth + 1);
+                    }
+                  } else if (stat.isFile() && (fullItemPath.endsWith('.d.ts') || fullItemPath.endsWith('.ts'))) {
+                    // Prioritize .d.ts by checking for it first, or by specific logic if needed.
+                    // For now, just add if it matches the extension and potentially content.
+                    // The filename check is loose; parsing will confirm.
+                    if (item.match(/(\.component|\.directive|\.pipe)\.(d\.ts|ts)$/) || contentMightBeAngular(fullItemPath, fullItemPath.endsWith('.d.ts'))) {
+                       if(!scannedFilesForLib.has(fullItemPath)){ 
+                          libraryAngularFiles.push(fullItemPath); 
+                          scannedFilesForLib.add(fullItemPath);
+                       }
+                    }
+                  }
+                } catch (itemStatError: any) {
+                  // console.warn(`Skipping ${fullItemPath} in library ${depName} due to stat error:`, itemStatError.code || itemStatError.message);
+                }
+              });
+            } catch (libDirError: any) {
+              // console.warn(`Error reading library directory ${currentLibScanPath} for ${depName}:`, libDirError.code || libDirError.message);
+            }
+          };
+            
+          const contentMightBeAngular = (filePath: string, isDts: boolean): boolean => {
+              try {
+                  const content = fs.readFileSync(filePath, 'utf-8');
+                  if (isDts) {
+                      return content.includes('@Component') || content.includes('@Directive') || content.includes('@Pipe') ||
+                             content.includes('ngComponentDef') || content.includes('ngDirectiveDef') || content.includes('ngPipeDef') ||
+                             (content.includes('selector:') && content.includes('class ')) || 
+                             (content.includes('template:') && content.includes('class '));
+                  } else {
+                      return content.includes('@Component') || content.includes('@Directive') || content.includes('@Pipe');
+                  }
+              } catch (e) {
+                  // console.warn(`Could not read ${filePath} for content check:`, e);
+                  return false; 
+              }
+          };
+
+          const uniqueEntryPoints = Array.from(entryPointDirectories);
+          uniqueEntryPoints.forEach(entryDir => {
+            traverseLibraryDirectory(entryDir);
+          });
+
+          if (scannedFilesForLib.size > 0) {
+              console.log(`AngularIndexer: Found ${scannedFilesForLib.size} potential Angular files in library ${depName}.`);
+          }
+
+        }
+      } catch (packageJsonError) {
+        console.error(`AngularIndexer: Error reading or parsing project package.json at ${packageJsonPath}:`, packageJsonError);
+      }
+    } else {
+        console.log(`AngularIndexer: No package.json found at ${packageJsonPath}, skipping node_modules scan.`);
+    }
+    console.log(`AngularIndexer: Total library files found: ${libraryAngularFiles.length}`);
+    return [...projectAngularFiles, ...libraryAngularFiles];
   }
 
   dispose() {
@@ -809,39 +1055,77 @@ function importElementToFile(element: AngularElementData, componentFilePathAbs: 
       return false;
     }
 
-    // element.path is relative to project root, e.g., "src/app/my.component.ts"
-    const absoluteTargetModulePath = path.join(currentProjectPath, element.path);
-    const absoluteTargetModulePathNoExt = switchFileType(absoluteTargetModulePath, ''); // e.g., /project/src/app/my.component
+    let importPathString: string;
 
-    const tsConfig = getGlobalTsConfig();
-    const importPathString = TsConfigHelper.resolveImportPath(
-        absoluteTargetModulePathNoExt,
-        componentFilePathAbs,
-        tsConfig,
-        currentProjectPath
-    );
-    console.log(`Resolved import path for ${element.name}: '${importPathString}'`);
+    if (element.isLibraryElement) {
+      // element.path is relative to project root, e.g., "../node_modules/my-lib/..." or "node_modules/my-lib/..."
+      // Need to extract 'my-lib' or '@scope/my-lib'
+      const pathSegments = element.path.replace(/\\/g, '/').split('/'); // Normalize and split
+      let nodeModulesIndex = -1;
+      for(let i = 0; i < pathSegments.length; i++) {
+        if (pathSegments[i] === 'node_modules') {
+          nodeModulesIndex = i;
+          break;
+        }
+      }
+
+      if (nodeModulesIndex !== -1 && pathSegments.length > nodeModulesIndex + 1) {
+        const firstSegmentAfterNodeModules = pathSegments[nodeModulesIndex + 1];
+        if (firstSegmentAfterNodeModules.startsWith('@')) { // Scoped package
+          if (pathSegments.length > nodeModulesIndex + 2) {
+            importPathString = `${firstSegmentAfterNodeModules}/${pathSegments[nodeModulesIndex + 2]}`;
+          } else {
+            // This case implies a path like ".../node_modules/@scope" which is incomplete
+            console.warn(`Potentially incomplete scoped package name for ${element.name} from path ${element.path}. Defaulting to the scope name.`);
+            importPathString = firstSegmentAfterNodeModules; 
+          }
+        } else { // Non-scoped package
+          importPathString = firstSegmentAfterNodeModules;
+        }
+      } else {
+        console.error(`Could not determine library name for ${element.name} from path ${element.path}. Falling back to relative pathing.`);
+        // Fallback to old behavior if library name extraction fails (should be rare)
+        const absoluteTargetModulePath = path.join(currentProjectPath, element.path);
+        const absoluteTargetModulePathNoExt = switchFileType(absoluteTargetModulePath, '');
+        const tsConfig = getGlobalTsConfig();
+        importPathString = TsConfigHelper.resolveImportPath(absoluteTargetModulePathNoExt, componentFilePathAbs, tsConfig, currentProjectPath);
+      }
+      console.log(`Resolved library import path for ${element.name}: '${importPathString}' from element path ${element.path}`);
+
+    } else { // Project local element (not a library element)
+      const absoluteTargetModulePath = path.join(currentProjectPath, element.path);
+      const absoluteTargetModulePathNoExt = switchFileType(absoluteTargetModulePath, '');
+      const tsConfig = getGlobalTsConfig();
+      importPathString = TsConfigHelper.resolveImportPath(
+          absoluteTargetModulePathNoExt,
+          componentFilePathAbs,
+          tsConfig,
+          currentProjectPath
+      );
+      console.log(`Resolved project import path for ${element.name}: '${importPathString}'`);
+    }
 
     let importStr = `import { ${element.name} } from '${importPathString}';\n`;
     const fileContents = fs.readFileSync(componentFilePathAbs, 'utf-8');
 
-    // Escape special characters in importPathString for regex
+    // Regex to check if the exact element from the exact path is already imported
     const escapedImportPathString = importPathString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const importRegex = new RegExp(
+    const specificImportRegex = new RegExp(
         `import\\s*{[^}]*\\b${element.name}\\b[^}]*}\\s*from\\s*['"]${escapedImportPathString}['"]`, 'g'
     );
-    const simplerImportRegex = new RegExp(`import\\s*{[^}]*\\b${element.name}\\b[^}]*}\\s*from`);
 
-    if (simplerImportRegex.test(fileContents)) {
+    // Simpler regex to check if the element name is imported from *anywhere*
+    const generalImportRegex = new RegExp(`import\\s*{[^}]*\\b${element.name}\\b[^}]*}\\s*from`);
+
+    if (generalImportRegex.test(fileContents)) {
       console.log(`${element.name} seems to be already imported or a class with the same name is imported.`);
-      if (importRegex.test(fileContents)) {
+      if (specificImportRegex.test(fileContents)) {
         console.log(`${element.name} is already correctly imported from '${importPathString}'.`);
       } else {
-        console.log(`${element.name} is imported, but from a different path. Consider manual review if alias is preferred.`);
-        // Optionally, here you could offer to replace the existing import if it's not using the preferred alias.
-        // For now, we don't automatically replace.
+        console.log(`${element.name} is imported, but from a different path. Consider manual review.`);
+        // Potentially, we could offer to replace the import, but for now, we don't.
       }
-      // Still try to add to @Component.imports if not there
+      // Still try to add to @Component.imports if not there, as it might be imported but not used in template.
       const newFileContentsWithAnnotation = addImportToAnnotation(element, fileContents);
       if (newFileContentsWithAnnotation !== fileContents) {
         fs.writeFileSync(componentFilePathAbs, newFileContentsWithAnnotation);
