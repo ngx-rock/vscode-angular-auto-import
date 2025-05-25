@@ -97,104 +97,116 @@ class AngularIndexer {
   /**
    * Parse Angular element using Tree-sitter
    */
-  private parseAngularElementWithTreeSitter(filePath: string, content: string): ComponentInfo | null {
-    if (!this.projectRootPath) {
-      console.error("AngularIndexer.projectRootPath is not set. Cannot determine relative path.");
-      // Attempt to use a fallback or simply return null if critical
-      // For now, let's assume it should have been set by `activate`
-      // If this error occurs, it's a bug in the initialization sequence.
-      return this.parseAngularElementWithRegex(filePath, content); // Fallback or could throw
-    }
-    try {
-      const tree = this.parser.parse(content);
-      const rootNode = tree.rootNode;
-      let foundElement: ComponentInfo | null = null;
+private parseAngularElementWithTreeSitter(filePath: string, content: string): ComponentInfo | null {
+  if (!this.projectRootPath) {
+    console.error("❌ AngularIndexer.projectRootPath is not set. Cannot determine relative path.");
+    return this.parseAngularElementWithRegex(filePath, content);
+  }
+  
+  try {
+    console.log(`🔍 Parsing file with Tree-sitter: ${path.basename(filePath)}`);
+    const tree = this.parser.parse(content);
+    const rootNode = tree.rootNode;
+    let foundElement: ComponentInfo | null = null;
 
-      const findClassInfo = (classNode: Parser.SyntaxNode): ComponentInfo | null => {
-        let elementName: string | undefined;
-        let isExported = false;
+    const findClassInfo = (classNode: Parser.SyntaxNode): ComponentInfo | null => {
+      let elementName: string | undefined;
+      let isExported = false;
 
-        // Check for export: export class MyClass ...
-        // For `export class X {}`, class_declaration is typically a child of export_statement.
-        if (classNode.parent && classNode.parent.type === 'export_statement') {
-          // Check if this class_declaration is the main declaration of the export_statement
-          // This handles `export class Foo {}` and `export default class Foo {}`
-          if (classNode.parent.childForFieldName('declaration') === classNode ||
-              classNode.parent.children.some(child => child === classNode)) { // General check
-            isExported = true;
-          }
+      // Check for export
+      if (classNode.parent && classNode.parent.type === 'export_statement') {
+        if (classNode.parent.childForFieldName('declaration') === classNode ||
+            classNode.parent.children.some(child => child === classNode)) {
+          isExported = true;
         }
+      }
 
-        const nameIdentifier = classNode.childForFieldName('name');
-        if (nameIdentifier && nameIdentifier.type === 'identifier') {
-          elementName = content.slice(nameIdentifier.startIndex, nameIdentifier.endIndex);
-        }
+      const nameIdentifier = classNode.childForFieldName('name');
+      if (nameIdentifier && nameIdentifier.type === 'identifier') {
+        elementName = content.slice(nameIdentifier.startIndex, nameIdentifier.endIndex);
+      }
 
-        if (!isExported || !elementName) return null;
+      if (!isExported || !elementName) {
+        console.log(`⚠️ Class ${elementName || 'unknown'} is not exported or has no name`);
+        return null;
+      }
 
-        let selector: string | undefined;
-        let elementType: 'component' | 'directive' | 'pipe' | undefined;
-        let pipeNameValue: string | undefined;
+      console.log(`✅ Found exported class: ${elementName}`);
 
-        const decorators = classNode.children.filter(child => child.type === 'decorator');
+      let selector: string | undefined;
+      let elementType: 'component' | 'directive' | 'pipe' | undefined;
+      let pipeNameValue: string | undefined;
 
-        for (const decoratorNode of decorators) {
-          const callExprNode = decoratorNode.firstChild; // Decorator is @Expr or @Expr()
-          if (callExprNode && callExprNode.type === 'call_expression') {
-            const funcIdentNode = callExprNode.childForFieldName('function');
-            if (funcIdentNode && funcIdentNode.type === 'identifier') {
-              const decoratorName = content.slice(funcIdentNode.startIndex, funcIdentNode.endIndex);
+      const decorators = classNode.children.filter(child => child.type === 'decorator');
+      console.log(`🎨 Found ${decorators.length} decorators`);
 
-              if (decoratorName === 'Component') {
-                elementType = 'component';
-                selector = this.extractSelectorFromDecorator(callExprNode, content);
-                break;
-              } else if (decoratorName === 'Directive') {
-                elementType = 'directive';
-                selector = this.extractSelectorFromDecorator(callExprNode, content);
-                break;
-              } else if (decoratorName === 'Pipe') {
-                elementType = 'pipe';
-                pipeNameValue = this.extractPipeNameFromDecorator(callExprNode, content);
-                break;
-              }
+      for (const decoratorNode of decorators) {
+        const callExprNode = decoratorNode.firstChild;
+        if (callExprNode && callExprNode.type === 'call_expression') {
+          const funcIdentNode = callExprNode.childForFieldName('function');
+          if (funcIdentNode && funcIdentNode.type === 'identifier') {
+            const decoratorName = content.slice(funcIdentNode.startIndex, funcIdentNode.endIndex);
+            console.log(`🏷️ Found decorator: @${decoratorName}`);
+
+            if (decoratorName === 'Component') {
+              elementType = 'component';
+              selector = this.extractSelectorFromDecorator(callExprNode, content);
+              break;
+            } else if (decoratorName === 'Directive') {
+              elementType = 'directive';
+              selector = this.extractSelectorFromDecorator(callExprNode, content);
+              break;
+            } else if (decoratorName === 'Pipe') {
+              elementType = 'pipe';
+              pipeNameValue = this.extractPipeNameFromDecorator(callExprNode, content);
+              break;
             }
           }
         }
+      }
 
-        if (elementName && elementType) {
-          const finalSelector = elementType === 'pipe' ? pipeNameValue : selector;
-          if (finalSelector) {
-            return {
-              path: path.relative(this.projectRootPath, filePath),
-              name: elementName,
-              selector: finalSelector,
-              lastModified: fs.statSync(filePath).mtime.getTime(),
-              hash: this.generateHash(content),
-              type: elementType
-            };
-          }
+      if (elementName && elementType) {
+        const finalSelector = elementType === 'pipe' ? pipeNameValue : selector;
+        if (finalSelector) {
+          console.log(`✅ Successfully parsed ${elementType}: ${elementName} with selector: ${finalSelector}`);
+          return {
+            path: path.relative(this.projectRootPath, filePath),
+            name: elementName,
+            selector: finalSelector,
+            lastModified: fs.statSync(filePath).mtime.getTime(),
+            hash: this.generateHash(content),
+            type: elementType
+          };
+        } else {
+          console.log(`⚠️ No selector found for ${elementType}: ${elementName}`);
         }
-        return null;
-      };
+      }
+      return null;
+    };
 
-      this.traverseNode(rootNode, (node) => {
-        if (foundElement) return; // Optimization: assume one main Angular element per file
+    this.traverseNode(rootNode, (node) => {
+      if (foundElement) return;
 
-        if (node.type === 'class_declaration') {
-          const info = findClassInfo(node);
-          if (info) {
-            foundElement = info;
-          }
+      if (node.type === 'class_declaration') {
+        const info = findClassInfo(node);
+        if (info) {
+          foundElement = info;
         }
-      });
+      }
+    });
 
-      return foundElement;
-    } catch (error) {
-      console.error(`Tree-sitter parsing error for ${filePath}:`, error);
-      return this.parseAngularElementWithRegex(filePath, content); // Fallback to regex
+    if (!foundElement) {
+      console.log(`⚠️ Tree-sitter parsing failed for ${path.basename(filePath)}, trying regex fallback`);
+      return this.parseAngularElementWithRegex(filePath, content);
     }
+
+    return foundElement;
+  } catch (error) {
+    console.error(`❌ Tree-sitter parsing error for ${filePath}:`, error);
+    return this.parseAngularElementWithRegex(filePath, content);
   }
+}
+
 
   /**
    * Extract selector from @Component or @Directive decorator
@@ -777,142 +789,202 @@ function determineProjectPath(): string { // Renamed from getProjectPath
 
 export async function activate(activationContext: vscode.ExtensionContext) {
   try {
-    getConfiguration(); // Load configuration settings, including reindexInterval
-    currentProjectPath = determineProjectPath(); // Determine and set global currentProjectPath
+    console.log('🚀 Angular Auto-Import: Starting activation...');
+
+    getConfiguration();
+    currentProjectPath = determineProjectPath();
+    console.log(`📁 Project path: ${currentProjectPath}`);
 
     angularIndexer = new AngularIndexer();
-    // Set project path for the indexer instance *before* any operations that might need it
     angularIndexer.setProjectRoot(currentProjectPath);
 
-    await setAngularDataIndex(activationContext); // This will also init watcher
+    await setAngularDataIndex(activationContext);
 
+    // ВАЖНО: Проверим, что индекс не пустой
+    let indexSize = Array.from(angularIndexer.getAllSelectors()).length;
+    console.log(`📊 Index size after initialization: ${indexSize} elements`);
+
+    if (indexSize === 0) {
+      console.warn('⚠️ Warning: Index is empty! Forcing reindex...');
+      await generateIndex(activationContext);
+      const newIndexSize = Array.from(angularIndexer.getAllSelectors()).length;
+      console.log(`📊 Index size after forced reindex: ${newIndexSize} elements`);
+    }
+
+    // Periodic reindexing
     if (interval) {
       clearInterval(interval);
     }
 
-    if (reindexInterval > 0) { // Check if interval is positive
+    if (reindexInterval > 0) {
       interval = setInterval(async () => {
         try {
-          console.log('Periodic reindexing triggered...');
+          console.log('🔄 Periodic reindexing triggered...');
           await generateIndex(activationContext);
         } catch (error) {
-          console.error('Error during periodic reindexing:', error);
+          console.error('❌ Error during periodic reindexing:', error);
         }
-      }, reindexInterval * 1000 * 60); // Interval is in minutes
-    } else {
-      console.log('Periodic reindexing is disabled (interval is 0 or less).');
+      }, reindexInterval * 1000 * 60);
     }
 
+    // Commands registration
     const reindexCommand = vscode.commands.registerCommand('angular-auto-import.reindex', async () => {
       try {
-        vscode.window.showInformationMessage('angular-auto-import: Reindexing started...');
+        vscode.window.showInformationMessage('🔄 angular-auto-import: Reindexing started...');
         await generateIndex(activationContext);
-        vscode.window.showInformationMessage('angular-auto-import: Reindex successful.');
+        const indexSize = Array.from(angularIndexer.getAllSelectors()).length;
+        vscode.window.showInformationMessage(`✅ angular-auto-import: Reindex successful. Found ${indexSize} elements.`);
       } catch (error) {
-        console.error('Reindex error:', error);
-        vscode.window.showErrorMessage('angular-auto-import: Reindexing failed. Check console for details.');
+        console.error('❌ Reindex error:', error);
+        vscode.window.showErrorMessage('❌ angular-auto-import: Reindexing failed. Check console for details.');
       }
     });
     activationContext.subscriptions.push(reindexCommand);
 
+    // Code Actions Provider
     activationContext.subscriptions.push(
         vscode.languages.registerCodeActionsProvider(
             { scheme: 'file', language: 'html' },
-            new QuickfixImportProvider(angularIndexer), // Pass indexer
+            new QuickfixImportProvider(angularIndexer),
             { providedCodeActionKinds: QuickfixImportProvider.providedCodeActionKinds }
         )
     );
 
+    // Import commands
     const importCommand = vscode.commands.registerCommand('angular-auto-import.importElement', (selector: string) => {
+      console.log(`🔧 Import command called for selector: ${selector}`);
       if (!angularIndexer) {
-        vscode.window.showErrorMessage('Indexer not available.');
+        vscode.window.showErrorMessage('❌ Indexer not available.');
         return;
       }
-      importElement(angularIndexer.getElement(selector));
+      const element = angularIndexer.getElement(selector);
+      console.log(`🔍 Found element:`, element);
+      importElement(element);
     });
     activationContext.subscriptions.push(importCommand);
 
     const manualImportCommand = vscode.commands.registerCommand('angular-auto-import.manual.importElement', async () => {
       if (!angularIndexer) {
-        vscode.window.showErrorMessage('Indexer not available.');
+        vscode.window.showErrorMessage('❌ Indexer not available.');
         return;
       }
+
+      // Показать все доступные селекторы для отладки
+      const allSelectors = Array.from(angularIndexer.getAllSelectors());
+      console.log(`🔍 Available selectors (${allSelectors.length}):`, allSelectors);
+
       const userInput = await vscode.window.showInputBox({
         prompt: 'Enter Angular element selector or pipe name',
-        placeHolder: 'e.g., app-component, myPipe, myDirective',
+        placeHolder: `e.g., ${allSelectors.slice(0, 3).join(', ')}`,
       });
+
       if (userInput) {
         const success = importElement(angularIndexer.getElement(userInput));
-        if (!success && !angularIndexer.getElement(userInput)) { // Check if element was actually not found
-          vscode.window.showErrorMessage(`Angular element "${userInput}" not found in index.`);
+        if (!success && !angularIndexer.getElement(userInput)) {
+          vscode.window.showErrorMessage(`❌ Angular element "${userInput}" not found in index.`);
         }
       }
     });
     activationContext.subscriptions.push(manualImportCommand);
 
+    // ============= УЛУЧШЕННЫЙ COMPLETION PROVIDER =============
     activationContext.subscriptions.push(
         vscode.languages.registerCompletionItemProvider(
             { scheme: 'file', language: 'html' },
             {
               provideCompletionItems(document, position, token, context) {
-                if (!angularIndexer) return [];
+                console.log('🔍 Completion provider triggered');
+
+                if (!angularIndexer) {
+                  console.log('❌ No indexer available');
+                  return [];
+                }
 
                 const linePrefix = document.lineAt(position).text.slice(0, position.character);
-                const suggestions: CompletionItem[] = [];
+                console.log(`📝 Line prefix: "${linePrefix}"`);
 
-                const tagRegex = /<([a-zA-Z0-9-]*)$/; // Allow numbers in tags
+                const suggestions: CompletionItem[] = [];
+                const allSelectors = Array.from(angularIndexer.getAllSelectors());
+                console.log(`📊 Total selectors available: ${allSelectors.length}`);
+
+                // Improved regex patterns
+                const tagRegex = /<([a-zA-Z0-9-]*)$/;
                 const tagMatch = tagRegex.exec(linePrefix);
 
-                const pipeRegex = /\|\s*([a-zA-Z0-9]*)$/; // Allow numbers in pipe names
+                const pipeRegex = /\|\s*([a-zA-Z0-9]*)$/;
                 const pipeMatch = pipeRegex.exec(linePrefix);
 
-                if (tagMatch) { // tagMatch[1] can be empty string if just '<'
-                  const selectorInProgress = tagMatch[1];
-                  for (const selector of angularIndexer.getAllSelectors()) {
+                console.log('🔍 Tag match:', tagMatch);
+                console.log('🔍 Pipe match:', pipeMatch);
+
+                if (tagMatch) {
+                  const selectorInProgress = tagMatch[1] || '';
+                  console.log(`🏷️ Searching for tags starting with: "${selectorInProgress}"`);
+
+                  let matchCount = 0;
+                  for (const selector of allSelectors) {
                     const element = angularIndexer.getElement(selector);
-                    if (element && (element.type === 'component' || element.type === 'directive') &&
-                        selector.startsWith(selectorInProgress)) { // Use startsWith for better suggestion flow
-                      const item = new CompletionItem(selector, vscode.CompletionItemKind.Class);
-                      item.insertText = selector; // Ensure full selector is inserted
-                      item.detail = `Angular Auto-Import: ${element.type}`;
-                      item.documentation = `Import ${element.name} (${element.type}) from ${element.path}`;
-                      item.command = {
-                        title: `Import ${element.name}`,
-                        command: 'angular-auto-import.importElement',
-                        arguments: [selector]
-                      };
-                      suggestions.push(item);
+                    if (element && (element.type === 'component' || element.type === 'directive')) {
+                      if (selector.toLowerCase().startsWith(selectorInProgress.toLowerCase())) {
+                        matchCount++;
+                        const item = new CompletionItem(selector, vscode.CompletionItemKind.Class);
+                        item.insertText = selector;
+                        item.detail = `Angular Auto-Import: ${element.type}`;
+                        item.documentation = `Import ${element.name} (${element.type}) from ${element.path}`;
+                        item.command = {
+                          title: `Import ${element.name}`,
+                          command: 'angular-auto-import.importElement',
+                          arguments: [selector]
+                        };
+                        suggestions.push(item);
+                      }
                     }
                   }
-                } else if (pipeMatch) { // pipeMatch[1] can be empty string
-                  const pipeNameInProgress = pipeMatch[1];
-                  for (const selector of angularIndexer.getAllSelectors()) {
+                  console.log(`🎯 Found ${matchCount} matching components/directives`);
+
+                } else if (pipeMatch) {
+                  const pipeNameInProgress = pipeMatch[1] || '';
+                  console.log(`🔧 Searching for pipes starting with: "${pipeNameInProgress}"`);
+
+                  let matchCount = 0;
+                  for (const selector of allSelectors) {
                     const element = angularIndexer.getElement(selector);
-                    if (element && element.type === 'pipe' && selector.startsWith(pipeNameInProgress)) {
-                      const item = new CompletionItem(selector, vscode.CompletionItemKind.Function);
-                      item.insertText = selector;
-                      item.detail = `Angular Auto-Import: pipe`;
-                      item.documentation = `Import ${element.name} (pipe) from ${element.path}`;
-                      item.command = {
-                        title: `Import ${element.name}`,
-                        command: 'angular-auto-import.importElement',
-                        arguments: [selector]
-                      };
-                      suggestions.push(item);
+                    if (element && element.type === 'pipe') {
+                      if (selector.toLowerCase().startsWith(pipeNameInProgress.toLowerCase())) {
+                        matchCount++;
+                        const item = new CompletionItem(selector, vscode.CompletionItemKind.Function);
+                        item.insertText = selector;
+                        item.detail = `Angular Auto-Import: pipe`;
+                        item.documentation = `Import ${element.name} (pipe) from ${element.path}`;
+                        item.command = {
+                          title: `Import ${element.name}`,
+                          command: 'angular-auto-import.importElement',
+                          arguments: [selector]
+                        };
+                        suggestions.push(item);
+                      }
                     }
                   }
+                  console.log(`🎯 Found ${matchCount} matching pipes`);
                 }
+
+                console.log(`📋 Returning ${suggestions.length} suggestions`);
                 return suggestions;
               },
             },
-            '<', '|' // Trigger characters
+            '<', '|', ' ' // Добавлен пробел как trigger character
         )
     );
 
-    console.log('Angular Auto-Import extension activated successfully');
+    console.log('✅ Angular Auto-Import extension activated successfully');
+
+    // Показать статус активации
+     indexSize = Array.from(angularIndexer.getAllSelectors()).length;
+    vscode.window.showInformationMessage(`✅ Angular Auto-Import activated with ${indexSize} elements indexed`);
+
   } catch (error) {
-    console.error('Error activating Angular Auto-Import extension:', error);
-    vscode.window.showErrorMessage('Failed to activate Angular Auto-Import extension. Check console for details.');
+    console.error('❌ Error activating Angular Auto-Import extension:', error);
+    vscode.window.showErrorMessage(`❌ Failed to activate Angular Auto-Import extension: `);
   }
 }
 
