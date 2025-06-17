@@ -1,0 +1,132 @@
+{
+  "name": "angular-auto-import",
+  "displayName": "Angular auto import",
+  "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
+  "publisher": "baryshevrs",
+  "version": "1.0.0",
+  "icon": "img/icon.png",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "IntelliSense"
+  ],
+  "keywords": [
+    "Angular",
+    "Auto Import",
+    "VS Code",
+    "Extension",
+    "TypeScript",
+    "HTML",
+    "Templates",
+    "Components",
+    "Directives",
+    "Pipes",
+    "IntelliSense",
+    "Refactoring",
+    "Quick Fix",
+    "NgModule",
+    "Standalone",
+    "Nx"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "workspaceContains:**/*.component.ts",
+    "workspaceContains:**/*.directive.ts",
+    "workspaceContains:**/*.pipe.ts",
+    "onLanguage:html"
+  ],
+  "main": "./dist/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baryshevrs/vscode-angular-auto-import.git"
+  },
+  "bugs": {
+    "url": "https://github.com/baryshevrs/vscode-angular-auto-import/issues"
+  },
+  "homepage": "https://github.com/baryshevrs/vscode-angular-auto-import#readme",
+  "contributes": {
+    "commands": [
+      {
+        "command": "angular-auto-import.reindex",
+        "title": "Angular Auto Import: Reindex Project(s)",
+        "category": "Angular Auto Import"
+      },
+      {
+        "command": "angular-auto-import.manual.importElement",
+        "title": "Angular Auto Import: Manually Import Element by Selector",
+        "category": "Angular Auto Import"
+      }
+    ],
+    "configuration": {
+      "title": "Angular Auto Import",
+      "properties": {
+        "angular-auto-import.projectPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Optional. Absolute path to the Angular project root. If not set, uses open workspace folders. Ignored if workspace folders are open."
+        },
+        "angular-auto-import.index.refreshInterval": {
+          "type": "number",
+          "default": 60,
+          "description": "Interval in minutes for automatically reindexing Angular elements. Set to 0 to disable periodic reindexing."
+        },
+        "angular-auto-import.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable custom diagnostics for missing directive imports."
+        },
+        "angular-auto-import.diagnostics.severity": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warning",
+            "info"
+          ],
+          "default": "warning",
+          "description": "Severity level for missing directive import diagnostics."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "pnpm run check-types && pnpm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "copy-test-fixtures": "cp -r src/test/fixtures out/test/",
+    "pretest": "pnpm run compile-tests && pnpm run copy-test-fixtures && pnpm run compile && pnpm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.100.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.25.3",
+    "eslint": "^9.25.1",
+    "glob": "^11.0.0",
+    "mocha": "^10.8.2",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "get-tsconfig": "^4.10.1",
+    "ts-morph": "^26.0.0"
+  }
+}

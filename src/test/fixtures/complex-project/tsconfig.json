@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "dom"],
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"],
+      "@app/*": ["app/*"],
+      "@shared/*": ["shared/*"],
+      "@components/*": ["app/components/*"],
+      "@services/*": ["app/services/*"],
+      "@utils/*": ["app/utils/*"],
+      "@core": ["app/core/index.ts"],
+      "@shared": ["shared/index.ts"],
+      "@lib/*": ["../libs/*"],
+      "~/*": ["assets/*"]
+    },
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*", "libs/**/*"],
+  "exclude": ["node_modules", "dist", "coverage"]
+}
