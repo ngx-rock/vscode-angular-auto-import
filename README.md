@@ -5,7 +5,7 @@
 
 Streamline your Angular development with intelligent, automatic imports for components, directives, and pipes directly in your HTML templates and TypeScript files.
 
-![Angular Auto-Import in action](./img/demo.gif) 
+![Angular Auto-Import in action](https://raw.githubusercontent.com/ngx-rock/vscode-angular-auto-import/refs/heads/main/img/demo.gif) 
 
 ## Features
 

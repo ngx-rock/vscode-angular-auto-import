@@ -47,14 +47,12 @@ async function main() {
 		sourcemap: !production,
 		sourcesContent: false,
 		platform: "node",
-		target: "node22", // или твоя версия Node
+		target: "node22",
 		outfile: "dist/extension.js",
 		logLevel: "silent",
 		external: [
 			"vscode",
-			"tree-sitter", // если используется
-			"tree-sitter-typescript",
-			"*.node", // это важно!
+			"*.node"
 		],
 		plugins: [esbuildProblemMatcherPlugin],
 	});

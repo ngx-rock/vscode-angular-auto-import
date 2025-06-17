@@ -11,25 +11,13 @@
   "categories": [
     "Programming Languages",
     "Linters",
-    "IntelliSense"
+    "Other"
   ],
   "keywords": [
-    "Angular",
-    "Auto Import",
-    "VS Code",
-    "Extension",
-    "TypeScript",
-    "HTML",
-    "Templates",
-    "Components",
-    "Directives",
-    "Pipes",
-    "IntelliSense",
-    "Refactoring",
-    "Quick Fix",
-    "NgModule",
-    "Standalone",
-    "Nx"
+    "Angular", "auto-import", "missing imports", "Angular component",
+    "Angular directive", "Angular pipe", "refactor", "code fix",
+    "TypeScript", "HTML", "VS Code extension", "template",
+    "NgModule", "standalone components", "Nx", "autocomplete", "quick fix"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -107,7 +95,10 @@
     "pretest": "pnpm run compile-tests && pnpm run copy-test-fixtures && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "vsce:package": "vsce package --no-dependencies",
+    "vsce:publish": "vsce publish --no-dependencies",
+    "publish": "pnpm run vsce:package && pnpm run vsce:publish"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -118,6 +109,7 @@
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.5.0",
     "esbuild": "^0.25.3",
     "eslint": "^9.25.1",
     "glob": "^11.0.0",
