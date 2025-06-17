@@ -3,10 +3,10 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "icon": "img/icon.png",
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.96.2"
   },
   "categories": [
     "Programming Languages",
@@ -14,10 +14,23 @@
     "Other"
   ],
   "keywords": [
-    "Angular", "auto-import", "missing imports", "Angular component",
-    "Angular directive", "Angular pipe", "refactor", "code fix",
-    "TypeScript", "HTML", "VS Code extension", "template",
-    "NgModule", "standalone components", "Nx", "autocomplete", "quick fix"
+    "Angular",
+    "auto-import",
+    "missing imports",
+    "Angular component",
+    "Angular directive",
+    "Angular pipe",
+    "refactor",
+    "code fix",
+    "TypeScript",
+    "HTML",
+    "VS Code extension",
+    "template",
+    "NgModule",
+    "standalone components",
+    "Nx",
+    "autocomplete",
+    "quick fix"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -29,12 +42,12 @@
   "main": "./dist/extension.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/baryshevrs/vscode-angular-auto-import.git"
+    "url": "https://github.com/ngx-rock/vscode-angular-auto-import.git"
   },
   "bugs": {
-    "url": "https://github.com/baryshevrs/vscode-angular-auto-import/issues"
+    "url": "https://github.com/ngx-rock/vscode-angular-auto-import/issues"
   },
-  "homepage": "https://github.com/baryshevrs/vscode-angular-auto-import#readme",
+  "homepage": "https://github.com/ngx-rock/vscode-angular-auto-import#readme",
   "contributes": {
     "commands": [
       {
@@ -104,7 +117,8 @@
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
-    "@types/vscode": "^1.100.0",
+    "@types/sinon": "^17.0.4",
+    "@types/vscode": "^1.96.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",
@@ -115,6 +129,7 @@
     "glob": "^11.0.0",
     "mocha": "^10.8.2",
     "npm-run-all": "^4.1.5",
+    "sinon": "^21.0.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {

@@ -18,10 +18,102 @@ import * as vscode from "vscode";
 import { AngularElementData, ComponentInfo, FileElementsInfo } from "../types";
 import { parseAngularSelector } from "../utils";
 
+class TrieNode {
+  public children: Map<string, TrieNode> = new Map();
+  public elements: AngularElementData[] = [];
+}
+
+class SelectorTrie {
+  private root: TrieNode = new TrieNode();
+
+  public insert(selector: string, elementData: AngularElementData): void {
+    let currentNode = this.root;
+    for (const char of selector) {
+      if (!currentNode.children.has(char)) {
+        currentNode.children.set(char, new TrieNode());
+      }
+      currentNode = currentNode.children.get(char)!;
+    }
+    // Avoid adding duplicate elements for the same selector
+    if (!currentNode.elements.some((el) => el.name === elementData.name && el.path === elementData.path)) {
+      currentNode.elements.push(elementData);
+    }
+  }
+
+  public search(prefix: string): AngularElementData[] {
+    let currentNode = this.root;
+    for (const char of prefix) {
+      if (!currentNode.children.has(char)) {
+        return [];
+      }
+      currentNode = currentNode.children.get(char)!;
+    }
+    return this.collectAllElements(currentNode);
+  }
+
+  public find(selector: string): AngularElementData | undefined {
+    let currentNode = this.root;
+    for (const char of selector) {
+        if (!currentNode.children.has(char)) {
+            return undefined;
+        }
+        currentNode = currentNode.children.get(char)!;
+    }
+    return currentNode.elements.length > 0 ? currentNode.elements[0] : undefined;
+  }
+
+  public getAllSelectors(): string[] {
+    const selectors: string[] = [];
+    this.collectSelectors(this.root, "", selectors);
+    return selectors;
+  }
+  
+  private collectSelectors(node: TrieNode, prefix: string, selectors: string[]): void {
+    if (node.elements.length > 0) {
+      selectors.push(prefix);
+    }
+    for (const [char, childNode] of node.children.entries()) {
+      this.collectSelectors(childNode, prefix + char, selectors);
+    }
+  }
+
+  public remove(selector: string, elementPath: string): void {
+    let currentNode = this.root;
+    for (const char of selector) {
+      if (!currentNode.children.has(char)) {
+        return; // Selector doesn't exist
+      }
+      currentNode = currentNode.children.get(char)!;
+    }
+    // Remove the element if it matches the path
+    currentNode.elements = currentNode.elements.filter(el => path.resolve(el.path) !== path.resolve(elementPath));
+  }
+  
+  public getAllElements(): AngularElementData[] {
+    return this.collectAllElements(this.root);
+  }
+
+  private collectAllElements(node: TrieNode): AngularElementData[] {
+    let results: AngularElementData[] = [...node.elements];
+    for (const childNode of node.children.values()) {
+      results = results.concat(this.collectAllElements(childNode));
+    }
+    return results;
+  }
+
+  public clear(): void {
+    this.root = new TrieNode();
+  }
+
+  public get size(): number {
+    return this.getAllSelectors().length;
+  }
+}
+
 export class AngularIndexer {
   project: Project; // Made public for access in importElementToFile
   private fileCache: Map<string, FileElementsInfo> = new Map();
-  private selectorToElement: Map<string, AngularElementData> = new Map();
+  private selectorTrie: SelectorTrie = new SelectorTrie();
   public fileWatcher: vscode.FileSystemWatcher | null = null;
   private projectRootPath: string = "";
   private isIndexing: boolean = false;
@@ -389,22 +481,22 @@ export class AngularIndexer {
 
       const stats = fs.statSync(filePath);
       const lastModified = stats.mtime.getTime();
-      const cached = this.fileCache.get(filePath);
+      const cachedFile = this.fileCache.get(filePath);
 
       // Read content once
       const content = fs.readFileSync(filePath, "utf-8");
       const hash = this.generateHash(content);
 
       if (
-        cached &&
-        cached.lastModified >= lastModified &&
-        cached.hash === hash
+        cachedFile &&
+        cachedFile.lastModified >= lastModified &&
+        cachedFile.hash === hash
       ) {
         // If modification time is same or older, and hash is same, no need to parse
         // Update lastModified just in case it was touched without content change
-        if (cached.lastModified < lastModified) {
+        if (cachedFile.lastModified < lastModified) {
           const updatedCache: FileElementsInfo = {
-            ...cached,
+            ...cachedFile,
             lastModified: lastModified,
           };
           this.fileCache.set(filePath, updatedCache);
@@ -412,20 +504,19 @@ export class AngularIndexer {
         return;
       }
 
+      // Before parsing, remove all existing selectors from this file to ensure clean update
+      if (cachedFile) {
+        for (const oldElement of cachedFile.elements) {
+          const individualSelectors = parseAngularSelector(oldElement.selector);
+          for (const selector of individualSelectors) {
+            this.selectorTrie.remove(selector, filePath);
+          }
+        }
+      }
+
       const parsedElements = this.parseAngularElementsWithTsMorph(
         filePath,
         content
-      );
-
-      // Remove all existing entries from this file from the selector index
-      const elementsToRemove: string[] = [];
-      for (const [selector, elementData] of this.selectorToElement.entries()) {
-        if (path.resolve(this.projectRootPath, elementData.path) === filePath) {
-          elementsToRemove.push(selector);
-        }
-      }
-      elementsToRemove.forEach((selector) =>
-        this.selectorToElement.delete(selector)
       );
 
       if (parsedElements.length > 0) {
@@ -452,17 +543,15 @@ export class AngularIndexer {
 
           // Index the element under each individual selector
           for (const selector of individualSelectors) {
-            this.selectorToElement.set(selector, elementData);
+            this.selectorTrie.insert(selector, elementData);
             console.log(
               `Updated index for ${this.projectRootPath}: ${selector} (${parsed.type}) -> ${parsed.path}`
             );
           }
         });
       } else {
-        // Parsing failed or not an Angular element - remove from file cache
+        // Parsing failed or not an Angular element - remove from file cache and trie
         this.fileCache.delete(filePath);
-
-        // Also remove from ts-morph project if it was there
         const sourceFile = this.project.getSourceFile(filePath);
         if (sourceFile) {
           this.project.removeSourceFile(sourceFile); // or sourceFile.forget()
@@ -485,22 +574,19 @@ export class AngularIndexer {
     context: vscode.ExtensionContext
   ): Promise<void> {
     // Remove from file cache
-    this.fileCache.delete(filePath);
-
-    // Remove all elements from this file from the selector index
-    const elementsToRemove: string[] = [];
-    for (const [selector, elementData] of this.selectorToElement.entries()) {
-      if (path.resolve(this.projectRootPath, elementData.path) === filePath) {
-        elementsToRemove.push(selector);
+    const fileInfo = this.fileCache.get(filePath);
+    if (fileInfo) {
+      for (const element of fileInfo.elements) {
+        const individualSelectors = parseAngularSelector(element.selector);
+        for (const selector of individualSelectors) {
+          this.selectorTrie.remove(selector, filePath);
+          console.log(
+            `Removed from index for ${this.projectRootPath}: ${selector} from ${filePath}`
+          );
+        }
       }
+      this.fileCache.delete(filePath);
     }
-
-    elementsToRemove.forEach((selector) => {
-      this.selectorToElement.delete(selector);
-      console.log(
-        `Removed from index for ${this.projectRootPath}: ${selector} from ${filePath}`
-      );
-    });
 
     // Remove from ts-morph project
     const sourceFile = this.project.getSourceFile(filePath);
@@ -508,7 +594,7 @@ export class AngularIndexer {
       this.project.removeSourceFile(sourceFile);
     }
 
-    if (elementsToRemove.length > 0) {
+    if (fileInfo) {
       await this.saveIndexToWorkspace(context);
     }
   }
@@ -522,7 +608,7 @@ export class AngularIndexer {
           this.projectRootPath
         )}): Already indexing, skipping...`
       );
-      return this.selectorToElement;
+      return new Map(this.selectorTrie.getAllElements().map(e => [e.originalSelector, e]));
     }
 
     this.isIndexing = true;
@@ -544,7 +630,7 @@ export class AngularIndexer {
         .getSourceFiles()
         .forEach((sf) => this.project.removeSourceFile(sf));
       this.fileCache.clear();
-      this.selectorToElement.clear();
+      this.selectorTrie.clear();
 
       const angularFiles = await this.getAngularFilesUsingVSCode();
       console.log(
@@ -573,11 +659,11 @@ export class AngularIndexer {
 
       console.log(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${
-          this.selectorToElement.size
+          this.selectorTrie.size
         } elements.`
       );
       await this.saveIndexToWorkspace(context);
-      return this.selectorToElement;
+      return new Map(this.selectorTrie.getAllElements().map(e => [e.originalSelector, e]));
     } finally {
       this.isIndexing = false;
     }
@@ -623,25 +709,26 @@ export class AngularIndexer {
         }
         this.fileCache = convertedCache;
 
-        this.selectorToElement = new Map(
-          Object.entries(storedIndex).map(([key, value]) => [
-            key,
-            new AngularElementData(
-              value.path,
-              value.name,
-              value.type,
-              value.originalSelector || key, // Use originalSelector if available, fallback to key
-              value.selectors ||
-                parseAngularSelector(value.originalSelector || key)
-            ),
-          ])
-        );
+        this.selectorTrie.clear();
+        for (const [key, value] of Object.entries(storedIndex)) {
+          const elementData = new AngularElementData(
+            value.path,
+            value.name,
+            value.type,
+            value.originalSelector || key,
+            value.selectors || parseAngularSelector(value.originalSelector || key)
+          );
+          // Index under all its selectors
+          for (const selector of elementData.selectors) {
+            this.selectorTrie.insert(selector, elementData);
+          }
+        }
         // Note: This does not repopulate the ts-morph Project.
         // A full scan or lazy loading of files into ts-morph Project is still needed if AST is required later.
         // For now, the index is used for lookups, and files are added to ts-morph Project on demand (e.g. during updateFileIndex or importElementToFile).
         console.log(
           `AngularIndexer (${path.basename(this.projectRootPath)}): Loaded ${
-            this.selectorToElement.size
+            this.selectorTrie.size
           } elements from workspace cache.`
         );
         return true;
@@ -680,9 +767,12 @@ export class AngularIndexer {
         this.workspaceFileCacheKey,
         Object.fromEntries(this.fileCache)
       );
+
+      const serializableTrie = Object.fromEntries(this.selectorTrie.getAllElements().map(el => [el.originalSelector, el]));
+
       await context.workspaceState.update(
         this.workspaceIndexCacheKey,
-        Object.fromEntries(this.selectorToElement)
+        serializableTrie
       );
     } catch (error) {
       console.error(
@@ -695,11 +785,18 @@ export class AngularIndexer {
   }
 
   getElement(selector: string): AngularElementData | undefined {
-    return this.selectorToElement.get(selector);
+    if (typeof selector !== 'string' || !selector) {
+      return undefined;
+    }
+    return this.selectorTrie.find(selector);
   }
 
-  getAllSelectors(): IterableIterator<string> {
-    return this.selectorToElement.keys();
+  getAllSelectors(): string[] {
+    return this.selectorTrie.getAllSelectors();
+  }
+
+  search(prefix: string): AngularElementData[] {
+    return this.selectorTrie.search(prefix);
   }
 
   private async getAngularFilesUsingVSCode(): Promise<string[]> {
@@ -774,7 +871,7 @@ export class AngularIndexer {
       this.fileWatcher = null;
     }
     this.fileCache.clear();
-    this.selectorToElement.clear();
+    this.selectorTrie.clear();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
     this.project
       .getSourceFiles()

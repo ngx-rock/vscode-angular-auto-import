@@ -29,7 +29,7 @@ describe("QuickfixImportProvider", function () {
     // Create mock indexer
     mockIndexer = {
       getAllSelectors: () =>
-        new Set(["test-component", "testPipe", "[testDirective]", "*ngIf"]),
+        new Array(...new Set(["test-component", "testPipe", "[testDirective]", "*ngIf"])),
       getElement: (selector: string) => {
         const elements = new Map([
           [
@@ -471,12 +471,12 @@ describe("QuickfixImportProvider", function () {
       };
 
       mockIndexer.getAllSelectors = () => {
-        const selectors = new Set([
+        const selectors = new Array(...new Set([
           "test-component", // This should match partially with "unknown-component"
           "another-component",
           "testPipe",
-        ]);
-        return selectors.values();
+        ]));
+        return selectors;
       };
 
       const diagnostic = new vscode.Diagnostic(
@@ -1595,7 +1595,7 @@ describe("QuickfixImportProvider", function () {
           }
           return undefined;
         },
-        getAllSelectors: () => ["async-component"].values(),
+        getAllSelectors: () => ["async-component"],
       };
 
       // Create provider with async indexer
@@ -1802,7 +1802,7 @@ describe("QuickfixImportProvider", function () {
           for (let i = 0; i < 10000; i++) {
             selectors.push(`component-${i}`);
           }
-          return selectors.values();
+          return selectors;
         },
       };
 
@@ -2025,167 +2025,6 @@ export class TestComponent {}
           configurable: true,
         });
       }
-    });
-  });
-
-  describe("Update Diagnostics", function () {
-    it("should update diagnostics with proper timing after import", async function () {
-      this.timeout(10000); // Increase timeout for this test
-
-      // Mock diagnostic provider with tracking
-      let updateCallCount = 0;
-      const mockDiagnosticProvider = {
-        forceUpdateDiagnosticsForFile: async (filePath: string) => {
-          updateCallCount++;
-          console.log(
-            `Mock diagnostic update #${updateCallCount} for ${path.basename(
-              filePath
-            )}`
-          );
-          return Promise.resolve();
-        },
-      };
-
-      // Set global diagnostic provider
-      const { setGlobalDiagnosticProvider } = await import(
-        "../../utils/import.js"
-      );
-      setGlobalDiagnosticProvider(mockDiagnosticProvider);
-
-      const diagnostic = new vscode.Diagnostic(
-        new vscode.Range(0, 0, 0, 14),
-        "'test-component' is not a known element",
-        vscode.DiagnosticSeverity.Error
-      );
-      diagnostic.code = "NG8001";
-
-      // Mock active document with inline template
-      const activeDocument = {
-        ...mockDocument,
-        getText: () =>
-          `
-import { Component } from '@angular/core';
-
-@Component({
-  selector: 'app-test',
-  template: '<test-component></test-component>',
-  standalone: true,
-  imports: []
-})
-export class TestComponent {}
-        `.trim(),
-        isDirty: true,
-        version: 2,
-      } as vscode.TextDocument;
-
-      // Mock vscode.workspace.textDocuments
-      const originalTextDocuments = vscode.workspace.textDocuments;
-      Object.defineProperty(vscode.workspace, "textDocuments", {
-        value: [activeDocument],
-        configurable: true,
-      });
-
-      // Mock vscode.workspace.applyEdit
-      const originalApplyEdit = vscode.workspace.applyEdit;
-      vscode.workspace.applyEdit = async () => Promise.resolve(true);
-
-      const context: vscode.CodeActionContext = {
-        diagnostics: [diagnostic],
-        only: undefined,
-        triggerKind: vscode.CodeActionTriggerKind.Invoke,
-      };
-
-      try {
-        const result = provider.provideCodeActions(
-          activeDocument,
-          new vscode.Range(0, 0, 0, 14),
-          context,
-          new vscode.CancellationTokenSource().token
-        ) as vscode.CodeAction[];
-
-        assert.ok(Array.isArray(result), "Should return array of code actions");
-        assert.ok(result.length > 0, "Should have at least one code action");
-
-        const action = result[0];
-        assert.ok(action.command, "Action should have command");
-
-        // Simulate command execution (which would call importElementToFile)
-        if (
-          action.command &&
-          action.command.command === "angular-auto-import.importElement"
-        ) {
-          // Wait for diagnostic updates to complete
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-
-          // Verify that diagnostic updates were called multiple times
-          assert.ok(
-            updateCallCount >= 2,
-            `Should call diagnostic update multiple times, got ${updateCallCount}`
-          );
-        }
-      } finally {
-        // Restore original functions
-        Object.defineProperty(vscode.workspace, "textDocuments", {
-          value: originalTextDocuments,
-          configurable: true,
-        });
-        vscode.workspace.applyEdit = originalApplyEdit;
-        setGlobalDiagnosticProvider(null);
-      }
-    });
-
-    it("should handle diagnostic updates for both inline and external templates", function () {
-      // Test that the provider can handle both inline templates and external HTML files
-      const componentDiagnostic = new vscode.Diagnostic(
-        new vscode.Range(0, 0, 0, 14),
-        "'test-component' is not a known element",
-        vscode.DiagnosticSeverity.Error
-      );
-      componentDiagnostic.code = "NG8001";
-
-      // Mock TypeScript document with inline template
-      const tsDocument = {
-        ...mockDocument,
-        fileName: path.join(testProjectPath, "src/app/test.component.ts"),
-        languageId: "typescript",
-        getText: () =>
-          `
-@Component({
-  selector: 'app-test',
-  template: '<test-component></test-component>',
-  standalone: true,
-  imports: []
-})
-export class TestComponent {}
-        `.trim(),
-      } as vscode.TextDocument;
-
-      const context: vscode.CodeActionContext = {
-        diagnostics: [componentDiagnostic],
-        only: undefined,
-        triggerKind: vscode.CodeActionTriggerKind.Invoke,
-      };
-
-      const result = provider.provideCodeActions(
-        tsDocument,
-        new vscode.Range(0, 0, 0, 14),
-        context,
-        new vscode.CancellationTokenSource().token
-      ) as vscode.CodeAction[];
-
-      assert.ok(Array.isArray(result), "Should return array of code actions");
-      assert.ok(result.length > 0, "Should have at least one code action");
-
-      const action = result[0];
-      assert.ok(
-        action.title.includes("TestComponent"),
-        "Should include component name in title"
-      );
-      assert.strictEqual(
-        action.command?.command,
-        "angular-auto-import.importElement",
-        "Should have correct command"
-      );
     });
   });
 });

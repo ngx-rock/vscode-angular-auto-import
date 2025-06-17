@@ -54,69 +54,38 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const structuralMatch = structuralDirectiveRegex.exec(linePrefix);
     const pipeMatch = pipeRegex.exec(linePrefix);
 
-    const currentWordRange = document.getWordRangeAtPosition(
-      position,
-      /[a-zA-Z0-9_-]+/
-    );
-    const currentWord = currentWordRange
-      ? document.getText(currentWordRange)
-      : "";
-
     let filterText = "";
+    let replacementRange: vscode.Range | undefined;
+
+    // Determine the context and the text to filter/replace
     if (tagMatch) {
       filterText = tagMatch[1];
+      const start = position.translate({ characterDelta: -filterText.length });
+      replacementRange = new vscode.Range(start, position);
     } else if (structuralMatch) {
       filterText = structuralMatch[1];
+      const start = position.translate({ characterDelta: -filterText.length });
+      replacementRange = new vscode.Range(start, position);
     } else if (pipeMatch) {
       filterText = pipeMatch[1];
+      const start = position.translate({ characterDelta: -filterText.length });
+      replacementRange = new vscode.Range(start, position);
     } else if (attributeMatch) {
       filterText = attributeMatch[1];
+      const start = position.translate({ characterDelta: -filterText.length });
+      replacementRange = new vscode.Range(start, position);
     } else {
-      filterText = currentWord;
+      replacementRange = document.getWordRangeAtPosition(position, /[a-zA-Z0-9_-]+/);
+      if (replacementRange) {
+        filterText = document.getText(replacementRange);
+      }
     }
 
     const seenElements = new Set<string>(); // To avoid duplicate elements
 
-    // Get elements from project index
-    let allSelectors: IterableIterator<string>;
-    try {
-      allSelectors = indexer.getAllSelectors();
-    } catch (error) {
-      console.error(
-        "CompletionItemProvider: Error getting all selectors:",
-        error
-      );
-      return suggestions;
-    }
-
-    for (const selector of allSelectors) {
-      if (!selector || typeof selector !== "string") {
-        continue;
-      }
-
-      // Skip if filter text doesn't match at all
-      if (
-        filterText &&
-        !selector.toLowerCase().includes(filterText.toLowerCase())
-      ) {
-        continue;
-      }
-
-      let element: AngularElementData | undefined;
-      try {
-        element = indexer.getElement(selector);
-      } catch (error) {
-        console.warn(
-          `CompletionItemProvider: Error getting element for selector '${selector}':`,
-          error
-        );
-        continue;
-      }
-
-      if (!element) {
-        continue;
-      }
-
+    // Use the new Trie-based search for indexed elements
+    const matchingElements = indexer.search(filterText);
+    for (const element of matchingElements) {
       // Use a unique key to avoid duplicate elements
       const elementKey = `${element.path}:${element.name}`;
       if (seenElements.has(elementKey)) {
@@ -211,7 +180,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           bestItemKind
         );
         item.insertText = bestInsertText;
-        item.filterText = filterText ? undefined : bestMatchingSelector; // Use default filter if no specific context match
+        if (replacementRange) {
+          item.range = replacementRange;
+        }
         item.detail = `Angular Auto-Import: ${element.type} (${path.basename(
           projCtx.projectRootPath
         )})`;
@@ -307,6 +278,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
           const item = new vscode.CompletionItem(stdSelector, itemKind);
           item.insertText = insertText;
+          if (replacementRange) {
+            item.range = replacementRange;
+          }
 
           const isModuleImport = stdElement.name.endsWith("Module");
           if (isModuleImport) {
