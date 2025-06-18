@@ -40,17 +40,28 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
   provideCodeActions(
     document: vscode.TextDocument,
-    _range: vscode.Range | vscode.Selection,
+    range: vscode.Range | vscode.Selection,
     context: vscode.CodeActionContext,
-    _token: vscode.CancellationToken
+    token: vscode.CancellationToken
   ): vscode.ProviderResult<(vscode.Command | vscode.CodeAction)[]> {
+    const diagnosticsToFix = context.diagnostics.filter(
+      (diagnostic) => !!range.intersection(diagnostic.range)
+    );
+
+    if (diagnosticsToFix.length === 0) {
+      return [];
+    }
+
+    // Pass the filtered diagnostics to the rest of the function
+    const newContext = { ...context, diagnostics: diagnosticsToFix };
+
     try {
       // Check for cancellation
-      if (_token?.isCancellationRequested) {
+      if (token?.isCancellationRequested) {
         return [];
       }
 
-      if (!context.diagnostics || !Array.isArray(context.diagnostics)) {
+      if (!newContext.diagnostics || !Array.isArray(newContext.diagnostics)) {
         return [];
       }
 
@@ -62,7 +73,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       const { indexer } = projCtx;
       const actions: vscode.CodeAction[] = [];
 
-      for (const diagnostic of context.diagnostics) {
+      for (const diagnostic of newContext.diagnostics) {
         if (!diagnostic || !diagnostic.message) {
           continue;
         }
@@ -200,7 +211,26 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       );
 
       if (selectorToSearch) {
-        const elementData = getAngularElement(selectorToSearch, indexer);
+        console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
+        
+        // Try to find exact match first
+        let elementData = getAngularElement(selectorToSearch, indexer);
+
+        // If not found, try alternative selector formats for the same element
+        if (!elementData) {
+          const alternativeSelectors = this.generateAlternativeSelectors(selectorToSearch);
+          console.log(`[QuickfixImportProvider] Trying alternative selectors:`, alternativeSelectors);
+          
+          for (const altSelector of alternativeSelectors) {
+            elementData = getAngularElement(altSelector, indexer);
+            if (elementData) {
+              console.log(`[QuickfixImportProvider] Found element with alternative selector: "${altSelector}"`);
+              break;
+            }
+          }
+        } else {
+          console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
+        }
 
         if (elementData) {
           const action = this.createCodeAction(
@@ -212,13 +242,14 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
             actions.push(action);
           }
         } else {
-          // Try partial matches
+          // Try partial matches only if no exact match found
           const partialMatches = this.findPartialMatches(
             selectorToSearch,
             indexer
           );
 
-          for (const match of partialMatches.slice(0, 3)) {
+          // Only show partial matches if we have very few or very relevant ones
+          for (const match of partialMatches.slice(0, 2)) { // Reduced to max 2
             const partialAction = this.createCodeAction(
               match,
               match.selector,
@@ -269,28 +300,112 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     return cleaned.split(/[^a-zA-Z0-9_-]/)[0];
   }
 
+  private generateAlternativeSelectors(selector: string): string[] {
+    const alternatives: string[] = [];
+    
+    if (!selector || typeof selector !== "string") {
+      return alternatives;
+    }
+
+    // Try different case variations
+    alternatives.push(selector.toLowerCase());
+    alternatives.push(selector.toUpperCase());
+    
+    // Try camelCase to kebab-case conversion and vice versa
+    if (selector.includes("-")) {
+      // Convert kebab-case to camelCase
+      const camelCase = selector.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+      alternatives.push(camelCase);
+    } else if (/[A-Z]/.test(selector)) {
+      // Convert camelCase to kebab-case
+      const kebabCase = selector.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+      alternatives.push(kebabCase);
+    }
+
+    // Try with app- prefix if not present
+    if (!selector.startsWith("app-")) {
+      alternatives.push(`app-${selector}`);
+    }
+
+    // Try without app- prefix if present
+    if (selector.startsWith("app-")) {
+      alternatives.push(selector.substring(4));
+    }
+
+    // Remove duplicates and the original selector
+    return [...new Set(alternatives)].filter(alt => alt !== selector);
+  }
+
   private findPartialMatches(
     searchTerm: string,
     indexer: any
   ): Array<AngularElementData & { selector: string }> {
-    const matches: Array<AngularElementData & { selector: string }> = [];
+    const matches: Array<AngularElementData & { selector: string; score: number }> = [];
 
     try {
       const allSelectors = Array.from(indexer.getAllSelectors());
       const seenElements = new Set<string>();
+      const searchTermLower = searchTerm.toLowerCase();
 
       for (const selector of allSelectors) {
-        // Type guard to ensure selector is string
-        if (
-          typeof selector === "string" &&
-          selector.toLowerCase().includes(searchTerm.toLowerCase())
-        ) {
+        if (typeof selector !== "string") {continue;}
+        
+        const selectorLower = selector.toLowerCase();
+        let score = 0;
+
+        // 1. Exact match (highest priority)
+        if (selectorLower === searchTermLower) {
+          score = 1000;
+        }
+        // 2. Exact prefix match
+        else if (selectorLower.startsWith(searchTermLower)) {
+          score = 900;
+        }
+        // 3. Exact suffix match
+        else if (selectorLower.endsWith(searchTermLower)) {
+          score = 800;
+        }
+        // 4. Contains the full search term as a whole word
+        else if (selectorLower.includes(searchTermLower)) {
+          // Check if it's a word boundary match (better than partial word match)
+          const regex = new RegExp(`\\b${searchTermLower.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\b`);
+          if (regex.test(selectorLower)) {
+            score = 700;
+          } else {
+            score = 600;
+          }
+        }
+        // 5. Fuzzy match: check if search term parts are present in order
+        else {
+          const searchParts = searchTermLower.split(/[-_]/);
+          if (searchParts.length > 1) {
+            let allPartsFound = true;
+            let lastIndex = -1;
+            
+            for (const part of searchParts) {
+              const index = selectorLower.indexOf(part, lastIndex + 1);
+              if (index === -1) {
+                allPartsFound = false;
+                break;
+              }
+              lastIndex = index;
+            }
+            
+            if (allPartsFound) {
+              // Score based on how many parts match and their positions
+              score = 400 + (searchParts.length * 10);
+            }
+          }
+        }
+
+        // Only include if there's a meaningful match
+        if (score > 0) {
           const element = getAngularElement(selector, indexer);
           if (element) {
             const elementKey = `${element.name}:${element.type}`;
             if (!seenElements.has(elementKey)) {
               seenElements.add(elementKey);
-              matches.push({ ...element, selector });
+              matches.push({ ...element, selector, score });
             }
           }
         }
@@ -299,7 +414,11 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       console.error("Error finding partial matches:", error);
     }
 
-    return matches.slice(0, 5);
+    // Sort by score (highest first) and return top results
+    return matches
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3) // Reduced from 5 to 3 for more focused results
+      .map(({ score, ...match }) => match); // Remove score from final result
   }
 
   private createCodeAction(
@@ -369,4 +488,5 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     }
     return null;
   }
+
 }

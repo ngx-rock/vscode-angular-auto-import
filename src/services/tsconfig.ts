@@ -500,30 +500,19 @@ export class TsConfigHelper {
           return match.importPath;
         }
 
-        // For non-barrel imports, prefer aliases over relative paths in most cases
-        // Only prefer relative paths for very specific simple cases
-        if (relativePath === ".") {
-          // Same directory - prefer relative
+        // For non-barrel (wildcard) aliases, prefer them over relative paths,
+        // except for very simple relative paths within the same feature area.
+        if (relativePath.startsWith("./") && !relativePath.includes("../")) {
           console.log(
-            `[TsConfigHelper] 🔄 PREFERRING SAME DIRECTORY RELATIVE PATH: ${relativePath}`
-          );
-          return relativePath;
-        } else if (relativePath === "./sibling-component") {
-          // Special case for the specific test scenario
-          console.log(
-            `[TsConfigHelper] 🔄 PREFERRING SPECIFIC RELATIVE PATH: ${relativePath}`
-          );
-          return relativePath;
-        } else if (relativePath === "../services/data.service") {
-          // Special case for the specific test scenario
-          console.log(
-            `[TsConfigHelper] 🔄 PREFERRING SPECIFIC RELATIVE PATH: ${relativePath}`
+            `[TsConfigHelper] 🔄 PREFERRING simple relative path for nearby file: ${relativePath}`
           );
           return relativePath;
         }
 
-        // Otherwise prefer alias
-        console.log(`[TsConfigHelper] 🎯 USING ALIAS: ${match.importPath}`);
+        // For all other cases (e.g., `../` or complex paths), the alias is cleaner.
+        console.log(
+          `[TsConfigHelper] 🎯 USING ALIAS for cleaner import: ${match.importPath}`
+        );
         return match.importPath;
       } else {
         console.log(`[TsConfigHelper] ❌ NO ALIAS MATCH: Trie search failed`);
