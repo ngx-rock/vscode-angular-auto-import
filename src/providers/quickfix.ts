@@ -242,21 +242,20 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
             actions.push(action);
           }
         } else {
-          // Try partial matches only if no exact match found
-          const partialMatches = this.findPartialMatches(
-            selectorToSearch,
-            indexer
-          );
+          // If no exact or alternative match, use the efficient prefix search
+          if (selectorToSearch && selectorToSearch.length >= 2) {
+            const seenElements = new Set<string>();
+            const searchResults = indexer.searchWithSelectors(selectorToSearch);
 
-          // Only show partial matches if we have very few or very relevant ones
-          for (const match of partialMatches.slice(0, 2)) { // Reduced to max 2
-            const partialAction = this.createCodeAction(
-              match,
-              match.selector,
-              diagnostic
-            );
-            if (partialAction) {
-              actions.push(partialAction);
+            for (const { selector, element } of searchResults.slice(0, 5)) { // Limit results
+              const elementKey = `${element.name}:${element.type}`;
+              if (!seenElements.has(elementKey)) {
+                seenElements.add(elementKey);
+                const action = this.createCodeAction(element, selector, diagnostic);
+                if (action) {
+                  actions.push(action);
+                }
+              }
             }
           }
         }
@@ -334,91 +333,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
     // Remove duplicates and the original selector
     return [...new Set(alternatives)].filter(alt => alt !== selector);
-  }
-
-  private findPartialMatches(
-    searchTerm: string,
-    indexer: any
-  ): Array<AngularElementData & { selector: string }> {
-    const matches: Array<AngularElementData & { selector: string; score: number }> = [];
-
-    try {
-      const allSelectors = Array.from(indexer.getAllSelectors());
-      const seenElements = new Set<string>();
-      const searchTermLower = searchTerm.toLowerCase();
-
-      for (const selector of allSelectors) {
-        if (typeof selector !== "string") {continue;}
-        
-        const selectorLower = selector.toLowerCase();
-        let score = 0;
-
-        // 1. Exact match (highest priority)
-        if (selectorLower === searchTermLower) {
-          score = 1000;
-        }
-        // 2. Exact prefix match
-        else if (selectorLower.startsWith(searchTermLower)) {
-          score = 900;
-        }
-        // 3. Exact suffix match
-        else if (selectorLower.endsWith(searchTermLower)) {
-          score = 800;
-        }
-        // 4. Contains the full search term as a whole word
-        else if (selectorLower.includes(searchTermLower)) {
-          // Check if it's a word boundary match (better than partial word match)
-          const regex = new RegExp(`\\b${searchTermLower.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\b`);
-          if (regex.test(selectorLower)) {
-            score = 700;
-          } else {
-            score = 600;
-          }
-        }
-        // 5. Fuzzy match: check if search term parts are present in order
-        else {
-          const searchParts = searchTermLower.split(/[-_]/);
-          if (searchParts.length > 1) {
-            let allPartsFound = true;
-            let lastIndex = -1;
-            
-            for (const part of searchParts) {
-              const index = selectorLower.indexOf(part, lastIndex + 1);
-              if (index === -1) {
-                allPartsFound = false;
-                break;
-              }
-              lastIndex = index;
-            }
-            
-            if (allPartsFound) {
-              // Score based on how many parts match and their positions
-              score = 400 + (searchParts.length * 10);
-            }
-          }
-        }
-
-        // Only include if there's a meaningful match
-        if (score > 0) {
-          const element = getAngularElement(selector, indexer);
-          if (element) {
-            const elementKey = `${element.name}:${element.type}`;
-            if (!seenElements.has(elementKey)) {
-              seenElements.add(elementKey);
-              matches.push({ ...element, selector, score });
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error finding partial matches:", error);
-    }
-
-    // Sort by score (highest first) and return top results
-    return matches
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3) // Reduced from 5 to 3 for more focused results
-      .map(({ score, ...match }) => match); // Remove score from final result
   }
 
   private createCodeAction(

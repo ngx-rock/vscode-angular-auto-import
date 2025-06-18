@@ -51,6 +51,19 @@ class SelectorTrie {
     return this.collectAllElements(currentNode);
   }
 
+  public searchWithSelectors(prefix: string): { selector: string; element: AngularElementData }[] {
+    let currentNode = this.root;
+    for (const char of prefix) {
+      if (!currentNode.children.has(char)) {
+        return [];
+      }
+      currentNode = currentNode.children.get(char)!;
+    }
+    // We found the node for the prefix. Now collect everything underneath it.
+    // The collector needs the prefix to build the full selectors.
+    return this.collectAllElementsWithSelectors(currentNode, prefix);
+  }
+
   public find(selector: string): AngularElementData | undefined {
     let currentNode = this.root;
     for (const char of selector) {
@@ -98,6 +111,22 @@ class SelectorTrie {
     for (const childNode of node.children.values()) {
       results = results.concat(this.collectAllElements(childNode));
     }
+    return results;
+  }
+
+  private collectAllElementsWithSelectors(node: TrieNode, currentSelector: string): { selector: string; element: AngularElementData }[] {
+    const results: { selector: string; element: AngularElementData }[] = [];
+
+    if (node.elements.length > 0) {
+      for (const element of node.elements) {
+        results.push({ selector: currentSelector, element });
+      }
+    }
+
+    for (const [char, childNode] of node.children.entries()) {
+      results.push(...this.collectAllElementsWithSelectors(childNode, currentSelector + char));
+    }
+
     return results;
   }
 
@@ -795,9 +824,10 @@ export class AngularIndexer {
     return this.selectorTrie.getAllSelectors();
   }
 
-  search(prefix: string): AngularElementData[] {
-    return this.selectorTrie.search(prefix);
+  searchWithSelectors(prefix: string): { selector: string; element: AngularElementData }[] {
+    return this.selectorTrie.searchWithSelectors(prefix);
   }
+
 
   private async getAngularFilesUsingVSCode(): Promise<string[]> {
     try {
