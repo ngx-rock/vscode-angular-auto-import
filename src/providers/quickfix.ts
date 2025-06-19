@@ -4,10 +4,12 @@
  * =================================================================================================
  */
 
+import * as path from "path";
 import * as vscode from "vscode";
 import { AngularElementData } from "../types";
 import { getAngularElement } from "../utils";
 import { ProviderContext } from "./index";
+import { TsConfigHelper } from "../services";
 
 /**
  * Provides QuickFix actions for Angular elements.
@@ -38,12 +40,12 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     "missing-pipe-import",
   ];
 
-  provideCodeActions(
+  async provideCodeActions(
     document: vscode.TextDocument,
     range: vscode.Range | vscode.Selection,
     context: vscode.CodeActionContext,
     token: vscode.CancellationToken
-  ): vscode.ProviderResult<(vscode.Command | vscode.CodeAction)[]> {
+  ): Promise<(vscode.Command | vscode.CodeAction)[]> {
     // Check for null context or diagnostics before proceeding
     if (!context || !context.diagnostics || !Array.isArray(context.diagnostics)) {
       return [];
@@ -85,7 +87,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
         try {
           if (this.isFixableDiagnostic(diagnostic)) {
-            const quickFixes = this.createQuickFixesForDiagnostic(
+            const quickFixes = await this.createQuickFixesForDiagnostic(
               document,
               diagnostic,
               indexer
@@ -176,11 +178,11 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     );
   }
 
-  private createQuickFixesForDiagnostic(
+  private async createQuickFixesForDiagnostic(
     document: vscode.TextDocument,
     diagnostic: vscode.Diagnostic,
     indexer: any
-  ): vscode.CodeAction[] {
+  ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
     try {
@@ -241,9 +243,32 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         }
 
         if (elementData) {
+          let isAliasPath = false;
+          const projCtx = this.getProjectContextForDocument(document);
+
+          if (projCtx && elementData.path) {
+            const absoluteTargetModulePath = path.join(
+              projCtx.projectRootPath,
+              elementData.path
+            );
+            // ts-morph uses sources files without extension
+            const absoluteTargetModulePathNoExt =
+              absoluteTargetModulePath.replace(/\.ts$/, "");
+
+            const importPath = await TsConfigHelper.resolveImportPath(
+              absoluteTargetModulePathNoExt,
+              document.uri.fsPath,
+              projCtx.projectRootPath
+            );
+
+            // An alias path will not start with '.', whereas a relative path will.
+            isAliasPath = !importPath.startsWith(".");
+          }
+
           const action = this.createCodeAction(
             elementData,
-            diagnostic
+            diagnostic,
+            isAliasPath
           );
           if (action) {
             actions.push(action);
@@ -327,7 +352,8 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
   private createCodeAction(
     element: AngularElementData,
-    diagnostic: vscode.Diagnostic
+    diagnostic: vscode.Diagnostic,
+    isAliasPath: boolean
   ): vscode.CodeAction | null {
     try {
       const isStandardAngular = element.path.startsWith("@angular/");
@@ -354,7 +380,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       };
 
       action.diagnostics = [diagnostic];
-      action.isPreferred = isStandardAngular;
+      action.isPreferred = isStandardAngular || isAliasPath;
 
       return action;
     } catch (error) {
