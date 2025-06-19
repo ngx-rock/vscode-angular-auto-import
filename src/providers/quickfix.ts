@@ -220,6 +220,13 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         // If not found, try alternative selector formats for the same element
         if (!elementData) {
           const alternativeSelectors = this.generateAlternativeSelectors(selectorToSearch);
+
+          // If the message suggests a structural directive, also try adding a '*' prefix
+          const isStructuralMessage = /structural directive/i.test(message);
+          if (isStructuralMessage && !selectorToSearch.startsWith('*')) {
+            alternativeSelectors.unshift(`*${selectorToSearch}`);
+          }
+          
           console.log(`[QuickfixImportProvider] Trying alternative selectors:`, alternativeSelectors);
           
           for (const altSelector of alternativeSelectors) {
@@ -236,7 +243,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         if (elementData) {
           const action = this.createCodeAction(
             elementData,
-            selectorToSearch,
             diagnostic
           );
           if (action) {
@@ -321,7 +327,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
   private createCodeAction(
     element: AngularElementData,
-    selector: string,
     diagnostic: vscode.Diagnostic
   ): vscode.CodeAction | null {
     try {
@@ -345,7 +350,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       action.command = {
         title: `Import ${element.name}`,
         command: "angular-auto-import.importElement",
-        arguments: [selector],
+        arguments: [element.originalSelector],
       };
 
       action.diagnostics = [diagnostic];
