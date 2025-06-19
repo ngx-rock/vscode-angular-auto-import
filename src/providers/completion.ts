@@ -84,12 +84,22 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const seenElements = new Set<string>(); // To avoid duplicate elements
 
     // Use the new Trie-based search for indexed elements
-    const matchingElements = indexer.search(filterText);
-    for (const element of matchingElements) {
-      // Use a unique key to avoid duplicate elements
+    const searchResults = indexer.searchWithSelectors(filterText);
+    const elementsToProcess = new Map<string, { element: AngularElementData, selectors: string[] }>();
+
+    // Group matching selectors by element to process each element only once
+    for (const { selector, element } of searchResults) {
+      const elementKey = `${element.path}:${element.name}`;
+      if (!elementsToProcess.has(elementKey)) {
+        elementsToProcess.set(elementKey, { element, selectors: [] });
+      }
+      elementsToProcess.get(elementKey)!.selectors.push(selector);
+    }
+
+    for (const { element, selectors } of elementsToProcess.values()) {
       const elementKey = `${element.path}:${element.name}`;
       if (seenElements.has(elementKey)) {
-        continue; // Skip if we've already processed this element
+        continue;
       }
 
       // Check if any of the element's selectors match the current context
@@ -98,7 +108,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       let bestInsertText = "";
       let bestItemKind = vscode.CompletionItemKind.Class;
 
-      for (const elementSelector of element.selectors) {
+      for (const elementSelector of selectors) {
         let itemKind: vscode.CompletionItemKind =
           vscode.CompletionItemKind.Class;
         let insertText = elementSelector;
@@ -189,7 +199,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         item.documentation = new vscode.MarkdownString(
           `Import \`${element.name}\` (${element.type}) from \`${
             element.path
-          }\`.\n\nSelector/Pipe Name: \`${bestMatchingSelector}\`\n\nAll selectors: ${element.selectors.join(
+          }\`.\n\nSelector/Pipe Name: \`${bestMatchingSelector}\`\n\nAll selectors: ${selectors.join(
             ", "
           )}`
         );

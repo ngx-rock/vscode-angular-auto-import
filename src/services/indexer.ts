@@ -40,17 +40,6 @@ class SelectorTrie {
     }
   }
 
-  public search(prefix: string): AngularElementData[] {
-    let currentNode = this.root;
-    for (const char of prefix) {
-      if (!currentNode.children.has(char)) {
-        return [];
-      }
-      currentNode = currentNode.children.get(char)!;
-    }
-    return this.collectAllElements(currentNode);
-  }
-
   public searchWithSelectors(prefix: string): { selector: string; element: AngularElementData }[] {
     let currentNode = this.root;
     for (const char of prefix) {
@@ -827,7 +816,6 @@ export class AngularIndexer {
   searchWithSelectors(prefix: string): { selector: string; element: AngularElementData }[] {
     return this.selectorTrie.searchWithSelectors(prefix);
   }
-
 
   private async getAngularFilesUsingVSCode(): Promise<string[]> {
     try {
