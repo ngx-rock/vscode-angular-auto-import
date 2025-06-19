@@ -216,8 +216,10 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       if (selectorToSearch) {
         console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
         
+        let matchedSelector: string | undefined;
         // Try to find exact match first
         let elementData = getAngularElement(selectorToSearch, indexer);
+        matchedSelector = selectorToSearch;
 
         // If not found, try alternative selector formats for the same element
         if (!elementData) {
@@ -232,8 +234,10 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
           console.log(`[QuickfixImportProvider] Trying alternative selectors:`, alternativeSelectors);
           
           for (const altSelector of alternativeSelectors) {
-            elementData = getAngularElement(altSelector, indexer);
-            if (elementData) {
+            const found = getAngularElement(altSelector, indexer);
+            if (found) {
+              elementData = found;
+              matchedSelector = altSelector;
               console.log(`[QuickfixImportProvider] Found element with alternative selector: "${altSelector}"`);
               break;
             }
@@ -242,7 +246,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
           console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
         }
 
-        if (elementData) {
+        if (elementData && matchedSelector) {
           let isAliasPath = false;
           const projCtx = this.getProjectContextForDocument(document);
 
@@ -268,7 +272,8 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
           const action = this.createCodeAction(
             elementData,
             diagnostic,
-            isAliasPath
+            isAliasPath,
+            matchedSelector
           );
           if (action) {
             actions.push(action);
@@ -353,7 +358,8 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   private createCodeAction(
     element: AngularElementData,
     diagnostic: vscode.Diagnostic,
-    isAliasPath: boolean
+    isAliasPath: boolean,
+    selector: string
   ): vscode.CodeAction | null {
     try {
       const isStandardAngular = element.path.startsWith("@angular/");
@@ -376,7 +382,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       action.command = {
         title: `Import ${element.name}`,
         command: "angular-auto-import.importElement",
-        arguments: [element.originalSelector],
+        arguments: [selector],
       };
 
       action.diagnostics = [diagnostic];
