@@ -500,16 +500,8 @@ export class TsConfigHelper {
           return match.importPath;
         }
 
-        // For non-barrel (wildcard) aliases, prefer them over relative paths,
-        // except for very simple relative paths within the same feature area.
-        if (relativePath.startsWith("./") && !relativePath.includes("../")) {
-          console.log(
-            `[TsConfigHelper] 🔄 PREFERRING simple relative path for nearby file: ${relativePath}`
-          );
-          return relativePath;
-        }
-
-        // For all other cases (e.g., `../` or complex paths), the alias is cleaner.
+        // For non-barrel (wildcard) aliases, always prefer aliases over relative paths
+        // according to the configured priority which expects clean imports
         console.log(
           `[TsConfigHelper] 🎯 USING ALIAS for cleaner import: ${match.importPath}`
         );

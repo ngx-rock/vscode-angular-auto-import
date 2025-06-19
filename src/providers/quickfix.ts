@@ -44,6 +44,11 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     context: vscode.CodeActionContext,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<(vscode.Command | vscode.CodeAction)[]> {
+    // Check for null context or diagnostics before proceeding
+    if (!context || !context.diagnostics || !Array.isArray(context.diagnostics)) {
+      return [];
+    }
+
     const diagnosticsToFix = context.diagnostics.filter(
       (diagnostic) => !!range.intersection(diagnostic.range)
     );
