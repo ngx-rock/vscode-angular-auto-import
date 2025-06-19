@@ -44,6 +44,15 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     context: vscode.CodeActionContext,
     token: vscode.CancellationToken
   ): vscode.ProviderResult<(vscode.Command | vscode.CodeAction)[]> {
+    // If an import just happened, back off for a bit to prevent race conditions.
+    const lastImportTimestamp = this.context.extensionContext.workspaceState.get<number>(
+      "angular-auto-import.lastImportTimestamp",
+      0
+    );
+    if (Date.now() - lastImportTimestamp < 2000) {
+      return [];
+    }
+
     // Check for null context or diagnostics before proceeding
     if (!context || !context.diagnostics || !Array.isArray(context.diagnostics)) {
       return [];
@@ -91,11 +100,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
               indexer
             );
 
-            const validQuickFixes = quickFixes.filter((action) => {
-              return this.validateCodeAction(action);
-            });
-
-            actions.push(...validQuickFixes);
+            actions.push(...quickFixes.filter((a) => a !== null));
           }
         } catch (error) {
           console.error(
@@ -108,6 +113,9 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       // Deduplicate actions
       const dedupedActionsMap = new Map<string, vscode.CodeAction>();
       for (const action of actions) {
+        if (!action) {
+          continue;
+        }
         const cmd = action.command?.command || "";
         const args = JSON.stringify(action.command?.arguments || []);
         const key = `${cmd}:${args}`;
@@ -219,25 +227,10 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
         
         // Try to find exact match first
-        let elementData = getAngularElement(selectorToSearch, indexer);
-
-        // If not found, try alternative selector formats for the same element
-        if (!elementData) {
-          const alternativeSelectors = this.generateAlternativeSelectors(selectorToSearch);
-          console.log(`[QuickfixImportProvider] Trying alternative selectors:`, alternativeSelectors);
-          
-          for (const altSelector of alternativeSelectors) {
-            elementData = getAngularElement(altSelector, indexer);
-            if (elementData) {
-              console.log(`[QuickfixImportProvider] Found element with alternative selector: "${altSelector}"`);
-              break;
-            }
-          }
-        } else {
-          console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
-        }
+        const elementData = getAngularElement(selectorToSearch, indexer);
 
         if (elementData) {
+          console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
           const action = this.createCodeAction(
             elementData,
             selectorToSearch,
@@ -253,6 +246,9 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
             const searchResults = indexer.searchWithSelectors(selectorToSearch);
 
             for (const { selector, element } of searchResults.slice(0, 5)) { // Limit results
+              if (!element) {
+                continue;
+              }
               const elementKey = `${element.name}:${element.type}`;
               if (!seenElements.has(elementKey)) {
                 seenElements.add(elementKey);
@@ -313,7 +309,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
     // Try different case variations
     alternatives.push(selector.toLowerCase());
-    alternatives.push(selector.toUpperCase());
     
     // Try camelCase to kebab-case conversion and vice versa
     if (selector.includes("-")) {
@@ -376,25 +371,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     } catch (error) {
       console.error("Error creating code action:", error);
       return null;
-    }
-  }
-
-  private validateCodeAction(action: any): boolean {
-    try {
-      return !!(
-        action &&
-        typeof action === "object" &&
-        action.title &&
-        typeof action.title === "string" &&
-        action.kind &&
-        action.command &&
-        typeof action.command === "object" &&
-        action.command.command &&
-        typeof action.command.command === "string" &&
-        Array.isArray(action.command.arguments)
-      );
-    } catch (error) {
-      return false;
     }
   }
 
