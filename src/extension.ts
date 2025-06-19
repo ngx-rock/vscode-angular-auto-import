@@ -388,7 +388,6 @@ async function registerProvidersAndCommands(
     projectIndexers,
     projectTsConfigs,
     extensionConfig,
-    extensionContext: context,
   };
 
   // Register commands

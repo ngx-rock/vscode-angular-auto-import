@@ -248,14 +248,14 @@ export async function importElementToFile(
 
         const success = await vscode.workspace.applyEdit(edit);
         if (success) {
+          // Since the edit was applied, the document is dirty.
+          // We must save it to trigger other extensions and update state.
+          await activeDocument.save();
           console.log(
-            `Successfully updated active document ${path.basename(
+            `[importElementToFile] Applied edits and saved active document: ${path.basename(
               componentFilePathAbs
-            )} for ${element.name}.`
+            )}`
           );
-          // Diagnostics are now handled by the DiagnosticProvider's
-          // onDidChangeTextDocument listener, which is more reliable than
-          // the previous timer-based approach.
         } else {
           console.error(
             `Failed to apply WorkspaceEdit to ${path.basename(
@@ -273,6 +273,31 @@ export async function importElementToFile(
           )} for ${element.name}.`
         );
       }
+
+      // Force-refresh diagnostics to prevent race conditions with other providers.
+      if (globalDiagnosticProvider) {
+        console.log(
+          `[importElementToFile] Forcing diagnostics update for ${path.basename(
+            componentFilePathAbs
+          )} and related HTML file.`
+        );
+        await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(
+          componentFilePathAbs
+        );
+
+        const htmlFilePath = switchFileType(componentFilePathAbs, ".html");
+        if (fs.existsSync(htmlFilePath)) {
+          await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(
+            htmlFilePath
+          );
+        }
+      }
+
+      console.log(
+        `Successfully updated active document ${path.basename(
+          componentFilePathAbs
+        )} for ${element.name}.`
+      );
 
       return true;
     } else {

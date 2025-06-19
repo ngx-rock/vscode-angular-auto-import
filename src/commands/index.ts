@@ -23,7 +23,6 @@ export interface CommandContext {
   projectIndexers: Map<string, any>;
   projectTsConfigs: Map<string, ProcessedTsConfig | null>;
   extensionConfig: ExtensionConfig;
-  extensionContext: vscode.ExtensionContext;
 }
 
 /**
@@ -134,8 +133,7 @@ export function registerCommands(
         element,
         projectRootPath,
         tsConfig,
-        indexer,
-        commandContext.extensionContext
+        indexer
       );
     }
   );
@@ -181,8 +179,7 @@ export function registerCommands(
           element,
           projectRootPath,
           tsConfig,
-          indexer,
-          commandContext.extensionContext
+          indexer
         );
         if (!success && !element) {
           vscode.window.showErrorMessage(
@@ -274,8 +271,7 @@ async function importElementCommandLogic(
   elementData: AngularElementData | undefined,
   projectRootPath: string,
   tsConfig: ProcessedTsConfig | null,
-  indexer: any,
-  extensionContext: vscode.ExtensionContext
+  indexer: any
 ): Promise<boolean> {
   if (!elementData) {
     vscode.window.showInformationMessage(
@@ -320,11 +316,6 @@ async function importElementCommandLogic(
       `${elementData.type} '${elementData.name}' processed for ${path.basename(
         activeComponentFileAbs
       )}.`
-    );
-    // Set timestamp to avoid race conditions with other providers
-    await extensionContext.workspaceState.update(
-      "angular-auto-import.lastImportTimestamp",
-      Date.now()
     );
   }
   return success;
