@@ -344,4 +344,41 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     selectors: ["i18nPlural"],
     originalSelector: "i18nPlural",
   },
+
+  // Router directives - from @angular/router
+  routerLink: {
+    name: "RouterLink",
+    importPath: "@angular/router",
+    type: "directive",
+    selectors: ["routerLink", "[routerLink]"],
+    originalSelector: "[routerLink]",
+  },
+  "[routerLink]": {
+    name: "RouterLink",
+    importPath: "@angular/router",
+    type: "directive",
+    selectors: ["routerLink", "[routerLink]"],
+    originalSelector: "[routerLink]",
+  },
+  routerLinkActive: {
+    name: "RouterLinkActive",
+    importPath: "@angular/router",
+    type: "directive",
+    selectors: ["routerLinkActive", "[routerLinkActive]"],
+    originalSelector: "[routerLinkActive]",
+  },
+  "[routerLinkActive]": {
+    name: "RouterLinkActive",
+    importPath: "@angular/router",
+    type: "directive",
+    selectors: ["routerLinkActive", "[routerLinkActive]"],
+    originalSelector: "[routerLinkActive]",
+  },
+  "router-outlet": {
+    name: "RouterOutlet",
+    importPath: "@angular/router",
+    type: "directive",
+    selectors: ["router-outlet"],
+    originalSelector: "router-outlet",
+  },
 };
