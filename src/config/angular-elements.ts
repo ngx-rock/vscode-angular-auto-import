@@ -209,6 +209,54 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     originalSelector: "[ngModel]",
   },
 
+  // NgForm (template-driven forms) - requires FormsModule
+  ngForm: {
+    name: "FormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["ngForm", "[ngForm]"],
+    originalSelector: "[ngForm]",
+  },
+  "[ngForm]": {
+    name: "FormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["ngForm", "[ngForm]"],
+    originalSelector: "[ngForm]",
+  },
+
+  // NgModelGroup (template-driven nested forms) - requires FormsModule
+  ngModelGroup: {
+    name: "FormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["ngModelGroup", "[ngModelGroup]"],
+    originalSelector: "[ngModelGroup]",
+  },
+  "[ngModelGroup]": {
+    name: "FormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["ngModelGroup", "[ngModelGroup]"],
+    originalSelector: "[ngModelGroup]",
+  },
+
+  // FormGroup (reactive forms) - requires ReactiveFormsModule
+  formGroup: {
+    name: "ReactiveFormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["formGroup", "[formGroup]"],
+    originalSelector: "[formGroup]",
+  },
+  "[formGroup]": {
+    name: "ReactiveFormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["formGroup", "[formGroup]"],
+    originalSelector: "[formGroup]",
+  },
+
   // NgPluralCase - individual plural cases
   ngPluralCase: {
     name: "NgPluralCase",
