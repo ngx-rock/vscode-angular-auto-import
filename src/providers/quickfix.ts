@@ -269,11 +269,15 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
             isAliasPath = !importPath.startsWith(".");
           }
 
+          // Normalize selector for import command (remove '*' prefix for structural directives)
+          const commandSelector = matchedSelector.startsWith("*")
+            ? matchedSelector.slice(1)
+            : matchedSelector;
           const action = this.createCodeAction(
             elementData,
             diagnostic,
             isAliasPath,
-            matchedSelector
+            commandSelector
           );
           if (action) {
             actions.push(action);
