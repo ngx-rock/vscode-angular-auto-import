@@ -48,7 +48,8 @@ export interface ParsedHtmlElement {
     | "structural-directive"
     | "component"
     | "property-binding"
-    | "pipe";
+    | "pipe"
+    | "template-reference";
   name: string;
   range: import("vscode").Range;
   tagName: string;

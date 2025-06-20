@@ -614,9 +614,32 @@ export class DiagnosticProvider {
           tagName: tagName,
         });
       }
+
+      // 5. Find template reference variables like #userForm="ngForm"
+      const templateRefRegex = /#[a-zA-Z][a-zA-Z0-9]*\s*=\s*["']([a-zA-Z][a-zA-Z0-9-]*)["']/g;
+      let templateRefMatch;
+
+      while ((templateRefMatch = templateRefRegex.exec(fullTagMatch)) !== null) {
+        const directiveName = templateRefMatch[1]; // Extract "ngForm" from #userForm="ngForm"
+
+        // Calculate position of the directive name (not the template variable name)
+        const directiveStart = templateRefMatch.index + templateRefMatch[0].indexOf(directiveName);
+        const startPos = document.positionAt(offset + tagStartIndex + directiveStart);
+        const endPos = document.positionAt(
+          offset + tagStartIndex + directiveStart + directiveName.length
+        );
+        const range = new vscode.Range(startPos, endPos);
+
+        elements.push({
+          type: "template-reference",
+          name: directiveName,
+          range: range,
+          tagName: tagName,
+        });
+      }
     }
 
-    // 5. Find pipes throughout the text (independent of tags)
+    // 6. Find pipes throughout the text (independent of tags)
     const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
     let pipeMatch;
 
@@ -660,6 +683,7 @@ export class DiagnosticProvider {
             break;
           case "attribute":
           case "property-binding":
+          case "template-reference":
             typeMatch = elementData.type === "directive";
             break;
           case "structural-directive":
@@ -742,6 +766,11 @@ export class DiagnosticProvider {
           selectors.push(camelCase);
           selectors.push(`[${camelCase}]`);
         }
+        break;
+
+      case "template-reference":
+        // For template reference variables, add the version with square brackets
+        selectors.push(`[${name}]`);
         break;
 
       case "structural-directive":
