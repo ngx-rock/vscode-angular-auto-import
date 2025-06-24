@@ -175,14 +175,14 @@ describe("QuickfixImportProvider", function () {
   });
 
   describe("#provideCodeActions", () => {
-    it("should return empty array when no diagnostics", () => {
+    it("should return empty array when no diagnostics", async () => {
       const context = {
         diagnostics: [],
         only: undefined,
         triggerKind: vscode.CodeActionTriggerKind.Invoke,
       };
 
-      const result = provider.provideCodeActions(
+      const result = await provider.provideCodeActions(
         mockDocument,
         new vscode.Range(0, 0, 0, 14),
         context,
@@ -192,7 +192,7 @@ describe("QuickfixImportProvider", function () {
       assert.deepStrictEqual(result, [], "Should return empty array when no diagnostics");
     });
 
-    it("should return empty array when no project context", () => {
+    it("should return empty array when no project context", async () => {
       // Create document outside project
       const outsideDocument = {
         ...mockDocument,
@@ -213,7 +213,7 @@ describe("QuickfixImportProvider", function () {
         triggerKind: vscode.CodeActionTriggerKind.Invoke,
       };
 
-      const result = provider.provideCodeActions(
+      const result = await provider.provideCodeActions(
         outsideDocument,
         new vscode.Range(0, 0, 0, 14),
         context,
@@ -223,7 +223,7 @@ describe("QuickfixImportProvider", function () {
       assert.deepStrictEqual(result, [], "Should return empty array when no project context");
     });
 
-    it("should provide code actions for known Angular component", () => {
+    it("should provide code actions for known Angular component", async () => {
       const diagnostic = new vscode.Diagnostic(
         new vscode.Range(0, 0, 0, 14),
         "'test-component' is not a known element",
@@ -237,7 +237,7 @@ describe("QuickfixImportProvider", function () {
         triggerKind: vscode.CodeActionTriggerKind.Invoke,
       };
 
-      const result = provider.provideCodeActions(
+      const result = await provider.provideCodeActions(
         mockDocument,
         new vscode.Range(0, 0, 0, 14),
         context,
@@ -256,21 +256,19 @@ describe("QuickfixImportProvider", function () {
   });
 
   describe("Error Handling", () => {
-    it("should handle null diagnostics gracefully", () => {
+    it("should handle null diagnostics gracefully", async () => {
       const context = null as any;
 
-      assert.doesNotThrow(() => {
-        const result = provider.provideCodeActions(
-          mockDocument,
-          new vscode.Range(0, 0, 0, 14),
-          context,
-          new vscode.CancellationTokenSource().token
-        );
-        assert.deepStrictEqual(result, [], "Should return empty array for null context");
-      }, "Should handle null context gracefully");
+      const result = await provider.provideCodeActions(
+        mockDocument,
+        new vscode.Range(0, 0, 0, 14),
+        context,
+        new vscode.CancellationTokenSource().token
+      );
+      assert.deepStrictEqual(result, [], "Should return empty array for null context");
     });
 
-    it("should handle indexer errors gracefully", () => {
+    it("should handle indexer errors gracefully", async () => {
       // Create broken provider with failing indexer
       const brokenProvider = new QuickfixImportProvider({
         projectIndexers: new Map([
@@ -308,16 +306,14 @@ describe("QuickfixImportProvider", function () {
       };
 
       // Test that the provider doesn't throw and returns empty array
-      assert.doesNotThrow(() => {
-        const result = brokenProvider.provideCodeActions(
-          mockDocument,
-          new vscode.Range(0, 0, 0, 14),
-          context,
-          new vscode.CancellationTokenSource().token
-        );
-        assert.ok(Array.isArray(result), "Should return empty array on error");
-        assert.strictEqual(result.length, 0, "Should return empty array on error");
-      }, "Should handle errors gracefully without throwing");
+      const result = await brokenProvider.provideCodeActions(
+        mockDocument,
+        new vscode.Range(0, 0, 0, 14),
+        context,
+        new vscode.CancellationTokenSource().token
+      );
+      assert.ok(Array.isArray(result), "Should return empty array on error");
+      assert.strictEqual(result.length, 0, "Should return empty array on error");
     });
   });
 });
