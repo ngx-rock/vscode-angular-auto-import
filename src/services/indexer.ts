@@ -32,7 +32,9 @@ class SelectorTrie {
       if (!currentNode.children.has(char)) {
         currentNode.children.set(char, new TrieNode());
       }
-      currentNode = currentNode.children.get(char)!;
+      const nextNode = currentNode.children.get(char);
+      if (!nextNode) throw new Error("Unexpected missing node in trie insertion");
+      currentNode = nextNode;
     }
     // Avoid adding duplicate elements for the same selector
     if (!currentNode.elements.some((el) => el.name === elementData.name && el.path === elementData.path)) {
@@ -46,7 +48,9 @@ class SelectorTrie {
       if (!currentNode.children.has(char)) {
         return [];
       }
-      currentNode = currentNode.children.get(char)!;
+      const nextNode = currentNode.children.get(char);
+      if (!nextNode) return [];
+      currentNode = nextNode;
     }
     // We found the node for the prefix. Now collect everything underneath it.
     // The collector needs the prefix to build the full selectors.
@@ -59,7 +63,9 @@ class SelectorTrie {
       if (!currentNode.children.has(char)) {
         return undefined;
       }
-      currentNode = currentNode.children.get(char)!;
+      const nextNode = currentNode.children.get(char);
+      if (!nextNode) return undefined;
+      currentNode = nextNode;
     }
     return currentNode.elements.length > 0 ? currentNode.elements[0] : undefined;
   }
@@ -85,7 +91,9 @@ class SelectorTrie {
       if (!currentNode.children.has(char)) {
         return; // Selector doesn't exist
       }
-      currentNode = currentNode.children.get(char)!;
+      const nextNode = currentNode.children.get(char);
+      if (!nextNode) return; // Selector doesn't exist
+      currentNode = nextNode;
     }
     // Remove the element if it matches the path
     currentNode.elements = currentNode.elements.filter((el) => path.resolve(el.path) !== path.resolve(elementPath));
@@ -555,7 +563,7 @@ export class AngularIndexer {
       this.fileCache.clear();
       this.selectorTrie.clear();
 
-      const angularFiles = await this.getAngularFilesUsingVSCode();
+      const angularFiles = await this.getAngularFilesUsingVsCode();
       console.log(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${angularFiles.length} Angular files.`
       );
@@ -685,7 +693,7 @@ export class AngularIndexer {
     return this.selectorTrie.searchWithSelectors(prefix);
   }
 
-  private async getAngularFilesUsingVSCode(): Promise<string[]> {
+  private async getAngularFilesUsingVsCode(): Promise<string[]> {
     try {
       // Updated patterns to support uppercase letters in filenames
       const patterns = ["**/*[Cc]omponent.ts", "**/*[Dd]irective.ts", "**/*[Pp]ipe.ts"];

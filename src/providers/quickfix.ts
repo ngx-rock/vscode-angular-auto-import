@@ -6,10 +6,11 @@
 
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { TsConfigHelper } from "../services";
+import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData } from "../types";
 import { getAngularElement } from "../utils";
 import type { ProviderContext } from "./index";
+import { AngularIndexer } from "../services";
 
 /**
  * Provides QuickFix actions for Angular elements.
@@ -100,7 +101,8 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         const key = `${cmd}:${args}`;
 
         if (dedupedActionsMap.has(key)) {
-          const existingAction = dedupedActionsMap.get(key)!;
+          const existingAction = dedupedActionsMap.get(key);
+          if (!existingAction) continue;
           if (action.isPreferred && !existingAction.isPreferred) {
             dedupedActionsMap.set(key, action);
           }
@@ -159,7 +161,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   private async createQuickFixesForDiagnostic(
     document: vscode.TextDocument,
     diagnostic: vscode.Diagnostic,
-    indexer: any
+    indexer:  AngularIndexer
   ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
@@ -358,7 +360,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     }
   }
 
-  private validateCodeAction(action: any): boolean {
+  private validateCodeAction(action: vscode.CodeAction): boolean {
     try {
       return !!(
         action &&

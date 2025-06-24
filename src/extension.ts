@@ -12,7 +12,8 @@ import * as vscode from "vscode";
 import { type CommandContext, registerCommands } from "./commands";
 import { type ExtensionConfig, getConfiguration, onConfigurationChanged } from "./config";
 import { type ProviderContext, registerProviders } from "./providers";
-import { AngularIndexer, TsConfigHelper } from "./services";
+import { AngularIndexer } from "./services";
+import * as TsConfigHelper from "./services/tsconfig";
 import type { ProcessedTsConfig, ProjectContext } from "./types";
 import { clearAllTemplateCache, clearTemplateCache } from "./utils/template-detection";
 

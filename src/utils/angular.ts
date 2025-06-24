@@ -2,6 +2,7 @@
  * Утилиты для работы с Angular элементами и селекторами
  */
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
+import type { AngularIndexer } from "../services";
 import { AngularElementData } from "../types";
 
 /**
@@ -105,10 +106,7 @@ export function normalizeSelector(selector: string): string[] {
 /**
  * Получает Angular элемент по селектору
  */
-export function getAngularElement(
-  selector: string,
-  indexer: any // Will be typed properly when indexer is created
-): AngularElementData | undefined {
+export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
   if (!selector || typeof selector !== "string") {
     return undefined;
   }
@@ -180,7 +178,7 @@ export function generateHash(content: string): string {
 /**
  * Извлекает информацию об Angular элементе из кода
  */
-export function extractAngularElementInfo(code: string, filePath: string): any | null {
+export function extractAngularElementInfo(code: string, filePath: string): AngularElementData | null {
   if (!code || !filePath) {
     return null;
   }
@@ -223,13 +221,13 @@ export function extractAngularElementInfo(code: string, filePath: string): any |
 
     const selectors = parseAngularSelector(selector);
 
-    return {
-      name: className,
+    return new AngularElementData(
+      filePath,
+      className,
       type,
-      selector,
-      selectors,
-      path: filePath,
-    };
+      selector, // originalSelector
+      selectors
+    );
   } catch (_error) {
     return null;
   }

@@ -35,19 +35,21 @@ import {
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
-import { TsConfigHelper } from "../services";
+import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
 import { switchFileType } from "./path";
 
 /**
  * Global reference to diagnostic provider for updating diagnostics
  */
-let globalDiagnosticProvider: any = null;
+let globalDiagnosticProvider: import("../providers/diagnostics").DiagnosticProvider | null = null;
 
 /**
  * Sets the global diagnostic provider
  */
-export function setGlobalDiagnosticProvider(provider: any): void {
+export function setGlobalDiagnosticProvider(
+  provider: import("../providers/diagnostics").DiagnosticProvider | null
+): void {
   globalDiagnosticProvider = provider;
 }
 
@@ -65,7 +67,7 @@ export async function importElementToFile(
   element: AngularElementData,
   componentFilePathAbs: string,
   projectRootPath: string,
-  indexerProject: any, // ts-morph Project instance
+  indexerProject: import("ts-morph").Project,
   _tsConfig: ProcessedTsConfig | null
 ): Promise<boolean> {
   try {
@@ -138,21 +140,21 @@ export async function importElementToFile(
 
     // Check if already imported from the same module
     const importDeclaration = sourceFile.getImportDeclaration(
-      (d: any) =>
+      (d) =>
         d.getModuleSpecifierValue() === importPathString &&
-        d.getNamedImports().some((ni: any) => ni.getName() === element.name)
+        d.getNamedImports().some((ni) => ni.getName() === element.name)
     );
 
     if (!importDeclaration) {
       // Check if there's an existing import from the same module path
       const existingImportFromSameModule = sourceFile.getImportDeclaration(
-        (d: any) => d.getModuleSpecifierValue() === importPathString
+        (d) => d.getModuleSpecifierValue() === importPathString
       );
 
       if (existingImportFromSameModule) {
         // Add to existing import from the same module
         const namedImports = existingImportFromSameModule.getNamedImports();
-        const alreadyImported = namedImports.some((ni: any) => ni.getName() === element.name);
+        const alreadyImported = namedImports.some((ni) => ni.getName() === element.name);
 
         if (!alreadyImported) {
           existingImportFromSameModule.addNamedImport(element.name);
@@ -165,7 +167,7 @@ export async function importElementToFile(
         // Check if imported with the same name but different path
         const existingImportWithName = sourceFile
           .getImportDeclarations()
-          .find((d: any) => d.getNamedImports().some((ni: any) => ni.getName() === element.name));
+          .find((d) => d.getNamedImports().some((ni) => ni.getName() === element.name));
 
         if (existingImportWithName) {
           console.log(

@@ -14,6 +14,7 @@ import {
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
+import type { AngularIndexer } from "../services";
 import type { AngularElementData, ParsedHtmlElement } from "../types";
 import { getAngularElement, switchFileType } from "../utils";
 import type { ProviderContext } from "./index";
@@ -588,7 +589,7 @@ export class DiagnosticProvider {
 
   private async checkElementForMissingImport(
     element: ParsedHtmlElement,
-    indexer: any,
+    indexer: AngularIndexer,
     document: vscode.TextDocument,
     componentPath: string,
     severity: vscode.DiagnosticSeverity

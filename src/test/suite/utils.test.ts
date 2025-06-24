@@ -40,7 +40,7 @@ export class TestComponent {
       assert.ok(result, "Should extract component info");
       assert.strictEqual(result.name, "TestComponent", "Should extract correct class name");
       assert.strictEqual(result.type, "component", "Should identify as component");
-      assert.strictEqual(result.selector, "app-test", "Should extract correct selector");
+      assert.strictEqual(result.originalSelector, "app-test", "Should extract correct selector");
       assert.ok(Array.isArray(result.selectors), "Should have selectors array");
       assert.ok(result.selectors.includes("app-test"), "Should include component selector in array");
     });
@@ -62,7 +62,7 @@ export class HighlightDirective {
       assert.ok(result, "Should extract directive info");
       assert.strictEqual(result.name, "HighlightDirective", "Should extract correct class name");
       assert.strictEqual(result.type, "directive", "Should identify as directive");
-      assert.strictEqual(result.selector, "[appHighlight]", "Should extract correct selector");
+      assert.strictEqual(result.originalSelector, "[appHighlight]", "Should extract correct selector");
     });
 
     it("should extract pipe information correctly", () => {
@@ -84,7 +84,7 @@ export class CapitalizePipe implements PipeTransform {
       assert.ok(result, "Should extract pipe info");
       assert.strictEqual(result.name, "CapitalizePipe", "Should extract correct class name");
       assert.strictEqual(result.type, "pipe", "Should identify as pipe");
-      assert.strictEqual(result.selector, "capitalize", "Should extract correct pipe name");
+      assert.strictEqual(result.originalSelector, "capitalize", "Should extract correct pipe name");
     });
 
     it("should handle multiple selectors for directives", () => {

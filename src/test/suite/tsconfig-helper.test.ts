@@ -10,7 +10,7 @@
 import * as assert from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { TsConfigHelper } from "../../services/tsconfig";
+import * as TsConfigHelper from "../../services/tsconfig";
 import type { ProcessedTsConfig } from "../../types";
 
 describe("TsConfigHelper", function () {

@@ -8,15 +8,16 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { ExtensionConfig } from "../config";
-import { TsConfigHelper } from "../services";
+import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
 import { getAngularElement, importElementToFile, switchFileType } from "../utils";
+import { AngularIndexer } from "../services";
 
 /**
  * Context for the commands.
  */
 export interface CommandContext {
-  projectIndexers: Map<string, any>;
+  projectIndexers: Map<string,  AngularIndexer>;
   projectTsConfigs: Map<string, ProcessedTsConfig | null>;
   extensionConfig: ExtensionConfig;
 }
@@ -130,7 +131,7 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
  */
 async function generateIndexForProject(
   projectRootPath: string,
-  indexer: any,
+  indexer: AngularIndexer,
   context: vscode.ExtensionContext
 ): Promise<void> {
   console.log(`GENERATE_INDEX: For project ${projectRootPath}`);
@@ -154,7 +155,7 @@ function getProjectContextForDocument(
   commandContext: CommandContext
 ):
   | {
-      indexer: any;
+      indexer: AngularIndexer;
       projectRootPath: string;
       tsConfig: ProcessedTsConfig | null;
     }
@@ -192,7 +193,7 @@ async function importElementCommandLogic(
   elementData: AngularElementData | undefined,
   projectRootPath: string,
   tsConfig: ProcessedTsConfig | null,
-  indexer: any
+  indexer:  AngularIndexer
 ): Promise<boolean> {
   if (!elementData) {
     vscode.window.showInformationMessage(
