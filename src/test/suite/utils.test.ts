@@ -6,8 +6,8 @@
  * Tests for utility functions used throughout the extension.
  */
 
-import * as assert from "assert";
-import * as path from "path";
+import * as assert from "node:assert";
+import * as path from "node:path";
 import {
   extractAngularElementInfo,
   generateImportStatement,
@@ -20,8 +20,8 @@ describe("Utility Functions", function () {
   // Set timeout for all tests in this suite
   this.timeout(5000);
 
-  describe("extractAngularElementInfo", function () {
-    it("should extract component information correctly", function () {
+  describe("extractAngularElementInfo", () => {
+    it("should extract component information correctly", () => {
       const componentCode = `
 import { Component } from '@angular/core';
 
@@ -35,35 +35,17 @@ export class TestComponent {
 }
 `;
 
-      const result = extractAngularElementInfo(
-        componentCode,
-        "/src/app/test.component.ts"
-      );
+      const result = extractAngularElementInfo(componentCode, "/src/app/test.component.ts");
 
       assert.ok(result, "Should extract component info");
-      assert.strictEqual(
-        result.name,
-        "TestComponent",
-        "Should extract correct class name"
-      );
-      assert.strictEqual(
-        result.type,
-        "component",
-        "Should identify as component"
-      );
-      assert.strictEqual(
-        result.selector,
-        "app-test",
-        "Should extract correct selector"
-      );
+      assert.strictEqual(result.name, "TestComponent", "Should extract correct class name");
+      assert.strictEqual(result.type, "component", "Should identify as component");
+      assert.strictEqual(result.selector, "app-test", "Should extract correct selector");
       assert.ok(Array.isArray(result.selectors), "Should have selectors array");
-      assert.ok(
-        result.selectors.includes("app-test"),
-        "Should include component selector in array"
-      );
+      assert.ok(result.selectors.includes("app-test"), "Should include component selector in array");
     });
 
-    it("should extract directive information correctly", function () {
+    it("should extract directive information correctly", () => {
       const directiveCode = `
 import { Directive, Input } from '@angular/core';
 
@@ -75,30 +57,15 @@ export class HighlightDirective {
 }
 `;
 
-      const result = extractAngularElementInfo(
-        directiveCode,
-        "/src/app/highlight.directive.ts"
-      );
+      const result = extractAngularElementInfo(directiveCode, "/src/app/highlight.directive.ts");
 
       assert.ok(result, "Should extract directive info");
-      assert.strictEqual(
-        result.name,
-        "HighlightDirective",
-        "Should extract correct class name"
-      );
-      assert.strictEqual(
-        result.type,
-        "directive",
-        "Should identify as directive"
-      );
-      assert.strictEqual(
-        result.selector,
-        "[appHighlight]",
-        "Should extract correct selector"
-      );
+      assert.strictEqual(result.name, "HighlightDirective", "Should extract correct class name");
+      assert.strictEqual(result.type, "directive", "Should identify as directive");
+      assert.strictEqual(result.selector, "[appHighlight]", "Should extract correct selector");
     });
 
-    it("should extract pipe information correctly", function () {
+    it("should extract pipe information correctly", () => {
       const pipeCode = `
 import { Pipe, PipeTransform } from '@angular/core';
 
@@ -112,26 +79,15 @@ export class CapitalizePipe implements PipeTransform {
 }
 `;
 
-      const result = extractAngularElementInfo(
-        pipeCode,
-        "/src/app/capitalize.pipe.ts"
-      );
+      const result = extractAngularElementInfo(pipeCode, "/src/app/capitalize.pipe.ts");
 
       assert.ok(result, "Should extract pipe info");
-      assert.strictEqual(
-        result.name,
-        "CapitalizePipe",
-        "Should extract correct class name"
-      );
+      assert.strictEqual(result.name, "CapitalizePipe", "Should extract correct class name");
       assert.strictEqual(result.type, "pipe", "Should identify as pipe");
-      assert.strictEqual(
-        result.selector,
-        "capitalize",
-        "Should extract correct pipe name"
-      );
+      assert.strictEqual(result.selector, "capitalize", "Should extract correct pipe name");
     });
 
-    it("should handle multiple selectors for directives", function () {
+    it("should handle multiple selectors for directives", () => {
       const directiveCode = `
 @Directive({
   selector: 'button[appButton], a[appButton], [appButton]'
@@ -139,17 +95,10 @@ export class CapitalizePipe implements PipeTransform {
 export class ButtonDirective {}
 `;
 
-      const result = extractAngularElementInfo(
-        directiveCode,
-        "/src/app/button.directive.ts"
-      );
+      const result = extractAngularElementInfo(directiveCode, "/src/app/button.directive.ts");
 
       assert.ok(result, "Should extract directive info");
-      assert.strictEqual(
-        result.type,
-        "directive",
-        "Should identify as directive"
-      );
+      assert.strictEqual(result.type, "directive", "Should identify as directive");
       assert.ok(Array.isArray(result.selectors), "Should have selectors array");
       assert.ok(result.selectors.length > 1, "Should have multiple selectors");
       assert.ok(
@@ -162,26 +111,19 @@ export class ButtonDirective {}
       );
     });
 
-    it("should return null for non-Angular files", function () {
+    it("should return null for non-Angular files", () => {
       const regularCode = `
 export class RegularClass {
   constructor() {}
 }
 `;
 
-      const result = extractAngularElementInfo(
-        regularCode,
-        "/src/app/regular.ts"
-      );
+      const result = extractAngularElementInfo(regularCode, "/src/app/regular.ts");
 
-      assert.strictEqual(
-        result,
-        null,
-        "Should return null for non-Angular files"
-      );
+      assert.strictEqual(result, null, "Should return null for non-Angular files");
     });
 
-    it("should handle malformed decorators gracefully", function () {
+    it("should handle malformed decorators gracefully", () => {
       const malformedCode = `
 @Component({
   selector: 'app-test'
@@ -191,39 +133,21 @@ export class TestComponent {}
 
       // Should not throw an error
       assert.doesNotThrow(() => {
-        const result = extractAngularElementInfo(
-          malformedCode,
-          "/src/app/test.component.ts"
-        );
+        const result = extractAngularElementInfo(malformedCode, "/src/app/test.component.ts");
 
         // Should either return null or handle gracefully
-        assert.ok(
-          result === null || typeof result === "object",
-          "Should handle malformed code gracefully"
-        );
+        assert.ok(result === null || typeof result === "object", "Should handle malformed code gracefully");
       }, "Should not throw error for malformed code");
     });
 
-    it("should handle null and undefined inputs", function () {
-      assert.strictEqual(
-        extractAngularElementInfo(null as any, "/test.ts"),
-        null,
-        "Should handle null code"
-      );
-      assert.strictEqual(
-        extractAngularElementInfo("test", null as any),
-        null,
-        "Should handle null file path"
-      );
-      assert.strictEqual(
-        extractAngularElementInfo(undefined as any, "/test.ts"),
-        null,
-        "Should handle undefined code"
-      );
+    it("should handle null and undefined inputs", () => {
+      assert.strictEqual(extractAngularElementInfo(null as any, "/test.ts"), null, "Should handle null code");
+      assert.strictEqual(extractAngularElementInfo("test", null as any), null, "Should handle null file path");
+      assert.strictEqual(extractAngularElementInfo(undefined as any, "/test.ts"), null, "Should handle undefined code");
     });
   });
 
-  describe("isAngularFile", function () {
+  describe("isAngularFile", () => {
     const testCases = [
       // Component files
       {
@@ -302,32 +226,18 @@ export class TestComponent {}
     ];
 
     testCases.forEach(({ path, expected, description }) => {
-      it(`should ${
-        expected ? "identify" : "reject"
-      } ${description}`, function () {
-        assert.strictEqual(
-          isAngularFile(path),
-          expected,
-          `Should ${expected ? "identify" : "reject"} ${description}`
-        );
+      it(`should ${expected ? "identify" : "reject"} ${description}`, () => {
+        assert.strictEqual(isAngularFile(path), expected, `Should ${expected ? "identify" : "reject"} ${description}`);
       });
     });
 
-    it("should handle null and undefined inputs", function () {
-      assert.strictEqual(
-        isAngularFile(null as any),
-        false,
-        "Should handle null file path"
-      );
-      assert.strictEqual(
-        isAngularFile(undefined as any),
-        false,
-        "Should handle undefined file path"
-      );
+    it("should handle null and undefined inputs", () => {
+      assert.strictEqual(isAngularFile(null as any), false, "Should handle null file path");
+      assert.strictEqual(isAngularFile(undefined as any), false, "Should handle undefined file path");
     });
   });
 
-  describe("normalizeSelector", function () {
+  describe("normalizeSelector", () => {
     const testCases = [
       {
         input: "app-test",
@@ -352,20 +262,17 @@ export class TestComponent {}
     ];
 
     testCases.forEach(({ input, description, expectedToInclude }) => {
-      it(`should normalize ${description}`, function () {
+      it(`should normalize ${description}`, () => {
         const result = normalizeSelector(input);
 
         assert.ok(Array.isArray(result), "Should return an array");
         expectedToInclude.forEach((expected) => {
-          assert.ok(
-            result.includes(expected),
-            `Should include ${expected} in result`
-          );
+          assert.ok(result.includes(expected), `Should include ${expected} in result`);
         });
       });
     });
 
-    it("should handle empty or invalid selectors", function () {
+    it("should handle empty or invalid selectors", () => {
       const testCases = [
         { input: "", description: "empty string" },
         { input: "   ", description: "whitespace only" },
@@ -375,20 +282,13 @@ export class TestComponent {}
 
       testCases.forEach(({ input, description }) => {
         const result = normalizeSelector(input as any);
-        assert.ok(
-          Array.isArray(result),
-          `Should return an array for ${description}`
-        );
-        assert.strictEqual(
-          result.length,
-          0,
-          `Should return empty array for ${description}`
-        );
+        assert.ok(Array.isArray(result), `Should return an array for ${description}`);
+        assert.strictEqual(result.length, 0, `Should return empty array for ${description}`);
       });
     });
   });
 
-  describe("generateImportStatement", function () {
+  describe("generateImportStatement", () => {
     const testCases = [
       {
         name: "TestComponent",
@@ -417,21 +317,14 @@ export class TestComponent {}
     ];
 
     testCases.forEach(({ name, path, expected, description }) => {
-      it(`should generate ${description}`, function () {
+      it(`should generate ${description}`, () => {
         const result = generateImportStatement(name, path);
-        assert.strictEqual(
-          result,
-          expected,
-          `Should generate correct ${description}`
-        );
+        assert.strictEqual(result, expected, `Should generate correct ${description}`);
       });
     });
 
-    it("should handle special characters in names", function () {
-      const result = generateImportStatement(
-        "My$Component",
-        "@app/components/special"
-      );
+    it("should handle special characters in names", () => {
+      const result = generateImportStatement("My$Component", "@app/components/special");
 
       assert.strictEqual(
         result,
@@ -440,24 +333,16 @@ export class TestComponent {}
       );
     });
 
-    it("should handle empty parameters gracefully", function () {
+    it("should handle empty parameters gracefully", () => {
       const result1 = generateImportStatement("", "@app/test");
       const result2 = generateImportStatement("TestComponent", "");
 
-      assert.strictEqual(
-        result1,
-        "import {  } from '@app/test';",
-        "Should handle empty name"
-      );
-      assert.strictEqual(
-        result2,
-        "import { TestComponent } from '';",
-        "Should handle empty path"
-      );
+      assert.strictEqual(result1, "import {  } from '@app/test';", "Should handle empty name");
+      assert.strictEqual(result2, "import { TestComponent } from '';", "Should handle empty path");
     });
   });
 
-  describe("resolveRelativePath", function () {
+  describe("resolveRelativePath", () => {
     const testCases = [
       {
         from: "/src/app/components/test.component.ts",
@@ -480,43 +365,33 @@ export class TestComponent {}
     ];
 
     testCases.forEach(({ from, to, expected, description }) => {
-      it(`should resolve ${description} correctly`, function () {
+      it(`should resolve ${description} correctly`, () => {
         const result = resolveRelativePath(from, to);
         assert.strictEqual(result, expected, `Should resolve ${description}`);
       });
     });
 
-    it("should handle cross-platform paths", function () {
+    it("should handle cross-platform paths", () => {
       const from = path.join("src", "app", "components", "test.component.ts");
       const to = path.join("src", "app", "services", "data.service.ts");
 
       const result = resolveRelativePath(from, to);
 
-      assert.ok(
-        result.includes("services"),
-        "Should work with cross-platform paths"
-      );
-      assert.ok(
-        result.includes("data.service"),
-        "Should include target file name"
-      );
+      assert.ok(result.includes("services"), "Should work with cross-platform paths");
+      assert.ok(result.includes("data.service"), "Should include target file name");
     });
 
-    it("should remove file extensions", function () {
+    it("should remove file extensions", () => {
       const from = "/src/app/test.component.ts";
       const to = "/src/app/other.component.ts";
 
       const result = resolveRelativePath(from, to);
 
       assert.ok(!result.endsWith(".ts"), "Should remove .ts extension");
-      assert.strictEqual(
-        result,
-        "./other.component",
-        "Should have correct relative path without extension"
-      );
+      assert.strictEqual(result, "./other.component", "Should have correct relative path without extension");
     });
 
-    it("should handle edge cases gracefully", function () {
+    it("should handle edge cases gracefully", () => {
       const testCases = [
         { from: "", to: "/test", description: "empty from path" },
         { from: "/test", to: "", description: "empty to path" },
@@ -527,16 +402,12 @@ export class TestComponent {}
       testCases.forEach(({ from, to, description }) => {
         assert.doesNotThrow(() => {
           const result = resolveRelativePath(from as any, to as any);
-          assert.strictEqual(
-            typeof result,
-            "string",
-            `Should return string for ${description}`
-          );
+          assert.strictEqual(typeof result, "string", `Should return string for ${description}`);
         }, `Should not throw for ${description}`);
       });
     });
 
-    it("should handle absolute paths outside project", function () {
+    it("should handle absolute paths outside project", () => {
       const from = "/project/src/app/test.ts";
       const to = "/other/project/file.ts";
 
@@ -548,8 +419,8 @@ export class TestComponent {}
     });
   });
 
-  describe("Edge Cases and Error Handling", function () {
-    it("should not throw errors for malformed inputs", function () {
+  describe("Edge Cases and Error Handling", () => {
+    it("should not throw errors for malformed inputs", () => {
       // Test extractAngularElementInfo with malformed code
       assert.doesNotThrow(() => {
         extractAngularElementInfo("malformed{code", "/test.ts");
@@ -566,50 +437,30 @@ export class TestComponent {}
       }, "resolveRelativePath should not throw for invalid type inputs");
     });
 
-    it("should handle very long inputs", function () {
+    it("should handle very long inputs", () => {
       const longSelector = "a".repeat(1000);
       const normalizedLong = normalizeSelector(longSelector);
 
-      assert.ok(
-        Array.isArray(normalizedLong),
-        "Should return array for long selectors"
-      );
-      assert.ok(
-        normalizedLong.includes(longSelector),
-        "Should handle long selectors"
-      );
+      assert.ok(Array.isArray(normalizedLong), "Should return array for long selectors");
+      assert.ok(normalizedLong.includes(longSelector), "Should handle long selectors");
 
-      const longPath = "/very/long/path/" + "segment/".repeat(100) + "file.ts";
+      const longPath = `/very/long/path/${"segment/".repeat(100)}file.ts`;
       const isAngular = isAngularFile(longPath);
 
-      assert.strictEqual(
-        typeof isAngular,
-        "boolean",
-        "Should handle long paths"
-      );
+      assert.strictEqual(typeof isAngular, "boolean", "Should handle long paths");
     });
 
-    it("should handle special characters and unicode", function () {
+    it("should handle special characters and unicode", () => {
       const unicodeSelector = "app-тест-компонент";
       const normalized = normalizeSelector(unicodeSelector);
 
-      assert.ok(
-        Array.isArray(normalized),
-        "Should return array for unicode selectors"
-      );
-      assert.ok(
-        normalized.includes(unicodeSelector),
-        "Should handle unicode selectors"
-      );
+      assert.ok(Array.isArray(normalized), "Should return array for unicode selectors");
+      assert.ok(normalized.includes(unicodeSelector), "Should handle unicode selectors");
 
       const specialPath = "/src/app/test-файл.component.ts";
       const isAngular = isAngularFile(specialPath);
 
-      assert.strictEqual(
-        typeof isAngular,
-        "boolean",
-        "Should handle unicode file paths"
-      );
+      assert.strictEqual(typeof isAngular, "boolean", "Should handle unicode file paths");
     });
   });
 });

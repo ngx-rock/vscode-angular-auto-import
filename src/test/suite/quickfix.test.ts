@@ -6,8 +6,8 @@
  * Tests for the QuickfixImportProvider that provides code actions for Angular elements.
  */
 
-import * as assert from "assert";
-import * as path from "path";
+import * as assert from "node:assert";
+import * as path from "node:path";
 import * as vscode from "vscode";
 import { QuickfixImportProvider } from "../../providers/quickfix";
 import { AngularElementData } from "../../types";
@@ -23,70 +23,37 @@ describe("QuickfixImportProvider", function () {
   let mockProviderContext: any;
   const testProjectPath = "/test/project";
 
-  beforeEach(function () {
+  beforeEach(() => {
     // Create mock indexer with all required methods
     mockIndexer = {
       getAllSelectors: () =>
-        Array.from(
-          new Set([
-            "test-component",
-            "testPipe",
-            "[testDirective]",
-            "testDirective",
-            "*ngIf",
-          ])
-        ),
+        Array.from(new Set(["test-component", "testPipe", "[testDirective]", "testDirective", "*ngIf"])),
       getElement: (selector: string) => {
         const elements = new Map([
           [
             "test-component",
-            new AngularElementData(
-              "src/app/test.component.ts",
-              "TestComponent",
-              "component",
+            new AngularElementData("src/app/test.component.ts", "TestComponent", "component", "test-component", [
               "test-component",
-              ["test-component"]
-            ),
+            ]),
           ],
-          [
-            "testPipe",
-            new AngularElementData(
-              "src/app/test.pipe.ts",
-              "TestPipe",
-              "pipe",
-              "testPipe",
-              ["testPipe"]
-            ),
-          ],
+          ["testPipe", new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"])],
           [
             "[testDirective]",
-            new AngularElementData(
-              "src/app/test.directive.ts",
-              "TestDirective",
-              "directive",
+            new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
+              "testDirective",
               "[testDirective]",
-              ["testDirective", "[testDirective]"]
-            ),
+            ]),
           ],
           [
             "testDirective",
-            new AngularElementData(
-              "src/app/test.directive.ts",
-              "TestDirective",
-              "directive",
+            new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
+              "testDirective",
               "[testDirective]",
-              ["testDirective", "[testDirective]"]
-            ),
+            ]),
           ],
           [
             "*ngIf",
-            new AngularElementData(
-              "@angular/common",
-              "NgIf",
-              "directive",
-              "[ngIf]",
-              ["ngIf", "*ngIf", "[ngIf]"]
-            ),
+            new AngularElementData("@angular/common", "NgIf", "directive", "[ngIf]", ["ngIf", "*ngIf", "[ngIf]"]),
           ],
         ]);
         return elements.get(selector);
@@ -95,7 +62,7 @@ describe("QuickfixImportProvider", function () {
       searchWithSelectors: (prefix: string): { selector: string; element: AngularElementData }[] => {
         const results: { selector: string; element: AngularElementData }[] = [];
         const allSelectors = mockIndexer.getAllSelectors();
-        
+
         for (const selector of allSelectors) {
           if (selector.startsWith(prefix)) {
             const element = mockIndexer.getElement(selector);
@@ -104,7 +71,7 @@ describe("QuickfixImportProvider", function () {
             }
           }
         }
-        
+
         return results;
       },
     };
@@ -189,8 +156,8 @@ describe("QuickfixImportProvider", function () {
     provider = new QuickfixImportProvider(mockProviderContext);
   });
 
-  describe("Static Properties", function () {
-    it("should have correct provided code action kinds", function () {
+  describe("Static Properties", () => {
+    it("should have correct provided code action kinds", () => {
       assert.deepStrictEqual(
         QuickfixImportProvider.providedCodeActionKinds,
         [vscode.CodeActionKind.QuickFix],
@@ -198,20 +165,17 @@ describe("QuickfixImportProvider", function () {
       );
     });
 
-    it("should have comprehensive diagnostic codes", function () {
+    it("should have comprehensive diagnostic codes", () => {
       const codes = QuickfixImportProvider.fixesDiagnosticCode;
       assert.ok(codes.includes("NG8001"), "Should include NG8001 (unknown element)");
       assert.ok(codes.includes("NG6004"), "Should include NG6004 (pipe not found)");
-      assert.ok(
-        codes.includes("missing-component-import"),
-        "Should include custom diagnostic codes"
-      );
+      assert.ok(codes.includes("missing-component-import"), "Should include custom diagnostic codes");
       assert.ok(codes.length > 10, "Should have comprehensive list of diagnostic codes");
     });
   });
 
-  describe("#provideCodeActions", function () {
-    it("should return empty array when no diagnostics", function () {
+  describe("#provideCodeActions", () => {
+    it("should return empty array when no diagnostics", () => {
       const context = {
         diagnostics: [],
         only: undefined,
@@ -225,14 +189,10 @@ describe("QuickfixImportProvider", function () {
         new vscode.CancellationTokenSource().token
       );
 
-      assert.deepStrictEqual(
-        result,
-        [],
-        "Should return empty array when no diagnostics"
-      );
+      assert.deepStrictEqual(result, [], "Should return empty array when no diagnostics");
     });
 
-    it("should return empty array when no project context", function () {
+    it("should return empty array when no project context", () => {
       // Create document outside project
       const outsideDocument = {
         ...mockDocument,
@@ -260,14 +220,10 @@ describe("QuickfixImportProvider", function () {
         new vscode.CancellationTokenSource().token
       );
 
-      assert.deepStrictEqual(
-        result,
-        [],
-        "Should return empty array when no project context"
-      );
+      assert.deepStrictEqual(result, [], "Should return empty array when no project context");
     });
 
-    it("should provide code actions for known Angular component", function () {
+    it("should provide code actions for known Angular component", () => {
       const diagnostic = new vscode.Diagnostic(
         new vscode.Range(0, 0, 0, 14),
         "'test-component' is not a known element",
@@ -295,16 +251,12 @@ describe("QuickfixImportProvider", function () {
       assert.ok(action.title.includes("TestComponent"), "Should include component name in title");
       assert.strictEqual(action.kind, vscode.CodeActionKind.QuickFix, "Should be QuickFix kind");
       assert.ok(action.command, "Should have command");
-      assert.strictEqual(
-        action.command!.command,
-        "angular-auto-import.importElement",
-        "Should have correct command"
-      );
+      assert.strictEqual(action.command?.command, "angular-auto-import.importElement", "Should have correct command");
     });
   });
 
-  describe("Error Handling", function () {
-    it("should handle null diagnostics gracefully", function () {
+  describe("Error Handling", () => {
+    it("should handle null diagnostics gracefully", () => {
       const context = null as any;
 
       assert.doesNotThrow(() => {
@@ -318,7 +270,7 @@ describe("QuickfixImportProvider", function () {
       }, "Should handle null context gracefully");
     });
 
-    it("should handle indexer errors gracefully", function () {
+    it("should handle indexer errors gracefully", () => {
       // Create broken provider with failing indexer
       const brokenProvider = new QuickfixImportProvider({
         projectIndexers: new Map([
@@ -368,4 +320,4 @@ describe("QuickfixImportProvider", function () {
       }, "Should handle errors gracefully without throwing");
     });
   });
-}); 
+});

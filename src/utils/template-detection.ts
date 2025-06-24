@@ -8,7 +8,7 @@
  * ts-morph AST parsing approach with efficient string operations.
  */
 
-import * as vscode from "vscode";
+import type * as vscode from "vscode";
 
 interface TemplateStringRange {
   start: number;
@@ -28,25 +28,18 @@ const templateCache = new Map<string, CacheEntry>();
  * Optimized function to check if a position is inside an Angular template string.
  * Uses regex-based parsing instead of ts-morph for significant performance improvement.
  */
-export function isInsideTemplateString(
-  document: vscode.TextDocument,
-  position: vscode.Position
-): boolean {
+export function isInsideTemplateString(document: vscode.TextDocument, position: vscode.Position): boolean {
   const offset = document.offsetAt(position);
   const templateRanges = getTemplateStringRanges(document);
 
-  return templateRanges.some(
-    (range) => offset >= range.start && offset <= range.end
-  );
+  return templateRanges.some((range) => offset >= range.start && offset <= range.end);
 }
 
 /**
  * Extract all template string ranges from an Angular component file.
  * Uses caching to avoid re-parsing the same document version.
  */
-function getTemplateStringRanges(
-  document: vscode.TextDocument
-): TemplateStringRange[] {
+function getTemplateStringRanges(document: vscode.TextDocument): TemplateStringRange[] {
   const cacheKey = document.uri.toString();
   const currentVersion = document.version;
 
@@ -83,10 +76,7 @@ function parseTemplateStringRanges(text: string): TemplateStringRange[] {
     const componentStart = componentMatch.index;
 
     // Find the matching closing brace for this @Component
-    const decoratorEnd = findMatchingBrace(
-      text,
-      componentMatch.index + componentMatch[0].length - 1
-    );
+    const decoratorEnd = findMatchingBrace(text, componentMatch.index + componentMatch[0].length - 1);
     if (decoratorEnd === -1) {
       continue;
     }
@@ -94,10 +84,7 @@ function parseTemplateStringRanges(text: string): TemplateStringRange[] {
     const decoratorContent = text.slice(componentStart, decoratorEnd + 1);
 
     // Find template property within this decorator
-    const templateRanges = findTemplatePropertyRanges(
-      decoratorContent,
-      componentStart
-    );
+    const templateRanges = findTemplatePropertyRanges(decoratorContent, componentStart);
     ranges.push(...templateRanges);
   }
 
@@ -107,10 +94,7 @@ function parseTemplateStringRanges(text: string): TemplateStringRange[] {
 /**
  * Find template property ranges within a @Component decorator.
  */
-function findTemplatePropertyRanges(
-  decoratorContent: string,
-  offset: number
-): TemplateStringRange[] {
+function findTemplatePropertyRanges(decoratorContent: string, offset: number): TemplateStringRange[] {
   const ranges: TemplateStringRange[] = [];
 
   // Look for template: followed by a string
@@ -186,11 +170,7 @@ function findMatchingBrace(text: string, openBracePos: number): number {
 /**
  * Find the matching closing quote for an opening quote.
  */
-function findMatchingQuote(
-  text: string,
-  openQuotePos: number,
-  quoteChar: string
-): number {
+function findMatchingQuote(text: string, openQuotePos: number, quoteChar: string): number {
   let escaped = false;
 
   for (let i = openQuotePos + 1; i < text.length; i++) {

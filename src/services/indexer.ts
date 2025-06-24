@@ -3,19 +3,19 @@
  * Responsible for indexing Angular components, directives, and pipes.
  */
 
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import {
-  ClassDeclaration,
-  Decorator,
-  ObjectLiteralExpression,
+  type ClassDeclaration,
+  type Decorator,
+  type ObjectLiteralExpression,
   Project,
-  PropertyAssignment,
-  StringLiteral,
+  type PropertyAssignment,
+  type StringLiteral,
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
-import { AngularElementData, ComponentInfo, FileElementsInfo } from "../types";
+import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
 import { parseAngularSelector } from "../utils";
 
 class TrieNode {
@@ -56,10 +56,10 @@ class SelectorTrie {
   public find(selector: string): AngularElementData | undefined {
     let currentNode = this.root;
     for (const char of selector) {
-        if (!currentNode.children.has(char)) {
-            return undefined;
-        }
-        currentNode = currentNode.children.get(char)!;
+      if (!currentNode.children.has(char)) {
+        return undefined;
+      }
+      currentNode = currentNode.children.get(char)!;
     }
     return currentNode.elements.length > 0 ? currentNode.elements[0] : undefined;
   }
@@ -69,7 +69,7 @@ class SelectorTrie {
     this.collectSelectors(this.root, "", selectors);
     return selectors;
   }
-  
+
   private collectSelectors(node: TrieNode, prefix: string, selectors: string[]): void {
     if (node.elements.length > 0) {
       selectors.push(prefix);
@@ -88,9 +88,9 @@ class SelectorTrie {
       currentNode = currentNode.children.get(char)!;
     }
     // Remove the element if it matches the path
-    currentNode.elements = currentNode.elements.filter(el => path.resolve(el.path) !== path.resolve(elementPath));
+    currentNode.elements = currentNode.elements.filter((el) => path.resolve(el.path) !== path.resolve(elementPath));
   }
-  
+
   public getAllElements(): AngularElementData[] {
     return this.collectAllElements(this.root);
   }
@@ -103,7 +103,10 @@ class SelectorTrie {
     return results;
   }
 
-  private collectAllElementsWithSelectors(node: TrieNode, currentSelector: string): { selector: string; element: AngularElementData }[] {
+  private collectAllElementsWithSelectors(
+    node: TrieNode,
+    currentSelector: string
+  ): { selector: string; element: AngularElementData }[] {
     const results: { selector: string; element: AngularElementData }[] = [];
 
     if (node.elements.length > 0) {
@@ -158,10 +161,7 @@ export class AngularIndexer {
       skipAddingFilesFromTsConfig: true,
     });
 
-    const projectHash = this.generateHash(projectPath).replace(
-      /[^a-zA-Z0-9_]/g,
-      ""
-    );
+    const projectHash = this.generateHash(projectPath).replace(/[^a-zA-Z0-9_]/g, "");
     this.workspaceFileCacheKey = `angularFileCache_${projectHash}`;
     this.workspaceIndexCacheKey = `angularSelectorToDataIndex_${projectHash}`;
     console.log(
@@ -174,43 +174,26 @@ export class AngularIndexer {
       this.fileWatcher.dispose();
     }
     if (!this.projectRootPath) {
-      console.error(
-        "AngularIndexer: Cannot initialize watcher, projectRootPath not set."
-      );
+      console.error("AngularIndexer: Cannot initialize watcher, projectRootPath not set.");
       return;
     }
 
     // Updated pattern to support uppercase letters in filenames
-    const pattern = new vscode.RelativePattern(
-      this.projectRootPath,
-      "**/*{[Cc]omponent,[Dd]irective,[Pp]ipe}.ts"
-    );
+    const pattern = new vscode.RelativePattern(this.projectRootPath, "**/*{[Cc]omponent,[Dd]irective,[Pp]ipe}.ts");
     this.fileWatcher = vscode.workspace.createFileSystemWatcher(pattern);
 
     this.fileWatcher.onDidCreate(async (uri) => {
-      console.log(
-        `Watcher (${path.basename(this.projectRootPath)}): File created: ${
-          uri.fsPath
-        }`
-      );
+      console.log(`Watcher (${path.basename(this.projectRootPath)}): File created: ${uri.fsPath}`);
       await this.updateFileIndex(uri.fsPath, context);
     });
 
     this.fileWatcher.onDidChange(async (uri) => {
-      console.log(
-        `Watcher (${path.basename(this.projectRootPath)}): File changed: ${
-          uri.fsPath
-        }`
-      );
+      console.log(`Watcher (${path.basename(this.projectRootPath)}): File changed: ${uri.fsPath}`);
       await this.updateFileIndex(uri.fsPath, context);
     });
 
     this.fileWatcher.onDidDelete(async (uri) => {
-      console.log(
-        `Watcher (${path.basename(this.projectRootPath)}): File deleted: ${
-          uri.fsPath
-        }`
-      );
+      console.log(`Watcher (${path.basename(this.projectRootPath)}): File deleted: ${uri.fsPath}`);
       await this.removeFromIndex(uri.fsPath, context);
       // Also remove from ts-morph project
       const sourceFile = this.project.getSourceFile(uri.fsPath);
@@ -220,9 +203,7 @@ export class AngularIndexer {
     });
 
     context.subscriptions.push(this.fileWatcher);
-    console.log(
-      `AngularIndexer: File watcher initialized for ${this.projectRootPath} with pattern ${pattern.pattern}`
-    );
+    console.log(`AngularIndexer: File watcher initialized for ${this.projectRootPath} with pattern ${pattern.pattern}`);
   }
 
   private generateHash(content: string): string {
@@ -235,18 +216,10 @@ export class AngularIndexer {
     return hash.toString();
   }
 
-  private parseAngularElementsWithTsMorph(
-    filePath: string,
-    content: string
-  ): ComponentInfo[] {
+  private parseAngularElementsWithTsMorph(filePath: string, content: string): ComponentInfo[] {
     if (!this.projectRootPath) {
-      console.error(
-        "AngularIndexer.parseAngularElementsWithTsMorph: projectRootPath is not set."
-      );
-      const fallbackResult = this.parseAngularElementWithRegex(
-        filePath,
-        content
-      );
+      console.error("AngularIndexer.parseAngularElementsWithTsMorph: projectRootPath is not set.");
+      const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
       return fallbackResult ? [fallbackResult] : [];
     }
 
@@ -264,11 +237,7 @@ export class AngularIndexer {
       const classes = sourceFile.getClasses();
 
       for (const classDeclaration of classes) {
-        const elementInfo = this.extractAngularElementInfo(
-          classDeclaration,
-          filePath,
-          content
-        ); // content passed for hash
+        const elementInfo = this.extractAngularElementInfo(classDeclaration, filePath, content); // content passed for hash
         if (elementInfo) {
           elements.push(elementInfo);
         }
@@ -276,10 +245,7 @@ export class AngularIndexer {
 
       // If no Angular elements found by ts-morph, try regex as a fallback
       if (elements.length === 0) {
-        const fallbackResult = this.parseAngularElementWithRegex(
-          filePath,
-          content
-        );
+        const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
         if (fallbackResult) {
           elements.push(fallbackResult);
         }
@@ -287,14 +253,8 @@ export class AngularIndexer {
 
       return elements;
     } catch (error) {
-      console.error(
-        `ts-morph parsing error for ${filePath} in project ${this.projectRootPath}:`,
-        error
-      );
-      const fallbackResult = this.parseAngularElementWithRegex(
-        filePath,
-        content
-      );
+      console.error(`ts-morph parsing error for ${filePath} in project ${this.projectRootPath}:`, error);
+      const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
       return fallbackResult ? [fallbackResult] : [];
     }
   }
@@ -348,9 +308,7 @@ export class AngularIndexer {
     return null;
   }
 
-  private extractSelectorFromDecorator(
-    decorator: Decorator
-  ): string | undefined {
+  private extractSelectorFromDecorator(decorator: Decorator): string | undefined {
     try {
       const args = decorator.getArguments();
       if (args.length === 0) {
@@ -365,14 +323,11 @@ export class AngularIndexer {
       const objectLiteral = firstArg as ObjectLiteralExpression;
       const selectorProperty = objectLiteral.getProperty("selector");
 
-      if (
-        selectorProperty &&
-        selectorProperty.isKind(SyntaxKind.PropertyAssignment)
-      ) {
+      if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
         const propertyAssignment = selectorProperty as PropertyAssignment;
         const initializer = propertyAssignment.getInitializer();
 
-        if (initializer && initializer.isKind(SyntaxKind.StringLiteral)) {
+        if (initializer?.isKind(SyntaxKind.StringLiteral)) {
           return (initializer as StringLiteral).getLiteralText();
         }
       }
@@ -382,9 +337,7 @@ export class AngularIndexer {
     return undefined;
   }
 
-  private extractPipeNameFromDecorator(
-    decorator: Decorator
-  ): string | undefined {
+  private extractPipeNameFromDecorator(decorator: Decorator): string | undefined {
     try {
       const args = decorator.getArguments();
       if (args.length === 0) {
@@ -399,11 +352,11 @@ export class AngularIndexer {
       const objectLiteral = firstArg as ObjectLiteralExpression;
       const nameProperty = objectLiteral.getProperty("name");
 
-      if (nameProperty && nameProperty.isKind(SyntaxKind.PropertyAssignment)) {
+      if (nameProperty?.isKind(SyntaxKind.PropertyAssignment)) {
         const propertyAssignment = nameProperty as PropertyAssignment;
         const initializer = propertyAssignment.getInitializer();
 
-        if (initializer && initializer.isKind(SyntaxKind.StringLiteral)) {
+        if (initializer?.isKind(SyntaxKind.StringLiteral)) {
           return (initializer as StringLiteral).getLiteralText();
         }
       }
@@ -413,10 +366,7 @@ export class AngularIndexer {
     return undefined;
   }
 
-  private parseAngularElementWithRegex(
-    filePath: string,
-    content: string
-  ): ComponentInfo | null {
+  private parseAngularElementWithRegex(filePath: string, content: string): ComponentInfo | null {
     // This is a fallback, ensure it's robust enough or log clearly when it's used.
     // Note: This regex approach only finds the first element, unlike the ts-morph approach
     if (!this.projectRootPath) {
@@ -435,10 +385,7 @@ export class AngularIndexer {
     // Support both lowercase and uppercase patterns
     if (fileName.includes(".component.") || fileName.includes(".Component.")) {
       elementType = "component";
-    } else if (
-      fileName.includes(".directive.") ||
-      fileName.includes(".Directive.")
-    ) {
+    } else if (fileName.includes(".directive.") || fileName.includes(".Directive.")) {
       elementType = "directive";
     } else if (fileName.includes(".pipe.") || fileName.includes(".Pipe.")) {
       elementType = "pipe";
@@ -460,9 +407,7 @@ export class AngularIndexer {
 
     if (selector) {
       return {
-        path: this.projectRootPath
-          ? path.relative(this.projectRootPath, filePath)
-          : filePath,
+        path: this.projectRootPath ? path.relative(this.projectRootPath, filePath) : filePath,
         name: classNameMatch[1],
         selector,
         lastModified: fs.statSync(filePath).mtime.getTime(),
@@ -473,21 +418,14 @@ export class AngularIndexer {
     return null;
   }
 
-  private async updateFileIndex(
-    filePath: string,
-    context: vscode.ExtensionContext
-  ): Promise<void> {
+  private async updateFileIndex(filePath: string, context: vscode.ExtensionContext): Promise<void> {
     try {
       if (!fs.existsSync(filePath)) {
-        console.warn(
-          `File not found, cannot update index: ${filePath} for project ${this.projectRootPath}`
-        );
+        console.warn(`File not found, cannot update index: ${filePath} for project ${this.projectRootPath}`);
         return;
       }
       if (!this.projectRootPath) {
-        console.error(
-          `AngularIndexer.updateFileIndex: projectRootPath not set for ${filePath}. Aborting update.`
-        );
+        console.error(`AngularIndexer.updateFileIndex: projectRootPath not set for ${filePath}. Aborting update.`);
         return;
       }
       if (!filePath.startsWith(this.projectRootPath)) {
@@ -505,11 +443,7 @@ export class AngularIndexer {
       const content = fs.readFileSync(filePath, "utf-8");
       const hash = this.generateHash(content);
 
-      if (
-        cachedFile &&
-        cachedFile.lastModified >= lastModified &&
-        cachedFile.hash === hash
-      ) {
+      if (cachedFile && cachedFile.lastModified >= lastModified && cachedFile.hash === hash) {
         // If modification time is same or older, and hash is same, no need to parse
         // Update lastModified just in case it was touched without content change
         if (cachedFile.lastModified < lastModified) {
@@ -532,10 +466,7 @@ export class AngularIndexer {
         }
       }
 
-      const parsedElements = this.parseAngularElementsWithTsMorph(
-        filePath,
-        content
-      );
+      const parsedElements = this.parseAngularElementsWithTsMorph(filePath, content);
 
       if (parsedElements.length > 0) {
         // Update file cache with all elements from this file
@@ -562,9 +493,7 @@ export class AngularIndexer {
           // Index the element under each individual selector
           for (const selector of individualSelectors) {
             this.selectorTrie.insert(selector, elementData);
-            console.log(
-              `Updated index for ${this.projectRootPath}: ${selector} (${parsed.type}) -> ${parsed.path}`
-            );
+            console.log(`Updated index for ${this.projectRootPath}: ${selector} (${parsed.type}) -> ${parsed.path}`);
           }
         });
       } else {
@@ -574,23 +503,15 @@ export class AngularIndexer {
         if (sourceFile) {
           this.project.removeSourceFile(sourceFile); // or sourceFile.forget()
         }
-        console.log(
-          `No Angular elements found in ${filePath} for ${this.projectRootPath}`
-        );
+        console.log(`No Angular elements found in ${filePath} for ${this.projectRootPath}`);
       }
       await this.saveIndexToWorkspace(context);
     } catch (error) {
-      console.error(
-        `Error updating index for ${filePath} in project ${this.projectRootPath}:`,
-        error
-      );
+      console.error(`Error updating index for ${filePath} in project ${this.projectRootPath}:`, error);
     }
   }
 
-  private async removeFromIndex(
-    filePath: string,
-    context: vscode.ExtensionContext
-  ): Promise<void> {
+  private async removeFromIndex(filePath: string, context: vscode.ExtensionContext): Promise<void> {
     // Remove from file cache
     const fileInfo = this.fileCache.get(filePath);
     if (fileInfo) {
@@ -598,9 +519,7 @@ export class AngularIndexer {
         const individualSelectors = parseAngularSelector(element.selector);
         for (const selector of individualSelectors) {
           this.selectorTrie.remove(selector, filePath);
-          console.log(
-            `Removed from index for ${this.projectRootPath}: ${selector} from ${filePath}`
-          );
+          console.log(`Removed from index for ${this.projectRootPath}: ${selector} from ${filePath}`);
         }
       }
       this.fileCache.delete(filePath);
@@ -617,44 +536,28 @@ export class AngularIndexer {
     }
   }
 
-  async generateFullIndex(
-    context: vscode.ExtensionContext
-  ): Promise<Map<string, AngularElementData>> {
+  async generateFullIndex(context: vscode.ExtensionContext): Promise<Map<string, AngularElementData>> {
     if (this.isIndexing) {
-      console.log(
-        `AngularIndexer (${path.basename(
-          this.projectRootPath
-        )}): Already indexing, skipping...`
-      );
-      return new Map(this.selectorTrie.getAllElements().map(e => [e.originalSelector, e]));
+      console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): Already indexing, skipping...`);
+      return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
     }
 
     this.isIndexing = true;
     try {
-      console.log(
-        `AngularIndexer (${path.basename(
-          this.projectRootPath
-        )}): Starting full index generation...`
-      );
+      console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): Starting full index generation...`);
       if (!this.projectRootPath) {
-        console.error(
-          "AngularIndexer.generateFullIndex: projectRootPath not set. Aborting."
-        );
+        console.error("AngularIndexer.generateFullIndex: projectRootPath not set. Aborting.");
         return new Map();
       }
 
       // Clear existing ts-morph project files before full scan to avoid stale data
-      this.project
-        .getSourceFiles()
-        .forEach((sf) => this.project.removeSourceFile(sf));
+      this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
       this.fileCache.clear();
       this.selectorTrie.clear();
 
       const angularFiles = await this.getAngularFilesUsingVSCode();
       console.log(
-        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${
-          angularFiles.length
-        } Angular files.`
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${angularFiles.length} Angular files.`
       );
 
       const batchSize = 20; // Process in batches
@@ -669,42 +572,30 @@ export class AngularIndexer {
         console.log(
           `AngularIndexer (${path.basename(
             this.projectRootPath
-          )}): Indexed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(
-            angularFiles.length / batchSize
-          )}`
+          )}): Indexed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(angularFiles.length / batchSize)}`
         );
       }
 
       console.log(
-        `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${
-          this.selectorTrie.size
-        } elements.`
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${this.selectorTrie.size} elements.`
       );
       await this.saveIndexToWorkspace(context);
-      return new Map(this.selectorTrie.getAllElements().map(e => [e.originalSelector, e]));
+      return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
     } finally {
       this.isIndexing = false;
     }
   }
 
   loadFromWorkspace(context: vscode.ExtensionContext): boolean {
-    if (
-      !this.projectRootPath ||
-      !this.workspaceFileCacheKey ||
-      !this.workspaceIndexCacheKey
-    ) {
-      console.error(
-        "AngularIndexer.loadFromWorkspace: projectRootPath or cache keys not set. Cannot load."
-      );
+    if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey) {
+      console.error("AngularIndexer.loadFromWorkspace: projectRootPath or cache keys not set. Cannot load.");
       return false;
     }
     try {
-      const storedCache = context.workspaceState.get<
-        Record<string, FileElementsInfo | ComponentInfo>
-      >(this.workspaceFileCacheKey);
-      const storedIndex = context.workspaceState.get<
-        Record<string, AngularElementData>
-      >(this.workspaceIndexCacheKey);
+      const storedCache = context.workspaceState.get<Record<string, FileElementsInfo | ComponentInfo>>(
+        this.workspaceFileCacheKey
+      );
+      const storedIndex = context.workspaceState.get<Record<string, AngularElementData>>(this.workspaceIndexCacheKey);
 
       if (storedCache && storedIndex) {
         // Convert old ComponentInfo format to new FileElementsInfo format if needed
@@ -753,57 +644,34 @@ export class AngularIndexer {
       }
     } catch (error) {
       console.error(
-        `AngularIndexer (${path.basename(
-          this.projectRootPath
-        )}): Error loading index from workspace:`,
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Error loading index from workspace:`,
         error
       );
     }
-    console.log(
-      `AngularIndexer (${path.basename(
-        this.projectRootPath
-      )}): No valid cache found in workspace.`
-    );
+    console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): No valid cache found in workspace.`);
     return false;
   }
 
-  private async saveIndexToWorkspace(
-    context: vscode.ExtensionContext
-  ): Promise<void> {
-    if (
-      !this.projectRootPath ||
-      !this.workspaceFileCacheKey ||
-      !this.workspaceIndexCacheKey
-    ) {
-      console.error(
-        "AngularIndexer.saveIndexToWorkspace: projectRootPath or cache keys not set. Cannot save."
-      );
+  private async saveIndexToWorkspace(context: vscode.ExtensionContext): Promise<void> {
+    if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey) {
+      console.error("AngularIndexer.saveIndexToWorkspace: projectRootPath or cache keys not set. Cannot save.");
       return;
     }
     try {
-      await context.workspaceState.update(
-        this.workspaceFileCacheKey,
-        Object.fromEntries(this.fileCache)
+      await context.workspaceState.update(this.workspaceFileCacheKey, Object.fromEntries(this.fileCache));
+
+      const serializableTrie = Object.fromEntries(
+        this.selectorTrie.getAllElements().map((el) => [el.originalSelector, el])
       );
 
-      const serializableTrie = Object.fromEntries(this.selectorTrie.getAllElements().map(el => [el.originalSelector, el]));
-
-      await context.workspaceState.update(
-        this.workspaceIndexCacheKey,
-        serializableTrie
-      );
+      await context.workspaceState.update(this.workspaceIndexCacheKey, serializableTrie);
     } catch (error) {
-      console.error(
-        `AngularIndexer (${path.basename(
-          this.projectRootPath
-        )}): Error saving index to workspace:`,
-        error
-      );
+      console.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`, error);
     }
   }
 
   getElement(selector: string): AngularElementData | undefined {
-    if (typeof selector !== 'string' || !selector) {
+    if (typeof selector !== "string" || !selector) {
       return undefined;
     }
     return this.selectorTrie.find(selector);
@@ -820,11 +688,7 @@ export class AngularIndexer {
   private async getAngularFilesUsingVSCode(): Promise<string[]> {
     try {
       // Updated patterns to support uppercase letters in filenames
-      const patterns = [
-        "**/*[Cc]omponent.ts",
-        "**/*[Dd]irective.ts",
-        "**/*[Pp]ipe.ts",
-      ];
+      const patterns = ["**/*[Cc]omponent.ts", "**/*[Dd]irective.ts", "**/*[Pp]ipe.ts"];
       const allFiles: string[] = [];
       for (const pattern of patterns) {
         const files = await vscode.workspace.findFiles(
@@ -866,14 +730,11 @@ export class AngularIndexer {
             if (!excludedDirs.has(entry.name)) {
               traverseDirectory(fullPath);
             }
-          } else if (
-            entry.isFile() &&
-            /\.([Cc]omponent|[Dd]irective|[Pp]ipe)\.ts$/.test(entry.name)
-          ) {
+          } else if (entry.isFile() && /\.([Cc]omponent|[Dd]irective|[Pp]ipe)\.ts$/.test(entry.name)) {
             angularFiles.push(path.relative(basePath, fullPath));
           }
         }
-      } catch (err) {
+      } catch (_err) {
         // console.warn(`Could not read directory ${currentDirPath}: ${err}`);
       }
     };
@@ -891,8 +752,6 @@ export class AngularIndexer {
     this.fileCache.clear();
     this.selectorTrie.clear();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
-    this.project
-      .getSourceFiles()
-      .forEach((sf) => this.project.removeSourceFile(sf));
+    this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
   }
 }

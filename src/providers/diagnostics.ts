@@ -4,19 +4,19 @@
  * =================================================================================================
  */
 
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import {
-  ArrayLiteralExpression,
-  Expression,
-  ObjectLiteralExpression,
-  SourceFile,
+  type ArrayLiteralExpression,
+  type Expression,
+  type ObjectLiteralExpression,
+  type SourceFile,
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
-import { AngularElementData, ParsedHtmlElement } from "../types";
+import type { AngularElementData, ParsedHtmlElement } from "../types";
 import { getAngularElement, switchFileType } from "../utils";
-import { ProviderContext } from "./index";
+import type { ProviderContext } from "./index";
 
 /**
  * Provides diagnostics for Angular elements.
@@ -26,9 +26,7 @@ export class DiagnosticProvider {
   private disposables: vscode.Disposable[] = [];
 
   constructor(private context: ProviderContext) {
-    this.diagnosticCollection = vscode.languages.createDiagnosticCollection(
-      "angular-auto-import"
-    );
+    this.diagnosticCollection = vscode.languages.createDiagnosticCollection("angular-auto-import");
   }
 
   /**
@@ -36,65 +34,52 @@ export class DiagnosticProvider {
    */
   activate(): void {
     // Update diagnostics when HTML documents change
-    const htmlUpdateHandler = vscode.workspace.onDidChangeTextDocument(
-      async (event) => {
-        if (event.document.languageId === "html") {
-          this.updateDiagnostics(event.document);
-        }
+    const htmlUpdateHandler = vscode.workspace.onDidChangeTextDocument(async (event) => {
+      if (event.document.languageId === "html") {
+        this.updateDiagnostics(event.document);
       }
-    );
+    });
     this.disposables.push(htmlUpdateHandler);
 
     // Update diagnostics when TypeScript documents change
-    const tsUpdateHandler = vscode.workspace.onDidChangeTextDocument(
-      async (event) => {
-        if (event.document.languageId === "typescript") {
-          this.updateDiagnostics(event.document);
-          await this.updateRelatedHtmlDiagnostics(event.document);
-        }
+    const tsUpdateHandler = vscode.workspace.onDidChangeTextDocument(async (event) => {
+      if (event.document.languageId === "typescript") {
+        this.updateDiagnostics(event.document);
+        await this.updateRelatedHtmlDiagnostics(event.document);
       }
-    );
+    });
     this.disposables.push(tsUpdateHandler);
 
     // Update diagnostics when TypeScript documents are saved
-    const tsSaveHandler = vscode.workspace.onDidSaveTextDocument(
-      async (document) => {
-        if (document.languageId === "typescript") {
-          this.updateDiagnostics(document);
-          await this.updateRelatedHtmlDiagnostics(document);
-        }
+    const tsSaveHandler = vscode.workspace.onDidSaveTextDocument(async (document) => {
+      if (document.languageId === "typescript") {
+        this.updateDiagnostics(document);
+        await this.updateRelatedHtmlDiagnostics(document);
       }
-    );
+    });
     this.disposables.push(tsSaveHandler);
 
     // Update diagnostics when a document is opened
-    const diagnosticOpenHandler = vscode.workspace.onDidOpenTextDocument(
-      async (document) => {
-        if (document.languageId === "html") {
-          this.updateDiagnostics(document);
-        } else if (document.languageId === "typescript") {
-          this.updateDiagnostics(document);
-        }
+    const diagnosticOpenHandler = vscode.workspace.onDidOpenTextDocument(async (document) => {
+      if (document.languageId === "html") {
+        this.updateDiagnostics(document);
+      } else if (document.languageId === "typescript") {
+        this.updateDiagnostics(document);
       }
-    );
+    });
     this.disposables.push(diagnosticOpenHandler);
 
     // Update diagnostics when HTML documents are saved
-    const htmlSaveHandler = vscode.workspace.onDidSaveTextDocument(
-      async (document) => {
-        if (document.languageId === "html") {
-          this.updateDiagnostics(document);
-        }
+    const htmlSaveHandler = vscode.workspace.onDidSaveTextDocument(async (document) => {
+      if (document.languageId === "html") {
+        this.updateDiagnostics(document);
       }
-    );
+    });
     this.disposables.push(htmlSaveHandler);
 
     // Initialize diagnostics for all open HTML documents
     for (const document of vscode.workspace.textDocuments) {
-      if (
-        document.languageId === "html" ||
-        document.languageId === "typescript"
-      ) {
+      if (document.languageId === "html" || document.languageId === "typescript") {
         this.updateDiagnostics(document);
       }
     }
@@ -112,9 +97,7 @@ export class DiagnosticProvider {
   /**
    * Updates diagnostics for related HTML files when a TypeScript file changes.
    */
-  private async updateRelatedHtmlDiagnostics(
-    tsDocument: vscode.TextDocument
-  ): Promise<void> {
+  private async updateRelatedHtmlDiagnostics(tsDocument: vscode.TextDocument): Promise<void> {
     try {
       // Check if the file is an Angular component
       if (!tsDocument.fileName.includes(".component.ts")) {
@@ -141,10 +124,7 @@ export class DiagnosticProvider {
         console.error(`Error opening HTML document ${htmlFilePath}:`, error);
       }
     } catch (error) {
-      console.error(
-        "[DiagnosticProvider] Error updating related HTML diagnostics:",
-        error
-      );
+      console.error("[DiagnosticProvider] Error updating related HTML diagnostics:", error);
     }
   }
 
@@ -154,9 +134,7 @@ export class DiagnosticProvider {
   public async forceUpdateDiagnosticsForFile(filePath: string): Promise<void> {
     try {
       // First try to find the document in active documents
-      const activeDocument = vscode.workspace.textDocuments.find(
-        (doc) => doc.fileName === filePath
-      );
+      const activeDocument = vscode.workspace.textDocuments.find((doc) => doc.fileName === filePath);
 
       if (activeDocument) {
         // Force refresh ts-morph project with current document content
@@ -166,7 +144,7 @@ export class DiagnosticProvider {
           const currentContent = activeDocument.getText();
 
           // Force update ts-morph SourceFile with current content
-          let sourceFile = project.getSourceFile(filePath);
+          const sourceFile = project.getSourceFile(filePath);
           if (sourceFile) {
             sourceFile.replaceWithText(currentContent);
           } else {
@@ -178,19 +156,13 @@ export class DiagnosticProvider {
 
         // Use the active document directly
         this.updateDiagnostics(activeDocument);
-        console.log(
-          `Force updated diagnostics for active document: ${path.basename(
-            filePath
-          )}`
-        );
+        console.log(`Force updated diagnostics for active document: ${path.basename(filePath)}`);
       } else {
         // Fallback to opening the document
         const uri = vscode.Uri.file(filePath);
         const document = await vscode.workspace.openTextDocument(uri);
         this.updateDiagnostics(document);
-        console.log(
-          `Force updated diagnostics for document: ${path.basename(filePath)}`
-        );
+        console.log(`Force updated diagnostics for document: ${path.basename(filePath)}`);
       }
     } catch (error) {
       console.error(`Error force updating diagnostics for ${filePath}:`, error);
@@ -200,9 +172,7 @@ export class DiagnosticProvider {
   /**
    * Updates diagnostics for a document.
    */
-  private async updateDiagnostics(
-    document: vscode.TextDocument
-  ): Promise<void> {
+  private async updateDiagnostics(document: vscode.TextDocument): Promise<void> {
     if (!this.context.extensionConfig.diagnosticsEnabled) {
       this.diagnosticCollection.clear();
       return;
@@ -217,12 +187,7 @@ export class DiagnosticProvider {
     } else if (document.languageId === "typescript") {
       const componentInfo = this.extractInlineTemplate(document);
       if (componentInfo) {
-        await this.runDiagnostics(
-          componentInfo.template,
-          document,
-          componentInfo.templateOffset,
-          document.fileName
-        );
+        await this.runDiagnostics(componentInfo.template, document, componentInfo.templateOffset, document.fileName);
       } else {
         this.diagnosticCollection.delete(document.uri);
       }
@@ -246,26 +211,14 @@ export class DiagnosticProvider {
     const { indexer } = projCtx;
     const diagnostics: vscode.Diagnostic[] = [];
     try {
-      const severity = this.getSeverityFromConfig(
-        this.context.extensionConfig.diagnosticsSeverity
-      );
+      const severity = this.getSeverityFromConfig(this.context.extensionConfig.diagnosticsSeverity);
 
       // Parse HTML with improved regex parsing
-      const htmlElements = this.parseHtmlWithRegex(
-        templateText,
-        document,
-        offset
-      );
+      const htmlElements = this.parseHtmlWithRegex(templateText, document, offset);
 
       // Check each found element
       for (const element of htmlElements) {
-        const diagnostic = await this.checkElementForMissingImport(
-          element,
-          indexer,
-          document,
-          componentPath,
-          severity
-        );
+        const diagnostic = await this.checkElementForMissingImport(element, indexer, document, componentPath, severity);
 
         if (diagnostic) {
           diagnostics.push(diagnostic);
@@ -286,8 +239,7 @@ export class DiagnosticProvider {
     if (workspaceFolder) {
       const projectRootPath = workspaceFolder.uri.fsPath;
       const indexer = this.context.projectIndexers.get(projectRootPath);
-      const tsConfig =
-        this.context.projectTsConfigs.get(projectRootPath) ?? null;
+      const tsConfig = this.context.projectTsConfigs.get(projectRootPath) ?? null;
       if (indexer) {
         return { projectRootPath, indexer, tsConfig };
       }
@@ -315,13 +267,9 @@ export class DiagnosticProvider {
     const { project } = projCtx.indexer;
 
     // Get the active document content (similar to importElementToFile)
-    const activeDocument = vscode.workspace.textDocuments.find(
-      (doc) => doc.fileName === document.fileName
-    );
+    const activeDocument = vscode.workspace.textDocuments.find((doc) => doc.fileName === document.fileName);
 
-    const currentContent = activeDocument
-      ? activeDocument.getText()
-      : document.getText();
+    const currentContent = activeDocument ? activeDocument.getText() : document.getText();
 
     let sourceFile = project.getSourceFile(document.fileName);
 
@@ -339,9 +287,7 @@ export class DiagnosticProvider {
     return sourceFile;
   }
 
-  private extractInlineTemplate(
-    document: vscode.TextDocument
-  ): { template: string; templateOffset: number } | null {
+  private extractInlineTemplate(document: vscode.TextDocument): { template: string; templateOffset: number } | null {
     const sourceFile = this.getSourceFile(document);
     if (!sourceFile) {
       return null;
@@ -351,17 +297,11 @@ export class DiagnosticProvider {
       const componentDecorator = classDeclaration.getDecorator("Component");
       if (componentDecorator) {
         const decoratorArgs = componentDecorator.getArguments();
-        if (
-          decoratorArgs.length > 0 &&
-          decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)
-        ) {
+        if (decoratorArgs.length > 0 && decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
           const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
           const templateProperty = objectLiteral.getProperty("template");
 
-          if (
-            templateProperty &&
-            templateProperty.isKind(SyntaxKind.PropertyAssignment)
-          ) {
+          if (templateProperty?.isKind(SyntaxKind.PropertyAssignment)) {
             const initializer = templateProperty.getInitializer();
             if (
               initializer &&
@@ -379,11 +319,7 @@ export class DiagnosticProvider {
     return null;
   }
 
-  private parseHtmlWithRegex(
-    text: string,
-    document: vscode.TextDocument,
-    offset: number = 0
-  ): ParsedHtmlElement[] {
+  private parseHtmlWithRegex(text: string, document: vscode.TextDocument, offset: number = 0): ParsedHtmlElement[] {
     const elements: ParsedHtmlElement[] = [];
 
     // A list of standard HTML attributes to exclude
@@ -515,9 +451,7 @@ export class DiagnosticProvider {
       // Check if the tag is an Angular component (contains a hyphen)
       if (tagName.includes("-")) {
         const startPos = document.positionAt(offset + tagStartIndex + 1); // +1 to skip <
-        const endPos = document.positionAt(
-          offset + tagStartIndex + 1 + tagName.length
-        );
+        const endPos = document.positionAt(offset + tagStartIndex + 1 + tagName.length);
         const range = new vscode.Range(startPos, endPos);
 
         elements.push({
@@ -551,9 +485,7 @@ export class DiagnosticProvider {
         // Calculate the attribute's position in the document
         const attrStart = tagStartIndex + (attrMatch.index || 0) + 1; // +1 to skip the space
         const startPos = document.positionAt(offset + attrStart);
-        const endPos = document.positionAt(
-          offset + attrStart + attributeName.length
-        );
+        const endPos = document.positionAt(offset + attrStart + attributeName.length);
         const range = new vscode.Range(startPos, endPos);
 
         elements.push({
@@ -568,16 +500,12 @@ export class DiagnosticProvider {
       const structuralDirectiveRegex = /\*([a-zA-Z][a-zA-Z0-9-]*)/g;
       let structMatch;
 
-      while (
-        (structMatch = structuralDirectiveRegex.exec(fullTagMatch)) !== null
-      ) {
+      while ((structMatch = structuralDirectiveRegex.exec(fullTagMatch)) !== null) {
         const directiveName = structMatch[1];
 
         const structStart = tagStartIndex + (structMatch.index || 0);
         const startPos = document.positionAt(offset + structStart);
-        const endPos = document.positionAt(
-          offset + structStart + structMatch[0].length
-        );
+        const endPos = document.positionAt(offset + structStart + structMatch[0].length);
         const range = new vscode.Range(startPos, endPos);
 
         elements.push({
@@ -602,9 +530,7 @@ export class DiagnosticProvider {
 
         const propStart = tagStartIndex + (propMatch.index || 0);
         const startPos = document.positionAt(offset + propStart);
-        const endPos = document.positionAt(
-          offset + propStart + propMatch[0].length
-        );
+        const endPos = document.positionAt(offset + propStart + propMatch[0].length);
         const range = new vscode.Range(startPos, endPos);
 
         elements.push({
@@ -625,9 +551,7 @@ export class DiagnosticProvider {
         // Calculate position of the directive name (not the template variable name)
         const directiveStart = templateRefMatch.index + templateRefMatch[0].indexOf(directiveName);
         const startPos = document.positionAt(offset + tagStartIndex + directiveStart);
-        const endPos = document.positionAt(
-          offset + tagStartIndex + directiveStart + directiveName.length
-        );
+        const endPos = document.positionAt(offset + tagStartIndex + directiveStart + directiveName.length);
         const range = new vscode.Range(startPos, endPos);
 
         elements.push({
@@ -715,9 +639,8 @@ export class DiagnosticProvider {
       // We are in an external HTML file. We need to get the corresponding TS document.
       const tsDocUri = vscode.Uri.file(componentPath);
       tsDocument =
-        vscode.workspace.textDocuments.find(
-          (doc) => doc.uri.fsPath === tsDocUri.fsPath
-        ) || (await vscode.workspace.openTextDocument(tsDocUri));
+        vscode.workspace.textDocuments.find((doc) => doc.uri.fsPath === tsDocUri.fsPath) ||
+        (await vscode.workspace.openTextDocument(tsDocUri));
     }
 
     if (this.isElementImported(tsDocument, foundElement)) {
@@ -746,7 +669,7 @@ export class DiagnosticProvider {
         break;
 
       case "attribute":
-      case "property-binding":
+      case "property-binding": {
         // For attributes, add the version with square brackets
         selectors.push(`[${name}]`);
 
@@ -758,15 +681,13 @@ export class DiagnosticProvider {
         }
 
         // Convert kebab-case to camelCase
-        const camelCase = name.replace(
-          /-([a-z])/g,
-          (_: string, letter: string) => letter.toUpperCase()
-        );
+        const camelCase = name.replace(/-([a-z])/g, (_: string, letter: string) => letter.toUpperCase());
         if (camelCase !== name) {
           selectors.push(camelCase);
           selectors.push(`[${camelCase}]`);
         }
         break;
+      }
 
       case "template-reference":
         // For template reference variables, add the version with square brackets
@@ -793,10 +714,7 @@ export class DiagnosticProvider {
     return [...new Set(selectors)]; // Remove duplicates
   }
 
-  private isElementImported(
-    document: vscode.TextDocument,
-    element: AngularElementData
-  ): boolean {
+  private isElementImported(document: vscode.TextDocument, element: AngularElementData): boolean {
     try {
       const sourceFile = this.getSourceFile(document);
       if (!sourceFile) {
@@ -809,37 +727,22 @@ export class DiagnosticProvider {
         const componentDecorator = classDeclaration.getDecorator("Component");
         if (componentDecorator) {
           const decoratorArgs = componentDecorator.getArguments();
-          if (
-            decoratorArgs.length > 0 &&
-            decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)
-          ) {
+          if (decoratorArgs.length > 0 && decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
             const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
             const importsProperty = objectLiteral.getProperty("imports");
 
-            if (
-              importsProperty &&
-              importsProperty.isKind(SyntaxKind.PropertyAssignment)
-            ) {
+            if (importsProperty?.isKind(SyntaxKind.PropertyAssignment)) {
               const initializer = importsProperty.getInitializer();
-              if (
-                initializer &&
-                initializer.isKind(SyntaxKind.ArrayLiteralExpression)
-              ) {
+              if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
                 const importsArray = initializer as ArrayLiteralExpression;
                 const isInImportsArray = importsArray
                   .getElements()
-                  .some(
-                    (el: Expression) => el.getText().trim() === element.name
-                  );
+                  .some((el: Expression) => el.getText().trim() === element.name);
                 if (isInImportsArray) {
                   // Now, let's be sure it's also imported at the top of the file
-                  const hasTopLevelImport = sourceFile
-                    .getImportDeclarations()
-                    .some((imp) => {
-                      return imp
-                        .getNamedImports()
-                        .some((named) => named.getName() === element.name);
-                    });
+                  const hasTopLevelImport = sourceFile.getImportDeclarations().some((imp) => {
+                    return imp.getNamedImports().some((named) => named.getName() === element.name);
+                  });
                   if (hasTopLevelImport) {
                     return true;
                   }
@@ -851,17 +754,12 @@ export class DiagnosticProvider {
       }
       return false;
     } catch (error) {
-      console.error(
-        "[DiagnosticProvider] Error checking element import with ts-morph:",
-        error
-      );
+      console.error("[DiagnosticProvider] Error checking element import with ts-morph:", error);
       return false; // On error, assume not imported
     }
   }
 
-  private getSeverityFromConfig(
-    severityLevel: string
-  ): vscode.DiagnosticSeverity {
+  private getSeverityFromConfig(severityLevel: string): vscode.DiagnosticSeverity {
     switch (severityLevel.toLowerCase()) {
       case "error":
         return vscode.DiagnosticSeverity.Error;

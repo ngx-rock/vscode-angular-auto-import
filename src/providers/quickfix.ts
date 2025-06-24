@@ -4,20 +4,18 @@
  * =================================================================================================
  */
 
-import * as path from "path";
+import * as path from "node:path";
 import * as vscode from "vscode";
-import { AngularElementData } from "../types";
-import { getAngularElement } from "../utils";
-import { ProviderContext } from "./index";
 import { TsConfigHelper } from "../services";
+import type { AngularElementData } from "../types";
+import { getAngularElement } from "../utils";
+import type { ProviderContext } from "./index";
 
 /**
  * Provides QuickFix actions for Angular elements.
  */
 export class QuickfixImportProvider implements vscode.CodeActionProvider {
-  public static readonly providedCodeActionKinds = [
-    vscode.CodeActionKind.QuickFix,
-  ];
+  public static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
   constructor(private context: ProviderContext) {}
 
@@ -51,9 +49,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       return [];
     }
 
-    const diagnosticsToFix = context.diagnostics.filter(
-      (diagnostic) => !!range.intersection(diagnostic.range)
-    );
+    const diagnosticsToFix = context.diagnostics.filter((diagnostic) => !!range.intersection(diagnostic.range));
 
     if (diagnosticsToFix.length === 0) {
       return [];
@@ -87,19 +83,12 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
         try {
           if (this.isFixableDiagnostic(diagnostic)) {
-            const quickFixes = await this.createQuickFixesForDiagnostic(
-              document,
-              diagnostic,
-              indexer
-            );
+            const quickFixes = await this.createQuickFixesForDiagnostic(document, diagnostic, indexer);
 
             actions.push(...quickFixes);
           }
         } catch (error) {
-          console.error(
-            "QuickfixImportProvider: Error processing diagnostic:",
-            error
-          );
+          console.error("QuickfixImportProvider: Error processing diagnostic:", error);
         }
       }
 
@@ -120,24 +109,19 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         }
       }
 
-      const uniqueActions = Array.from(dedupedActionsMap.values()).sort(
-        (a, b) => {
-          if (a.isPreferred && !b.isPreferred) {
-            return -1;
-          }
-          if (!a.isPreferred && b.isPreferred) {
-            return 1;
-          }
-          return a.title.localeCompare(b.title);
+      const uniqueActions = Array.from(dedupedActionsMap.values()).sort((a, b) => {
+        if (a.isPreferred && !b.isPreferred) {
+          return -1;
         }
-      );
+        if (!a.isPreferred && b.isPreferred) {
+          return 1;
+        }
+        return a.title.localeCompare(b.title);
+      });
 
       return uniqueActions;
     } catch (error) {
-      console.error(
-        "QuickfixImportProvider: Critical error in provideCodeActions:",
-        error
-      );
+      console.error("QuickfixImportProvider: Critical error in provideCodeActions:", error);
       return [];
     }
   }
@@ -150,11 +134,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     // Check diagnostic code
     if (diagnostic.code) {
       const codeStr = String(diagnostic.code);
-      if (
-        QuickfixImportProvider.fixesDiagnosticCode.some(
-          (c) => String(c) === codeStr
-        )
-      ) {
+      if (QuickfixImportProvider.fixesDiagnosticCode.some((c) => String(c) === codeStr)) {
         return true;
       }
     }
@@ -170,9 +150,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       message.includes("is not a known element") ||
       message.includes("is not a known attribute") ||
       message.includes("structural directive") ||
-      (message.includes("pipe") &&
-        (message.includes("could not be found") ||
-          message.includes("is not found"))) ||
+      (message.includes("pipe") && (message.includes("could not be found") || message.includes("is not found"))) ||
       message.includes("can't bind to") ||
       message.includes("unknown html tag")
     );
@@ -203,19 +181,17 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
       for (const pattern of patterns) {
         const match = pattern.exec(message);
-        if (match && match[1]) {
+        if (match?.[1]) {
           termFromMessage = match[1];
           break;
         }
       }
 
-      const selectorToSearch = this.extractSelector(
-        termFromMessage || extractedTerm
-      );
+      const selectorToSearch = this.extractSelector(termFromMessage || extractedTerm);
 
       if (selectorToSearch) {
         console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
-        
+
         let matchedSelector: string | undefined;
         // Try to find exact match first
         let elementData = getAngularElement(selectorToSearch, indexer);
@@ -227,12 +203,12 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
           // If the message suggests a structural directive, also try adding a '*' prefix
           const isStructuralMessage = /structural directive/i.test(message);
-          if (isStructuralMessage && !selectorToSearch.startsWith('*')) {
+          if (isStructuralMessage && !selectorToSearch.startsWith("*")) {
             alternativeSelectors.unshift(`*${selectorToSearch}`);
           }
-          
+
           console.log(`[QuickfixImportProvider] Trying alternative selectors:`, alternativeSelectors);
-          
+
           for (const altSelector of alternativeSelectors) {
             const found = getAngularElement(altSelector, indexer);
             if (found) {
@@ -251,13 +227,9 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
           const projCtx = this.getProjectContextForDocument(document);
 
           if (projCtx && elementData.path) {
-            const absoluteTargetModulePath = path.join(
-              projCtx.projectRootPath,
-              elementData.path
-            );
+            const absoluteTargetModulePath = path.join(projCtx.projectRootPath, elementData.path);
             // ts-morph uses sources files without extension
-            const absoluteTargetModulePathNoExt =
-              absoluteTargetModulePath.replace(/\.ts$/, "");
+            const absoluteTargetModulePathNoExt = absoluteTargetModulePath.replace(/\.ts$/, "");
 
             const importPath = await TsConfigHelper.resolveImportPath(
               absoluteTargetModulePathNoExt,
@@ -270,25 +242,15 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
           }
 
           // Normalize selector for import command (remove '*' prefix for structural directives)
-          const commandSelector = matchedSelector.startsWith("*")
-            ? matchedSelector.slice(1)
-            : matchedSelector;
-          const action = this.createCodeAction(
-            elementData,
-            diagnostic,
-            isAliasPath,
-            commandSelector
-          );
+          const commandSelector = matchedSelector.startsWith("*") ? matchedSelector.slice(1) : matchedSelector;
+          const action = this.createCodeAction(elementData, diagnostic, isAliasPath, commandSelector);
           if (action) {
             actions.push(action);
           }
         }
       }
     } catch (error) {
-      console.error(
-        "QuickfixImportProvider: Error creating quick fixes:",
-        error
-      );
+      console.error("QuickfixImportProvider: Error creating quick fixes:", error);
     }
 
     return actions;
@@ -316,7 +278,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
     // For pipes
     const pipeMatch = cleaned.match(/\|\s*([a-zA-Z0-9_-]+)/);
-    if (pipeMatch && pipeMatch[1]) {
+    if (pipeMatch?.[1]) {
       return pipeMatch[1];
     }
 
@@ -325,7 +287,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
   private generateAlternativeSelectors(selector: string): string[] {
     const alternatives: string[] = [];
-    
+
     if (!selector || typeof selector !== "string") {
       return alternatives;
     }
@@ -333,7 +295,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     // Try different case variations
     alternatives.push(selector.toLowerCase());
     alternatives.push(selector.toUpperCase());
-    
+
     // Try camelCase to kebab-case conversion and vice versa
     if (selector.includes("-")) {
       // Convert kebab-case to camelCase
@@ -356,7 +318,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     }
 
     // Remove duplicates and the original selector
-    return [...new Set(alternatives)].filter(alt => alt !== selector);
+    return [...new Set(alternatives)].filter((alt) => alt !== selector);
   }
 
   private createCodeAction(
@@ -378,10 +340,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         title = `Import ${element.name} (${element.type})`;
       }
 
-      const action = new vscode.CodeAction(
-        title,
-        vscode.CodeActionKind.QuickFix
-      );
+      const action = new vscode.CodeAction(title, vscode.CodeActionKind.QuickFix);
 
       action.command = {
         title: `Import ${element.name}`,
@@ -413,7 +372,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         typeof action.command.command === "string" &&
         Array.isArray(action.command.arguments)
       );
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }
@@ -427,5 +386,4 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     }
     return null;
   }
-
 }

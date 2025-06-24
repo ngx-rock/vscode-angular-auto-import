@@ -6,22 +6,15 @@
  * A modularly designed extension for automatically importing Angular elements.
  */
 
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import * as vscode from "vscode";
-import { CommandContext, registerCommands } from "./commands";
-import {
-  ExtensionConfig,
-  getConfiguration,
-  onConfigurationChanged,
-} from "./config";
-import { ProviderContext, registerProviders } from "./providers";
+import { type CommandContext, registerCommands } from "./commands";
+import { type ExtensionConfig, getConfiguration, onConfigurationChanged } from "./config";
+import { type ProviderContext, registerProviders } from "./providers";
 import { AngularIndexer, TsConfigHelper } from "./services";
-import { ProcessedTsConfig, ProjectContext } from "./types";
-import {
-  clearAllTemplateCache,
-  clearTemplateCache,
-} from "./utils/template-detection";
+import type { ProcessedTsConfig, ProjectContext } from "./types";
+import { clearAllTemplateCache, clearTemplateCache } from "./utils/template-detection";
 
 // Global state
 const projectIndexers = new Map<string, AngularIndexer>();
@@ -32,9 +25,7 @@ let extensionConfig: ExtensionConfig;
 /**
  * Activates the extension.
  */
-export async function activate(
-  context: vscode.ExtensionContext
-): Promise<void> {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
   try {
     console.log("🚀 Angular Auto-Import: Starting activation...");
 
@@ -44,9 +35,7 @@ export async function activate(
     // Determine project roots
     const projectRoots = await determineProjectRoots();
     if (projectRoots.length === 0) {
-      vscode.window.showErrorMessage(
-        "Angular Auto-Import: No project roots could be determined."
-      );
+      vscode.window.showErrorMessage("Angular Auto-Import: No project roots could be determined.");
       return;
     }
 
@@ -64,25 +53,19 @@ export async function activate(
     context.subscriptions.push(configHandler);
 
     // Setup document close handler to clear template cache
-    const documentCloseHandler = vscode.workspace.onDidCloseTextDocument(
-      (document) => {
-        if (document.languageId === "typescript") {
-          clearTemplateCache(document.uri.toString());
-        }
+    const documentCloseHandler = vscode.workspace.onDidCloseTextDocument((document) => {
+      if (document.languageId === "typescript") {
+        clearTemplateCache(document.uri.toString());
       }
-    );
+    });
     context.subscriptions.push(documentCloseHandler);
 
     console.log("✅ Angular Auto-Import: Extension activated successfully");
-    vscode.window.showInformationMessage(
-      `✅ Angular Auto-Import activated for ${projectRoots.length} project(s).`
-    );
+    vscode.window.showInformationMessage(`✅ Angular Auto-Import activated for ${projectRoots.length} project(s).`);
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("❌ Error activating Angular Auto-Import extension:", err);
-    vscode.window.showErrorMessage(
-      `❌ Failed to activate Angular Auto-Import: ${err.message}`
-    );
+    vscode.window.showErrorMessage(`❌ Failed to activate Angular Auto-Import: ${err.message}`);
   }
 }
 
@@ -103,9 +86,7 @@ export function deactivate(): void {
   TsConfigHelper.clearCache();
   clearAllTemplateCache(); // Clear template detection cache
 
-  console.log(
-    "Angular Auto-Import extension deactivated and resources cleaned up."
-  );
+  console.log("Angular Auto-Import extension deactivated and resources cleaned up.");
 }
 
 /**
@@ -114,40 +95,20 @@ export function deactivate(): void {
 async function determineProjectRoots(): Promise<string[]> {
   let effectiveProjectRoots: string[] = [];
 
-  if (
-    vscode.workspace.workspaceFolders &&
-    vscode.workspace.workspaceFolders.length > 0
-  ) {
-    effectiveProjectRoots = vscode.workspace.workspaceFolders.map(
-      (f) => f.uri.fsPath
-    );
+  if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+    effectiveProjectRoots = vscode.workspace.workspaceFolders.map((f) => f.uri.fsPath);
 
-    if (
-      extensionConfig.projectPath &&
-      extensionConfig.projectPath.trim() !== ""
-    ) {
-      console.warn(
-        "Angular Auto-Import: 'projectPath' setting is ignored when workspace folders are open."
-      );
+    if (extensionConfig.projectPath && extensionConfig.projectPath.trim() !== "") {
+      console.warn("Angular Auto-Import: 'projectPath' setting is ignored when workspace folders are open.");
     }
-  } else if (
-    extensionConfig.projectPath &&
-    extensionConfig.projectPath.trim() !== ""
-  ) {
+  } else if (extensionConfig.projectPath && extensionConfig.projectPath.trim() !== "") {
     const resolvedPath = path.resolve(extensionConfig.projectPath);
 
-    if (
-      fs.existsSync(resolvedPath) &&
-      fs.statSync(resolvedPath).isDirectory()
-    ) {
+    if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isDirectory()) {
       effectiveProjectRoots.push(resolvedPath);
-      console.log(
-        `Angular Auto-Import: Using configured project path: ${resolvedPath}`
-      );
+      console.log(`Angular Auto-Import: Using configured project path: ${resolvedPath}`);
     } else {
-      vscode.window.showErrorMessage(
-        `Angular Auto-Import: Configured projectPath "${resolvedPath}" is invalid.`
-      );
+      vscode.window.showErrorMessage(`Angular Auto-Import: Configured projectPath "${resolvedPath}" is invalid.`);
     }
   } else {
     vscode.window.showErrorMessage(
@@ -161,29 +122,20 @@ async function determineProjectRoots(): Promise<string[]> {
 /**
  * Initializes the projects.
  */
-async function initializeProjects(
-  projectRoots: string[],
-  context: vscode.ExtensionContext
-): Promise<void> {
+async function initializeProjects(projectRoots: string[], context: vscode.ExtensionContext): Promise<void> {
   for (const projectRootPath of projectRoots) {
     console.log(`📁 Initializing project: ${projectRootPath}`);
 
     try {
       // Initialize TsConfig
       TsConfigHelper.clearCache(projectRootPath);
-      const tsConfig = await TsConfigHelper.findAndParseTsConfig(
-        projectRootPath
-      );
+      const tsConfig = await TsConfigHelper.findAndParseTsConfig(projectRootPath);
       projectTsConfigs.set(projectRootPath, tsConfig);
 
       if (tsConfig) {
-        console.log(
-          `🔧 Tsconfig loaded for ${path.basename(projectRootPath)}.`
-        );
+        console.log(`🔧 Tsconfig loaded for ${path.basename(projectRootPath)}.`);
       } else {
-        console.log(
-          `⚠️ Tsconfig not found for ${path.basename(projectRootPath)}.`
-        );
+        console.log(`⚠️ Tsconfig not found for ${path.basename(projectRootPath)}.`);
       }
 
       // Initialize indexer
@@ -194,16 +146,17 @@ async function initializeProjects(
 
       // Setup periodic reindexing
       if (extensionConfig.indexRefreshInterval > 0) {
-        const intervalId = setInterval(async () => {
-          try {
-            console.log(
-              `🔄 Periodic reindexing for ${path.basename(projectRootPath)}...`
-            );
-            await generateIndexForProject(projectRootPath, indexer, context);
-          } catch (error) {
-            console.error(`❌ Error during periodic reindexing:`, error);
-          }
-        }, extensionConfig.indexRefreshInterval * 1000 * 60);
+        const intervalId = setInterval(
+          async () => {
+            try {
+              console.log(`🔄 Periodic reindexing for ${path.basename(projectRootPath)}...`);
+              await generateIndexForProject(projectRootPath, indexer, context);
+            } catch (error) {
+              console.error(`❌ Error during periodic reindexing:`, error);
+            }
+          },
+          extensionConfig.indexRefreshInterval * 1000 * 60
+        );
 
         projectIntervals.set(projectRootPath, intervalId);
         context.subscriptions.push({
@@ -222,10 +175,7 @@ async function initializeProjects(
 /**
  * Handles configuration changes.
  */
-async function handleConfigurationChange(
-  newConfig: ExtensionConfig,
-  context: vscode.ExtensionContext
-): Promise<void> {
+async function handleConfigurationChange(newConfig: ExtensionConfig, context: vscode.ExtensionContext): Promise<void> {
   console.log("Configuration changed, updating...");
 
   // Handle refresh interval changes
@@ -239,16 +189,17 @@ async function handleConfigurationChange(
     // Setup new intervals if needed
     if (newConfig.indexRefreshInterval > 0) {
       for (const [projectRootPath, indexer] of projectIndexers) {
-        const intervalId = setInterval(async () => {
-          try {
-            console.log(
-              `🔄 Periodic reindexing for ${path.basename(projectRootPath)}...`
-            );
-            await generateIndexForProject(projectRootPath, indexer, context);
-          } catch (error) {
-            console.error(`❌ Error during periodic reindexing:`, error);
-          }
-        }, newConfig.indexRefreshInterval * 1000 * 60);
+        const intervalId = setInterval(
+          async () => {
+            try {
+              console.log(`🔄 Periodic reindexing for ${path.basename(projectRootPath)}...`);
+              await generateIndexForProject(projectRootPath, indexer, context);
+            } catch (error) {
+              console.error(`❌ Error during periodic reindexing:`, error);
+            }
+          },
+          newConfig.indexRefreshInterval * 1000 * 60
+        );
 
         projectIntervals.set(projectRootPath, intervalId);
       }
@@ -279,28 +230,20 @@ async function generateInitialIndexForProject(
 
   if (loadedFromCache) {
     console.log(`Initial index loaded from cache for ${projectRootPath}.`);
-    console.log(
-      `Performing full index scan for ${projectRootPath} to ensure freshness...`
-    );
+    console.log(`Performing full index scan for ${projectRootPath} to ensure freshness...`);
     await indexer.generateFullIndex(context);
   } else {
-    console.log(
-      `No cache found or cache invalid for ${projectRootPath}. Performing full initial index scan...`
-    );
+    console.log(`No cache found or cache invalid for ${projectRootPath}. Performing full initial index scan...`);
     await indexer.generateFullIndex(context);
   }
 
   indexer.initializeWatcher(context);
 
-  let indexSize = Array.from(indexer.getAllSelectors()).length;
-  console.log(
-    `📊 Initial index size for ${projectRootPath}: ${indexSize} elements`
-  );
+  const indexSize = Array.from(indexer.getAllSelectors()).length;
+  console.log(`📊 Initial index size for ${projectRootPath}: ${indexSize} elements`);
 
   if (indexSize === 0) {
-    console.warn(
-      `⚠️ Index is still empty for ${projectRootPath} after initial scan!`
-    );
+    console.warn(`⚠️ Index is still empty for ${projectRootPath} after initial scan!`);
   }
 }
 
@@ -313,13 +256,8 @@ async function generateIndexForProject(
   context: vscode.ExtensionContext
 ): Promise<void> {
   console.log(`GENERATE_INDEX: For project ${projectRootPath}`);
-  if (
-    indexer.workspaceFileCacheKey === "" ||
-    indexer.workspaceIndexCacheKey === ""
-  ) {
-    console.warn(
-      `generateIndexForProject: Cache keys not set for ${projectRootPath}, attempting to set them now.`
-    );
+  if (indexer.workspaceFileCacheKey === "" || indexer.workspaceIndexCacheKey === "") {
+    console.warn(`generateIndexForProject: Cache keys not set for ${projectRootPath}, attempting to set them now.`);
     indexer.setProjectRoot(projectRootPath);
   }
   await indexer.generateFullIndex(context);
@@ -333,9 +271,7 @@ async function generateIndexForProject(
 /**
  * Gets the project context for a document.
  */
-export function getProjectContextForDocument(
-  document: vscode.TextDocument
-): ProjectContext | undefined {
+export function getProjectContextForDocument(document: vscode.TextDocument): ProjectContext | undefined {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
   if (workspaceFolder) {
     const projectRootPath = workspaceFolder.uri.fsPath;
@@ -344,9 +280,7 @@ export function getProjectContextForDocument(
     if (indexer) {
       return { projectRootPath, indexer, tsConfig };
     } else {
-      console.warn(
-        `No indexer found for project: ${projectRootPath} (document: ${document.uri.fsPath})`
-      );
+      console.warn(`No indexer found for project: ${projectRootPath} (document: ${document.uri.fsPath})`);
     }
   } else {
     // Fallback for files not directly in a workspace folder but within a known project root
@@ -359,9 +293,7 @@ export function getProjectContextForDocument(
         }
       }
     }
-    console.warn(
-      `Document ${document.uri.fsPath} does not belong to any known workspace folder or project root.`
-    );
+    console.warn(`Document ${document.uri.fsPath} does not belong to any known workspace folder or project root.`);
   }
   return undefined;
 }
@@ -369,9 +301,7 @@ export function getProjectContextForDocument(
 /**
  * Registers providers and commands.
  */
-async function registerProvidersAndCommands(
-  context: vscode.ExtensionContext
-): Promise<void> {
+async function registerProvidersAndCommands(context: vscode.ExtensionContext): Promise<void> {
   // Create provider context
   const providerContext: ProviderContext = {
     projectIndexers,

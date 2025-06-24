@@ -23,28 +23,18 @@ export function parseAngularSelector(selectorString: string): string[] {
   const parsedSelectors: string[] = [];
 
   for (const rawSelector of rawSelectors) {
-    console.log(
-      `[parseAngularSelector] Processing raw selector: "${rawSelector}"`
-    );
+    console.log(`[parseAngularSelector] Processing raw selector: "${rawSelector}"`);
 
     // Нормализуем селектор и извлекаем все возможные варианты
     const normalized = normalizeSelector(rawSelector);
     if (normalized.length > 0) {
       parsedSelectors.push(...normalized);
-      console.log(
-        `[parseAngularSelector] Added normalized selectors: [${normalized.join(
-          ", "
-        )}]`
-      );
+      console.log(`[parseAngularSelector] Added normalized selectors: [${normalized.join(", ")}]`);
     }
   }
 
   const uniqueSelectors = [...new Set(parsedSelectors)];
-  console.log(
-    `[parseAngularSelector] Final unique selectors: [${uniqueSelectors.join(
-      ", "
-    )}]`
-  );
+  console.log(`[parseAngularSelector] Final unique selectors: [${uniqueSelectors.join(", ")}]`);
 
   return uniqueSelectors;
 }
@@ -85,7 +75,7 @@ export function normalizeSelector(selector: string): string[] {
 
     // Извлекаем элементную часть
     const elementMatch = trimmed.match(/^([a-zA-Z0-9-]+)\[/);
-    if (elementMatch && elementMatch[1]) {
+    if (elementMatch?.[1]) {
       variants.push(elementMatch[1]); // button
     }
 
@@ -160,23 +150,14 @@ export function getAngularElement(
         return foundInIndex;
       }
     } catch (error) {
-      console.warn(
-        `Error getting element from indexer for selector '${sel}':`,
-        error
-      );
+      console.warn(`Error getting element from indexer for selector '${sel}':`, error);
       continue;
     }
 
     // 2. Then try standard Angular elements
     const std = STANDARD_ANGULAR_ELEMENTS[sel];
     if (std) {
-      return new AngularElementData(
-        std.importPath,
-        std.name,
-        std.type,
-        std.originalSelector,
-        std.selectors
-      );
+      return new AngularElementData(std.importPath, std.name, std.type, std.originalSelector, std.selectors);
     }
   }
 
@@ -199,10 +180,7 @@ export function generateHash(content: string): string {
 /**
  * Извлекает информацию об Angular элементе из кода
  */
-export function extractAngularElementInfo(
-  code: string,
-  filePath: string
-): any | null {
+export function extractAngularElementInfo(code: string, filePath: string): any | null {
   if (!code || !filePath) {
     return null;
   }
@@ -252,7 +230,7 @@ export function extractAngularElementInfo(
       selectors,
       path: filePath,
     };
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -284,7 +262,7 @@ export function resolveRelativePath(from: string, to: string): string {
   }
 
   try {
-    const path = require("path");
+    const path = require("node:path");
     const fromDir = path.dirname(from);
     let relativePath = path.relative(fromDir, to);
 
@@ -293,11 +271,11 @@ export function resolveRelativePath(from: string, to: string): string {
 
     // Ensure relative path starts with ./ or ../
     if (!relativePath.startsWith(".")) {
-      relativePath = "./" + relativePath;
+      relativePath = `./${relativePath}`;
     }
 
     return relativePath;
-  } catch (error) {
+  } catch (_error) {
     return "";
   }
 }

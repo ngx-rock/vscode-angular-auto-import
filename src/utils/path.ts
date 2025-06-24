@@ -1,7 +1,7 @@
 /**
  * Утилиты для работы с путями файлов
  */
-import * as path from "path";
+import * as path from "node:path";
 
 /**
  * Нормализует путь, заменяя обратные слэши на прямые.
@@ -13,10 +13,7 @@ export function normalizePath(p: string): string {
 /**
  * Заменяет или удаляет расширение файла.
  */
-export function switchFileType(
-  filePath: string,
-  newExtensionWithDotOrEmpty: string
-): string {
+export function switchFileType(filePath: string, newExtensionWithDotOrEmpty: string): string {
   const dir = path.dirname(filePath);
   const ext = path.extname(filePath);
   const baseWithoutExt = path.basename(filePath, ext);
@@ -34,10 +31,7 @@ export function switchFileType(
 /**
  * Вычисляет относительный путь от одного файла до другого.
  */
-export function getRelativeFilePath(
-  fromFileAbs: string,
-  toFileAbsNoExt: string
-): string {
+export function getRelativeFilePath(fromFileAbs: string, toFileAbsNoExt: string): string {
   const relative = path.relative(path.dirname(fromFileAbs), toFileAbsNoExt);
   const normalized = normalizePath(relative);
   return normalized.startsWith(".") ? normalized : `./${normalized}`;

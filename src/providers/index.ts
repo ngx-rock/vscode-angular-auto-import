@@ -5,9 +5,9 @@
  */
 
 import * as vscode from "vscode";
-import { ExtensionConfig } from "../config";
-import { AngularIndexer } from "../services";
-import { ProcessedTsConfig } from "../types";
+import type { ExtensionConfig } from "../config";
+import type { AngularIndexer } from "../services";
+import type { ProcessedTsConfig } from "../types";
 import { setGlobalDiagnosticProvider } from "../utils/import";
 import { CodeActionProvider } from "./code-actions";
 import { CompletionProvider } from "./completion";
@@ -27,10 +27,7 @@ export interface ProviderContext {
 /**
  * Registers all VSCode providers.
  */
-export function registerProviders(
-  context: vscode.ExtensionContext,
-  providerContext: ProviderContext
-): void {
+export function registerProviders(context: vscode.ExtensionContext, providerContext: ProviderContext): void {
   console.log("🔌 Registering VSCode providers...");
 
   // Completion Provider
@@ -58,10 +55,7 @@ export function registerProviders(
     ],
     codeActionProvider,
     {
-      providedCodeActionKinds: [
-        vscode.CodeActionKind.QuickFix,
-        vscode.CodeActionKind.SourceOrganizeImports,
-      ],
+      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.SourceOrganizeImports],
     }
   );
   context.subscriptions.push(codeActionDisposable);
