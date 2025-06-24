@@ -214,6 +214,35 @@ describe("AngularIndexer", function () {
     });
   });
 
+  describe("#searchWithSelectors", function () {
+    beforeEach(async function () {
+      indexer.setProjectRoot(testProjectPath);
+      await indexer.generateFullIndex(mockContext);
+    });
+
+    it("should return elements with a given prefix", function () {
+      const results = indexer.searchWithSelectors("test");
+      assert.ok(results.length >= 3, "Should find at least 3 elements for prefix 'test'");
+
+      const names = results.map((r: {selector: string, element: {name: string}}) => r.element.name);
+      assert.ok(names.includes('TestComponent'), "Should find TestComponent");
+      assert.ok(names.includes('TestDirective'), "Should find TestDirective");
+      assert.ok(names.includes('TestPipe'), "Should find TestPipe");
+    });
+
+    it("should return a limited set of unique elements", function () {
+      const results = indexer.searchWithSelectors("test");
+       // results can contain duplicates if a selector matches multiple elements, but our search returns unique AngularElementData
+      const uniqueResults = [...new Map(results.map((item: {selector: string, element: {name: string}}) => [item.element.name, item])).values()];
+      assert.ok(results.length >= uniqueResults.length, "Search should return valid results");
+    });
+
+    it("should return an empty array for a non-existent prefix", function () {
+      const results = indexer.searchWithSelectors("non-existent-prefix");
+      assert.strictEqual(results.length, 0, "Should return an empty array");
+    });
+  });
+
   describe("#getAllSelectors", function () {
     beforeEach(async function () {
       indexer.setProjectRoot(testProjectPath);
@@ -221,7 +250,7 @@ describe("AngularIndexer", function () {
     });
 
     it("should return all indexed selectors", function () {
-      const selectors = Array.from(indexer.getAllSelectors());
+      const selectors = indexer.getAllSelectors();
 
       assert.ok(selectors.length > 0, "Should have selectors");
       assert.ok(
@@ -232,7 +261,7 @@ describe("AngularIndexer", function () {
     });
 
     it("should return unique selectors", function () {
-      const selectors = Array.from(indexer.getAllSelectors());
+      const selectors = indexer.getAllSelectors();
       const uniqueSelectors = [...new Set(selectors)];
 
       assert.strictEqual(

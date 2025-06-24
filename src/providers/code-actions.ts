@@ -7,6 +7,7 @@
 import * as vscode from "vscode";
 import { AngularElementData } from "../types";
 import { ProviderContext } from "./index";
+import { QuickfixImportProvider } from "./quickfix";
 
 /**
  * Provides Code Actions for Angular elements.
@@ -17,10 +18,17 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
   provideCodeActions(
     document: vscode.TextDocument,
     range: vscode.Range,
-    _context: vscode.CodeActionContext,
+    context: vscode.CodeActionContext,
     token: vscode.CancellationToken
   ): vscode.CodeAction[] {
     if (token.isCancellationRequested) {
+      return [];
+    }
+
+    // Skip generic import suggestions when Angular diagnostics (missing element/pipe/directive) are present
+    if (context.diagnostics && context.diagnostics.some(diagnostic =>
+      QuickfixImportProvider.fixesDiagnosticCode.some(code => String(diagnostic.code) === String(code))
+    )) {
       return [];
     }
 

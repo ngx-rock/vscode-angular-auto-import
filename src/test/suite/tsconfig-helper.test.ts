@@ -492,8 +492,8 @@ describe("TsConfigHelper", function () {
 
         assert.strictEqual(
           result,
-          "./sibling-component",
-          "Should use relative path for same directory"
+          "@app/components/sibling-component",
+          "Should use alias path for same directory when available"
         );
       });
 
@@ -521,8 +521,8 @@ describe("TsConfigHelper", function () {
 
         assert.strictEqual(
           result,
-          "../services/data.service",
-          "Should use relative path for parent directory"
+          "@app/services/data.service",
+          "Should use alias path for parent directory when available"
         );
       });
     });

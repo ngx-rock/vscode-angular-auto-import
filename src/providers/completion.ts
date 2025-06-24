@@ -54,73 +54,52 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const structuralMatch = structuralDirectiveRegex.exec(linePrefix);
     const pipeMatch = pipeRegex.exec(linePrefix);
 
-    const currentWordRange = document.getWordRangeAtPosition(
-      position,
-      /[a-zA-Z0-9_-]+/
-    );
-    const currentWord = currentWordRange
-      ? document.getText(currentWordRange)
-      : "";
-
     let filterText = "";
+    let replacementRange: vscode.Range | undefined;
+
+    // Determine the context and the text to filter/replace
     if (tagMatch) {
       filterText = tagMatch[1];
+      const start = position.translate({ characterDelta: -filterText.length });
+      replacementRange = new vscode.Range(start, position);
     } else if (structuralMatch) {
       filterText = structuralMatch[1];
+      const start = position.translate({ characterDelta: -filterText.length });
+      replacementRange = new vscode.Range(start, position);
     } else if (pipeMatch) {
       filterText = pipeMatch[1];
+      const start = position.translate({ characterDelta: -filterText.length });
+      replacementRange = new vscode.Range(start, position);
     } else if (attributeMatch) {
       filterText = attributeMatch[1];
+      const start = position.translate({ characterDelta: -filterText.length });
+      replacementRange = new vscode.Range(start, position);
     } else {
-      filterText = currentWord;
+      replacementRange = document.getWordRangeAtPosition(position, /[a-zA-Z0-9_-]+/);
+      if (replacementRange) {
+        filterText = document.getText(replacementRange);
+      }
     }
 
     const seenElements = new Set<string>(); // To avoid duplicate elements
 
-    // Get elements from project index
-    let allSelectors: IterableIterator<string>;
-    try {
-      allSelectors = indexer.getAllSelectors();
-    } catch (error) {
-      console.error(
-        "CompletionItemProvider: Error getting all selectors:",
-        error
-      );
-      return suggestions;
+    // Use the new Trie-based search for indexed elements
+    const searchResults = indexer.searchWithSelectors(filterText);
+    const elementsToProcess = new Map<string, { element: AngularElementData, selectors: string[] }>();
+
+    // Group matching selectors by element to process each element only once
+    for (const { selector, element } of searchResults) {
+      const elementKey = `${element.path}:${element.name}`;
+      if (!elementsToProcess.has(elementKey)) {
+        elementsToProcess.set(elementKey, { element, selectors: [] });
+      }
+      elementsToProcess.get(elementKey)!.selectors.push(selector);
     }
 
-    for (const selector of allSelectors) {
-      if (!selector || typeof selector !== "string") {
-        continue;
-      }
-
-      // Skip if filter text doesn't match at all
-      if (
-        filterText &&
-        !selector.toLowerCase().includes(filterText.toLowerCase())
-      ) {
-        continue;
-      }
-
-      let element: AngularElementData | undefined;
-      try {
-        element = indexer.getElement(selector);
-      } catch (error) {
-        console.warn(
-          `CompletionItemProvider: Error getting element for selector '${selector}':`,
-          error
-        );
-        continue;
-      }
-
-      if (!element) {
-        continue;
-      }
-
-      // Use a unique key to avoid duplicate elements
+    for (const { element, selectors } of elementsToProcess.values()) {
       const elementKey = `${element.path}:${element.name}`;
       if (seenElements.has(elementKey)) {
-        continue; // Skip if we've already processed this element
+        continue;
       }
 
       // Check if any of the element's selectors match the current context
@@ -129,7 +108,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       let bestInsertText = "";
       let bestItemKind = vscode.CompletionItemKind.Class;
 
-      for (const elementSelector of element.selectors) {
+      for (const elementSelector of selectors) {
         let itemKind: vscode.CompletionItemKind =
           vscode.CompletionItemKind.Class;
         let insertText = elementSelector;
@@ -211,14 +190,16 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           bestItemKind
         );
         item.insertText = bestInsertText;
-        item.filterText = filterText ? undefined : bestMatchingSelector; // Use default filter if no specific context match
+        if (replacementRange) {
+          item.range = replacementRange;
+        }
         item.detail = `Angular Auto-Import: ${element.type} (${path.basename(
           projCtx.projectRootPath
         )})`;
         item.documentation = new vscode.MarkdownString(
           `Import \`${element.name}\` (${element.type}) from \`${
             element.path
-          }\`.\n\nSelector/Pipe Name: \`${bestMatchingSelector}\`\n\nAll selectors: ${element.selectors.join(
+          }\`.\n\nSelector/Pipe Name: \`${bestMatchingSelector}\`\n\nAll selectors: ${selectors.join(
             ", "
           )}`
         );
@@ -307,6 +288,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
           const item = new vscode.CompletionItem(stdSelector, itemKind);
           item.insertText = insertText;
+          if (replacementRange) {
+            item.range = replacementRange;
+          }
 
           const isModuleImport = stdElement.name.endsWith("Module");
           if (isModuleImport) {

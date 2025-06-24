@@ -4,10 +4,12 @@
  * =================================================================================================
  */
 
+import * as path from "path";
 import * as vscode from "vscode";
 import { AngularElementData } from "../types";
 import { getAngularElement } from "../utils";
 import { ProviderContext } from "./index";
+import { TsConfigHelper } from "../services";
 
 /**
  * Provides QuickFix actions for Angular elements.
@@ -38,19 +40,35 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     "missing-pipe-import",
   ];
 
-  provideCodeActions(
+  async provideCodeActions(
     document: vscode.TextDocument,
-    _range: vscode.Range | vscode.Selection,
+    range: vscode.Range | vscode.Selection,
     context: vscode.CodeActionContext,
-    _token: vscode.CancellationToken
-  ): vscode.ProviderResult<(vscode.Command | vscode.CodeAction)[]> {
+    token: vscode.CancellationToken
+  ): Promise<(vscode.Command | vscode.CodeAction)[]> {
+    // Check for null context or diagnostics before proceeding
+    if (!context || !context.diagnostics || !Array.isArray(context.diagnostics)) {
+      return [];
+    }
+
+    const diagnosticsToFix = context.diagnostics.filter(
+      (diagnostic) => !!range.intersection(diagnostic.range)
+    );
+
+    if (diagnosticsToFix.length === 0) {
+      return [];
+    }
+
+    // Pass the filtered diagnostics to the rest of the function
+    const newContext = { ...context, diagnostics: diagnosticsToFix };
+
     try {
       // Check for cancellation
-      if (_token?.isCancellationRequested) {
+      if (token?.isCancellationRequested) {
         return [];
       }
 
-      if (!context.diagnostics || !Array.isArray(context.diagnostics)) {
+      if (!newContext.diagnostics || !Array.isArray(newContext.diagnostics)) {
         return [];
       }
 
@@ -62,24 +80,20 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       const { indexer } = projCtx;
       const actions: vscode.CodeAction[] = [];
 
-      for (const diagnostic of context.diagnostics) {
+      for (const diagnostic of newContext.diagnostics) {
         if (!diagnostic || !diagnostic.message) {
           continue;
         }
 
         try {
           if (this.isFixableDiagnostic(diagnostic)) {
-            const quickFixes = this.createQuickFixesForDiagnostic(
+            const quickFixes = await this.createQuickFixesForDiagnostic(
               document,
               diagnostic,
               indexer
             );
 
-            const validQuickFixes = quickFixes.filter((action) => {
-              return this.validateCodeAction(action);
-            });
-
-            actions.push(...validQuickFixes);
+            actions.push(...quickFixes);
           }
         } catch (error) {
           console.error(
@@ -164,11 +178,11 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     );
   }
 
-  private createQuickFixesForDiagnostic(
+  private async createQuickFixesForDiagnostic(
     document: vscode.TextDocument,
     diagnostic: vscode.Diagnostic,
     indexer: any
-  ): vscode.CodeAction[] {
+  ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
     try {
@@ -200,33 +214,73 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       );
 
       if (selectorToSearch) {
-        const elementData = getAngularElement(selectorToSearch, indexer);
+        console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
+        
+        let matchedSelector: string | undefined;
+        // Try to find exact match first
+        let elementData = getAngularElement(selectorToSearch, indexer);
+        matchedSelector = selectorToSearch;
 
-        if (elementData) {
+        // If not found, try alternative selector formats for the same element
+        if (!elementData) {
+          const alternativeSelectors = this.generateAlternativeSelectors(selectorToSearch);
+
+          // If the message suggests a structural directive, also try adding a '*' prefix
+          const isStructuralMessage = /structural directive/i.test(message);
+          if (isStructuralMessage && !selectorToSearch.startsWith('*')) {
+            alternativeSelectors.unshift(`*${selectorToSearch}`);
+          }
+          
+          console.log(`[QuickfixImportProvider] Trying alternative selectors:`, alternativeSelectors);
+          
+          for (const altSelector of alternativeSelectors) {
+            const found = getAngularElement(altSelector, indexer);
+            if (found) {
+              elementData = found;
+              matchedSelector = altSelector;
+              console.log(`[QuickfixImportProvider] Found element with alternative selector: "${altSelector}"`);
+              break;
+            }
+          }
+        } else {
+          console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
+        }
+
+        if (elementData && matchedSelector) {
+          let isAliasPath = false;
+          const projCtx = this.getProjectContextForDocument(document);
+
+          if (projCtx && elementData.path) {
+            const absoluteTargetModulePath = path.join(
+              projCtx.projectRootPath,
+              elementData.path
+            );
+            // ts-morph uses sources files without extension
+            const absoluteTargetModulePathNoExt =
+              absoluteTargetModulePath.replace(/\.ts$/, "");
+
+            const importPath = await TsConfigHelper.resolveImportPath(
+              absoluteTargetModulePathNoExt,
+              document.uri.fsPath,
+              projCtx.projectRootPath
+            );
+
+            // An alias path will not start with '.', whereas a relative path will.
+            isAliasPath = !importPath.startsWith(".");
+          }
+
+          // Normalize selector for import command (remove '*' prefix for structural directives)
+          const commandSelector = matchedSelector.startsWith("*")
+            ? matchedSelector.slice(1)
+            : matchedSelector;
           const action = this.createCodeAction(
             elementData,
-            selectorToSearch,
-            diagnostic
+            diagnostic,
+            isAliasPath,
+            commandSelector
           );
           if (action) {
             actions.push(action);
-          }
-        } else {
-          // Try partial matches
-          const partialMatches = this.findPartialMatches(
-            selectorToSearch,
-            indexer
-          );
-
-          for (const match of partialMatches.slice(0, 3)) {
-            const partialAction = this.createCodeAction(
-              match,
-              match.selector,
-              diagnostic
-            );
-            if (partialAction) {
-              actions.push(partialAction);
-            }
           }
         }
       }
@@ -269,43 +323,47 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     return cleaned.split(/[^a-zA-Z0-9_-]/)[0];
   }
 
-  private findPartialMatches(
-    searchTerm: string,
-    indexer: any
-  ): Array<AngularElementData & { selector: string }> {
-    const matches: Array<AngularElementData & { selector: string }> = [];
-
-    try {
-      const allSelectors = Array.from(indexer.getAllSelectors());
-      const seenElements = new Set<string>();
-
-      for (const selector of allSelectors) {
-        // Type guard to ensure selector is string
-        if (
-          typeof selector === "string" &&
-          selector.toLowerCase().includes(searchTerm.toLowerCase())
-        ) {
-          const element = getAngularElement(selector, indexer);
-          if (element) {
-            const elementKey = `${element.name}:${element.type}`;
-            if (!seenElements.has(elementKey)) {
-              seenElements.add(elementKey);
-              matches.push({ ...element, selector });
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error finding partial matches:", error);
+  private generateAlternativeSelectors(selector: string): string[] {
+    const alternatives: string[] = [];
+    
+    if (!selector || typeof selector !== "string") {
+      return alternatives;
     }
 
-    return matches.slice(0, 5);
+    // Try different case variations
+    alternatives.push(selector.toLowerCase());
+    alternatives.push(selector.toUpperCase());
+    
+    // Try camelCase to kebab-case conversion and vice versa
+    if (selector.includes("-")) {
+      // Convert kebab-case to camelCase
+      const camelCase = selector.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+      alternatives.push(camelCase);
+    } else if (/[A-Z]/.test(selector)) {
+      // Convert camelCase to kebab-case
+      const kebabCase = selector.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+      alternatives.push(kebabCase);
+    }
+
+    // Try with app- prefix if not present
+    if (!selector.startsWith("app-")) {
+      alternatives.push(`app-${selector}`);
+    }
+
+    // Try without app- prefix if present
+    if (selector.startsWith("app-")) {
+      alternatives.push(selector.substring(4));
+    }
+
+    // Remove duplicates and the original selector
+    return [...new Set(alternatives)].filter(alt => alt !== selector);
   }
 
   private createCodeAction(
     element: AngularElementData,
-    selector: string,
-    diagnostic: vscode.Diagnostic
+    diagnostic: vscode.Diagnostic,
+    isAliasPath: boolean,
+    selector: string
   ): vscode.CodeAction | null {
     try {
       const isStandardAngular = element.path.startsWith("@angular/");
@@ -332,7 +390,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       };
 
       action.diagnostics = [diagnostic];
-      action.isPreferred = isStandardAngular;
+      action.isPreferred = isStandardAngular || isAliasPath;
 
       return action;
     } catch (error) {
@@ -369,4 +427,5 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     }
     return null;
   }
+
 }
