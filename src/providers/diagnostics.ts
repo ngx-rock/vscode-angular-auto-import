@@ -792,10 +792,11 @@ export class DiagnosticProvider {
     // Get all current diagnostics for this file
     const allCurrentDiagnostics = vscode.languages.getDiagnostics(uri);
     const angularDiagnostics = allCurrentDiagnostics.filter(
-      (d) => d.source === "angular" || 
-             d.source === "Angular Language Service" ||
-             d.message.includes("is not a known element") ||
-             d.message.includes("is not a known property")
+      (d) =>
+        d.source === "angular" ||
+        d.source === "Angular Language Service" ||
+        d.message.includes("is not a known element") ||
+        d.message.includes("is not a known property")
     );
 
     // Filter out our candidates that are duplicates of what Angular LS provides
@@ -803,17 +804,19 @@ export class DiagnosticProvider {
       const isDuplicate = angularDiagnostics.some((angularDiag) => {
         // Check for overlapping ranges
         const doRangesOverlap = !!angularDiag.range.intersection(myDiag.range);
-        
+
         // Extract element name from our diagnostic message
         const myDiagMessage = myDiag.message;
         const elementMatch = myDiagMessage.match(/'([^']*)'/);
-        if (!elementMatch) return doRangesOverlap; // Fallback to just range check
-        
+        if (!elementMatch) {
+          return doRangesOverlap; // Fallback to just range check
+        }
+
         const elementName = elementMatch[1];
         const angularDiagMessage = angularDiag.message;
-        const messageIncludesElementName = angularDiagMessage.includes(`'${elementName}'`) ||
-                                         angularDiagMessage.includes(`"${elementName}"`);
-        
+        const messageIncludesElementName =
+          angularDiagMessage.includes(`'${elementName}'`) || angularDiagMessage.includes(`"${elementName}"`);
+
         return doRangesOverlap && messageIncludesElementName;
       });
       return !isDuplicate;

@@ -102,7 +102,9 @@ class PathAliasTrie {
             currentNode.children.set(segment, new TrieNode());
           }
           const nextNode = currentNode.children.get(segment);
-          if (!nextNode) throw new Error("Unexpected missing node in alias trie insertion");
+          if (!nextNode) {
+            throw new Error("Unexpected missing node in alias trie insertion");
+          }
           currentNode = nextNode;
         }
         currentNode.alias = cleanAlias;
@@ -166,7 +168,9 @@ class PathAliasTrie {
 
       if (currentNode.children.has(segment)) {
         const nextNode = currentNode.children.get(segment);
-        if (!nextNode) break;
+        if (!nextNode) {
+          break;
+        }
         currentNode = nextNode;
         console.log(`[PathAliasTrie] Found node for segment '${segment}'`);
 

@@ -33,7 +33,9 @@ class SelectorTrie {
         currentNode.children.set(char, new TrieNode());
       }
       const nextNode = currentNode.children.get(char);
-      if (!nextNode) throw new Error("Unexpected missing node in trie insertion");
+      if (!nextNode) {
+        throw new Error("Unexpected missing node in trie insertion");
+      }
       currentNode = nextNode;
     }
     // Avoid adding duplicate elements for the same selector
@@ -49,7 +51,9 @@ class SelectorTrie {
         return [];
       }
       const nextNode = currentNode.children.get(char);
-      if (!nextNode) return [];
+      if (!nextNode) {
+        return [];
+      }
       currentNode = nextNode;
     }
     // We found the node for the prefix. Now collect everything underneath it.
@@ -64,7 +68,9 @@ class SelectorTrie {
         return undefined;
       }
       const nextNode = currentNode.children.get(char);
-      if (!nextNode) return undefined;
+      if (!nextNode) {
+        return undefined;
+      }
       currentNode = nextNode;
     }
     return currentNode.elements.length > 0 ? currentNode.elements[0] : undefined;
@@ -92,7 +98,9 @@ class SelectorTrie {
         return; // Selector doesn't exist
       }
       const nextNode = currentNode.children.get(char);
-      if (!nextNode) return; // Selector doesn't exist
+      if (!nextNode) {
+        return; // Selector doesn't exist
+      }
       currentNode = nextNode;
     }
     // Remove the element if it matches the path

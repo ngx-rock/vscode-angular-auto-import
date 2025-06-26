@@ -107,7 +107,9 @@
     "copy-test-fixtures": "cp -r src/test/fixtures out/test/",
     "pretest": "pnpm run compile-tests && pnpm run copy-test-fixtures && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
-    "lint": "biome lint --diagnostic-level=error --no-errors-on-unmatched src",
+    "lint": "pnpm run lint:biome && pnpm run lint:knip",
+    "lint:biome": "biome lint --diagnostic-level=error --no-errors-on-unmatched src",
+    "lint:knip": "knip",
     "lint:fix": "biome lint --write src",
     "format": "biome format src",
     "format:fix": "biome format --write src",
@@ -120,23 +122,20 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.5",
-    "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
-    "@types/sinon": "^17.0.4",
     "@types/vscode": "^1.96.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.5.0",
     "esbuild": "^0.25.3",
     "glob": "^11.0.0",
+    "knip": "^5.61.2",
     "mocha": "^10.8.2",
     "npm-run-all": "^4.1.5",
-    "sinon": "^21.0.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "get-tsconfig": "^4.10.1",
     "ts-morph": "^26.0.0"
   },
   "packageManager": "pnpm@10.12.3+sha512.467df2c586056165580ad6dfb54ceaad94c5a30f80893ebdec5a44c5aa73c205ae4a5bb9d5ed6bb84ea7c249ece786642bbb49d06a307df218d03da41c317417"
