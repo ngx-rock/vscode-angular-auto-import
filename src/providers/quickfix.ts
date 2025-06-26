@@ -162,7 +162,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   private async createQuickFixesForDiagnostic(
     document: vscode.TextDocument,
     diagnostic: vscode.Diagnostic,
-    indexer: AngularIndexer
+    indexer:  AngularIndexer
   ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
@@ -226,14 +226,31 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         }
 
         if (elementData && matchedSelector) {
-          const action = await this.createQuickFixAction(document, elementData, diagnostic, matchedSelector);
+          let isAliasPath = false;
+          const projCtx = this.getProjectContextForDocument(document);
+
+          if (projCtx && elementData.path) {
+            const absoluteTargetModulePath = path.join(projCtx.projectRootPath, elementData.path);
+            // ts-morph uses sources files without extension
+            const absoluteTargetModulePathNoExt = absoluteTargetModulePath.replace(/\.ts$/, "");
+
+            const importPath = await TsConfigHelper.resolveImportPath(
+              absoluteTargetModulePathNoExt,
+              document.uri.fsPath,
+              projCtx.projectRootPath
+            );
+
+            // An alias path will not start with '.', whereas a relative path will.
+            isAliasPath = !importPath.startsWith(".");
+          }
+
+          // Normalize selector for import command (remove '*' prefix for structural directives)
+          const commandSelector = matchedSelector.startsWith("*") ? matchedSelector.slice(1) : matchedSelector;
+          const action = this.createCodeAction(elementData, diagnostic, isAliasPath, commandSelector);
           if (action) {
             actions.push(action);
           }
         }
-
-        // Check for complex selectors that might match the HTML context
-        await this.checkComplexSelectorsForContext(document, diagnostic, indexer, actions);
       }
     } catch (error) {
       console.error("QuickfixImportProvider: Error creating quick fixes:", error);
