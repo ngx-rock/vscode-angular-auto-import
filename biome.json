@@ -35,7 +35,7 @@
         "noUnusedVariables": "error",
         "noUnusedImports": "error",
         "noUnusedPrivateClassMembers": "error",
-        "noUnusedFunctionParameters": "warn",
+        "noUnusedFunctionParameters": "error",
         "useExhaustiveDependencies": "warn",
         "noConstantCondition": "error",
         "noConstantMathMinMaxClamp": "error",

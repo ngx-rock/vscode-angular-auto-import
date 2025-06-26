@@ -10,7 +10,7 @@ import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData } from "../types";
 import { getAngularElement } from "../utils";
-import { extractHtmlContext, validateHtmlContextForComplexSelector } from "../utils/angular";
+
 import type { ProviderContext } from "./index";
 
 /**
@@ -103,7 +103,9 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
         if (dedupedActionsMap.has(key)) {
           const existingAction = dedupedActionsMap.get(key);
-          if (!existingAction) continue;
+          if (!existingAction) {
+            continue;
+          }
           if (action.isPreferred && !existingAction.isPreferred) {
             dedupedActionsMap.set(key, action);
           }
@@ -162,7 +164,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   private async createQuickFixesForDiagnostic(
     document: vscode.TextDocument,
     diagnostic: vscode.Diagnostic,
-    indexer:  AngularIndexer
+    indexer: AngularIndexer
   ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
@@ -257,90 +259,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     }
 
     return actions;
-  }
-
-  private async createQuickFixAction(
-    document: vscode.TextDocument,
-    elementData: AngularElementData,
-    diagnostic: vscode.Diagnostic,
-    matchedSelector: string
-  ): Promise<vscode.CodeAction | null> {
-    let isAliasPath = false;
-    const projCtx = this.getProjectContextForDocument(document);
-
-    if (projCtx && elementData.path) {
-      const absoluteTargetModulePath = path.join(projCtx.projectRootPath, elementData.path);
-      // ts-morph uses sources files without extension
-      const absoluteTargetModulePathNoExt = absoluteTargetModulePath.replace(/\.ts$/, "");
-
-      const importPath = await TsConfigHelper.resolveImportPath(
-        absoluteTargetModulePathNoExt,
-        document.uri.fsPath,
-        projCtx.projectRootPath
-      );
-
-      // An alias path will not start with '.', whereas a relative path will.
-      isAliasPath = !importPath.startsWith(".");
-    }
-
-    // Normalize selector for import command (remove '*' prefix for structural directives)
-    const commandSelector = matchedSelector.startsWith("*") ? matchedSelector.slice(1) : matchedSelector;
-    return this.createCodeAction(elementData, diagnostic, isAliasPath, commandSelector);
-  }
-
-  private async checkComplexSelectorsForContext(
-    document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic,
-    indexer: AngularIndexer,
-    actions: vscode.CodeAction[]
-  ): Promise<void> {
-    try {
-      // Get the full document text and extract HTML context around the diagnostic position
-      const documentText = document.getText();
-      const diagnosticOffset = document.offsetAt(diagnostic.range.start);
-
-      // Extract HTML context from the diagnostic position
-      const htmlContext = extractHtmlContext(documentText, diagnosticOffset);
-      if (!htmlContext) {
-        return;
-      }
-
-      // Get all selectors from the indexer
-      const allSelectors = indexer.getAllSelectors();
-
-      // Track already added actions to avoid duplicates
-      const addedSelectors = new Set<string>();
-      for (const action of actions) {
-        if (action.command?.arguments?.[0]) {
-          addedSelectors.add(action.command.arguments[0]);
-        }
-      }
-
-      // Check each selector to see if it matches the HTML context
-      for (const selector of allSelectors) {
-        // Skip if we already have an action for this selector
-        if (addedSelectors.has(selector)) {
-          continue;
-        }
-
-        // Check if this selector contains complex patterns (comma-separated segments)
-        if (selector.includes(",") || (selector.includes("[") && selector.includes("]"))) {
-          // Validate if this complex selector matches the HTML context
-          if (validateHtmlContextForComplexSelector(htmlContext, selector)) {
-            const elementData = getAngularElement(selector, indexer);
-            if (elementData) {
-              const action = await this.createQuickFixAction(document, elementData, diagnostic, selector);
-              if (action) {
-                actions.push(action);
-                addedSelectors.add(selector);
-              }
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("QuickfixImportProvider: Error checking complex selectors:", error);
-    }
   }
 
   private extractSelector(text: string): string {
@@ -442,25 +360,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     } catch (error) {
       console.error("Error creating code action:", error);
       return null;
-    }
-  }
-
-  private validateCodeAction(action: vscode.CodeAction): boolean {
-    try {
-      return !!(
-        action &&
-        typeof action === "object" &&
-        action.title &&
-        typeof action.title === "string" &&
-        action.kind &&
-        action.command &&
-        typeof action.command === "object" &&
-        action.command.command &&
-        typeof action.command.command === "string" &&
-        Array.isArray(action.command.arguments)
-      );
-    } catch (_error) {
-      return false;
     }
   }
 
