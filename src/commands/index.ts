@@ -8,16 +8,16 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { ExtensionConfig } from "../config";
+import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
 import { getAngularElement, importElementToFile, switchFileType } from "../utils";
-import { AngularIndexer } from "../services";
 
 /**
  * Context for the commands.
  */
 export interface CommandContext {
-  projectIndexers: Map<string,  AngularIndexer>;
+  projectIndexers: Map<string, AngularIndexer>;
   projectTsConfigs: Map<string, ProcessedTsConfig | null>;
   extensionConfig: ExtensionConfig;
 }
@@ -193,7 +193,7 @@ async function importElementCommandLogic(
   elementData: AngularElementData | undefined,
   projectRootPath: string,
   tsConfig: ProcessedTsConfig | null,
-  indexer:  AngularIndexer
+  indexer: AngularIndexer
 ): Promise<boolean> {
   if (!elementData) {
     vscode.window.showInformationMessage(

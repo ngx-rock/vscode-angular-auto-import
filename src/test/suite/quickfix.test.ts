@@ -115,14 +115,20 @@ describe("QuickfixImportProvider", function () {
       subscriptions: [],
       workspaceState: {
         get: () => undefined,
-        update: async () => {},
+        update: async () => {
+          // Mock implementation
+        },
         keys: () => [],
       },
       globalState: {
         get: () => undefined,
-        update: async () => {},
+        update: async () => {
+          // Mock implementation
+        },
         keys: () => [],
-        setKeysForSync: () => {},
+        setKeysForSync: () => {
+          // Mock implementation
+        },
       },
       extensionPath: "",
       extensionUri: vscode.Uri.file(""),

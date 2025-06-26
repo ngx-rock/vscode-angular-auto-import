@@ -442,7 +442,7 @@ export class DiagnosticProvider {
 
     // 1. Find all tags and their content
     const tagRegex = /<([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*>/g;
-    let tagMatch;
+    let tagMatch: RegExpExecArray | null;
 
     while ((tagMatch = tagRegex.exec(text)) !== null) {
       const fullTagMatch = tagMatch[0];
@@ -466,7 +466,7 @@ export class DiagnosticProvider {
       // 2. Find all attributes in this tag
       const attrRegex =
         /\s([a-zA-Z][a-zA-Z0-9._-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)*)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g;
-      let attrMatch;
+      let attrMatch: RegExpExecArray | null;
 
       while ((attrMatch = attrRegex.exec(fullTagMatch)) !== null) {
         const attributeName = attrMatch[1];
@@ -499,7 +499,7 @@ export class DiagnosticProvider {
 
       // 3. Find structural directives in this tag
       const structuralDirectiveRegex = /\*([a-zA-Z][a-zA-Z0-9-]*)/g;
-      let structMatch;
+      let structMatch: RegExpExecArray | null;
 
       while ((structMatch = structuralDirectiveRegex.exec(fullTagMatch)) !== null) {
         const directiveName = structMatch[1];
@@ -519,7 +519,7 @@ export class DiagnosticProvider {
 
       // 4. Find property bindings like [ngClass], [ngStyle], etc.
       const propertyBindingRegex = /\[([a-zA-Z][a-zA-Z0-9-]*)]/g;
-      let propMatch;
+      let propMatch: RegExpExecArray | null;
 
       while ((propMatch = propertyBindingRegex.exec(fullTagMatch)) !== null) {
         const propertyName = propMatch[1];
@@ -544,7 +544,7 @@ export class DiagnosticProvider {
 
       // 5. Find template reference variables like #userForm="ngForm"
       const templateRefRegex = /#[a-zA-Z][a-zA-Z0-9]*\s*=\s*["']([a-zA-Z][a-zA-Z0-9-]*)["']/g;
-      let templateRefMatch;
+      let templateRefMatch: RegExpExecArray | null;
 
       while ((templateRefMatch = templateRefRegex.exec(fullTagMatch)) !== null) {
         const directiveName = templateRefMatch[1]; // Extract "ngForm" from #userForm="ngForm"
@@ -566,7 +566,7 @@ export class DiagnosticProvider {
 
     // 6. Find pipes throughout the text (independent of tags)
     const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
-    let pipeMatch;
+    let pipeMatch: RegExpExecArray | null;
 
     while ((pipeMatch = pipeRegex.exec(text)) !== null) {
       const pipeName = pipeMatch[1];

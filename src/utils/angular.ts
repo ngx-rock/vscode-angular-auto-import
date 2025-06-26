@@ -301,7 +301,10 @@ export function parseComplexSelector(selector: string): ComplexSelectorSegment[]
   }
 
   // Split by comma to handle multiple segments
-  const segments = selector.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  const segments = selector
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
   const result: ComplexSelectorSegment[] = [];
 
   for (const segment of segments) {
@@ -323,17 +326,17 @@ function parseSegment(segment: string): ComplexSelectorSegment | null {
   }
 
   const result: ComplexSelectorSegment = {
-    attributes: []
+    attributes: [],
   };
 
   // Extract attributes [attr1][attr2]
   const attributeRegex = /\[([^\]]+)\]/g;
-  let match;
+  let match: RegExpExecArray | null;
   let segmentWithoutAttrs = segment;
 
   while ((match = attributeRegex.exec(segment)) !== null) {
     result.attributes.push(match[1]);
-    segmentWithoutAttrs = segmentWithoutAttrs.replace(match[0], '');
+    segmentWithoutAttrs = segmentWithoutAttrs.replace(match[0], "");
   }
 
   // The remaining part is the element name
@@ -359,14 +362,14 @@ export function extractHtmlContext(html: string, position: number): HtmlContext 
 
   // Search backwards for '<' and forwards for '>'
   for (let i = position; i >= 0; i--) {
-    if (html[i] === '<') {
+    if (html[i] === "<") {
       tagStart = i;
       break;
     }
   }
 
   for (let i = position; i < html.length; i++) {
-    if (html[i] === '>') {
+    if (html[i] === ">") {
       tagEnd = i;
       break;
     }
@@ -395,21 +398,21 @@ export function extractHtmlContext(html: string, position: number): HtmlContext 
   // Parse attributes
   for (let i = 1; i < parts.length; i++) {
     const part = parts[i];
-    
+
     // Handle class="value" format
-    if (part.startsWith('class=')) {
-      const classValue = part.substring(6).replace(/["']/g, '');
-      classes.push(...classValue.split(/\s+/).filter(c => c.length > 0));
+    if (part.startsWith("class=")) {
+      const classValue = part.substring(6).replace(/["']/g, "");
+      classes.push(...classValue.split(/\s+/).filter((c) => c.length > 0));
       // Also add "class" to attributes as expected by tests
-      attributes.push('class');
+      attributes.push("class");
     }
     // Handle simple attributes
-    else if (!part.includes('=')) {
+    else if (!part.includes("=")) {
       attributes.push(part.toLowerCase());
     }
     // Handle other attributes
     else {
-      const [attrName] = part.split('=');
+      const [attrName] = part.split("=");
       attributes.push(attrName.toLowerCase());
     }
   }
@@ -417,7 +420,7 @@ export function extractHtmlContext(html: string, position: number): HtmlContext 
   return {
     tagName,
     attributes,
-    classes
+    classes,
   };
 }
 
@@ -435,7 +438,7 @@ export function validateHtmlContextForComplexSelector(context: HtmlContext, sele
   }
 
   // Check if any segment matches
-  return segments.some(segment => matchesSegment(context, segment));
+  return segments.some((segment) => matchesSegment(context, segment));
 }
 
 /**

@@ -6,12 +6,12 @@
 
 import * as path from "node:path";
 import * as vscode from "vscode";
+import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData } from "../types";
 import { getAngularElement } from "../utils";
 import { extractHtmlContext, validateHtmlContextForComplexSelector } from "../utils/angular";
 import type { ProviderContext } from "./index";
-import { AngularIndexer } from "../services";
 
 /**
  * Provides QuickFix actions for Angular elements.
@@ -162,7 +162,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   private async createQuickFixesForDiagnostic(
     document: vscode.TextDocument,
     diagnostic: vscode.Diagnostic,
-    indexer:  AngularIndexer
+    indexer: AngularIndexer
   ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
@@ -281,7 +281,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       // Get the full document text and extract HTML context around the diagnostic position
       const documentText = document.getText();
       const diagnosticOffset = document.offsetAt(diagnostic.range.start);
-      
+
       // Extract HTML context from the diagnostic position
       const htmlContext = extractHtmlContext(documentText, diagnosticOffset);
       if (!htmlContext) {
@@ -290,7 +290,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
       // Get all selectors from the indexer
       const allSelectors = indexer.getAllSelectors();
-      
+
       // Track already added actions to avoid duplicates
       const addedSelectors = new Set<string>();
       for (const action of actions) {
@@ -305,9 +305,9 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         if (addedSelectors.has(selector)) {
           continue;
         }
-        
+
         // Check if this selector contains complex patterns (comma-separated segments)
-        if (selector.includes(',') || (selector.includes('[') && selector.includes(']'))) {
+        if (selector.includes(",") || (selector.includes("[") && selector.includes("]"))) {
           // Validate if this complex selector matches the HTML context
           if (validateHtmlContextForComplexSelector(htmlContext, selector)) {
             const elementData = getAngularElement(selector, indexer);

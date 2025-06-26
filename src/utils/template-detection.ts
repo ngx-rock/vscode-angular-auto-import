@@ -70,7 +70,7 @@ function parseTemplateStringRanges(text: string): TemplateStringRange[] {
 
   // Find all @Component decorators
   const componentRegex = /@Component\s*\(\s*\{/g;
-  let componentMatch;
+  let componentMatch: RegExpExecArray | null;
 
   while ((componentMatch = componentRegex.exec(text)) !== null) {
     const componentStart = componentMatch.index;
@@ -99,7 +99,7 @@ function findTemplatePropertyRanges(decoratorContent: string, offset: number): T
 
   // Look for template: followed by a string
   const templateRegex = /template\s*:\s*(['"`])/g;
-  let templateMatch;
+  let templateMatch: RegExpExecArray | null;
 
   while ((templateMatch = templateRegex.exec(decoratorContent)) !== null) {
     const quote = templateMatch[1];

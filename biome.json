@@ -33,7 +33,15 @@
       "recommended": true,
       "correctness": {
         "noUnusedVariables": "error",
-        "useExhaustiveDependencies": "warn"
+        "noUnusedImports": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUnusedFunctionParameters": "warn",
+        "useExhaustiveDependencies": "warn",
+        "noConstantCondition": "error",
+        "noConstantMathMinMaxClamp": "error",
+        "noSwitchDeclarations": "error",
+        "noUnsafeOptionalChaining": "error",
+        "useValidForDirection": "error"
       },
       "style": {
         "noParameterAssign": "warn",
@@ -51,16 +59,60 @@
               }
             ]
           }
-        }
+        },
+        "useConst": "error",
+        "useBlockStatements": "warn",
+        "useSingleVarDeclarator": "warn"
       },
       "complexity": {
-        "useLiteralKeys": "warn"
+        "useLiteralKeys": "warn",
+        "noUselessConstructor": "error",
+        "noUselessEmptyExport": "error",
+        "noUselessFragments": "error",
+        "noUselessLabel": "error",
+        "noUselessLoneBlockStatements": "error",
+        "noUselessRename": "error",
+        "noUselessSwitchCase": "error",
+        "noUselessTernary": "error",
+        "noUselessThisAlias": "error",
+        "noUselessTypeConstraint": "error"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
+        "noExplicitAny": "error",
         "noDoubleEquals": "warn",
-        "noImplicitAnyLet": "off",
-        "noAssignInExpressions": "off"
+        "noImplicitAnyLet": "error",
+        "noAssignInExpressions": "off",
+        "noEmptyBlockStatements": "error",
+        "noEmptyInterface": "error",
+        "noRedeclare": "error",
+        "noShadowRestrictedNames": "error",
+        "noUnsafeDeclarationMerging": "error",
+        "noFallthroughSwitchClause": "error",
+        "noDebugger": "error",
+        "noConsole": "off",
+        "noArrayIndexKey": "warn",
+        "noAsyncPromiseExecutor": "error",
+        "noCatchAssign": "error",
+        "noClassAssign": "error",
+        "noCompareNegZero": "error",
+        "noConfusingLabels": "error",
+        "noDuplicateCase": "error",
+        "noDuplicateClassMembers": "error",
+
+        "noMisleadingCharacterClass": "error",
+        "noPrototypeBuiltins": "error",
+        "noSelfCompare": "error",
+        "noVar": "error"
+      },
+      "performance": {
+        "noAccumulatingSpread": "warn",
+        "noDelete": "error",
+        "noBarrelFile": "off",
+        "noReExportAll": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "error",
+        "noGlobalEval": "error"
       }
     }
   },
@@ -125,6 +177,9 @@
           },
           "complexity": {
             "noBannedTypes": "off"
+          },
+          "correctness": {
+            "noUnusedFunctionParameters": "off"
           }
         }
       }
