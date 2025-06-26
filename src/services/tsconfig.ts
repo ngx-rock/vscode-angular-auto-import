@@ -54,10 +54,12 @@ class PathAliasTrie {
     console.log(`[PathAliasTrie] Detected project root: ${projectRoot}`);
 
     for (const [alias, pathArray] of Object.entries(paths)) {
-      console.log(`[PathAliasTrie] Processing alias: '${alias}' -> [${pathArray.join(", ")}]`);
+      // Ensure pathArray is an array of strings
+      const pathArraySafe = Array.isArray(pathArray) ? pathArray as string[] : [];
+      console.log(`[PathAliasTrie] Processing alias: '${alias}' -> [${pathArraySafe.join(", ")}]`);
 
-      if (pathArray.length > 0) {
-        const originalPath = pathArray[0];
+      if (pathArraySafe.length > 0) {
+        const originalPath = pathArraySafe[0];
         const physicalPath = path.resolve(absoluteBaseUrl, originalPath);
 
         // A "barrel-style" alias is any non-wildcard alias.
