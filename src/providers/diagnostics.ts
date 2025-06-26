@@ -25,6 +25,7 @@ import type { ProviderContext } from "./index";
 export class DiagnosticProvider {
   private diagnosticCollection: vscode.DiagnosticCollection;
   private disposables: vscode.Disposable[] = [];
+  private candidateDiagnostics: Map<string, vscode.Diagnostic[]> = new Map();
 
   constructor(private context: ProviderContext) {
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection("angular-auto-import");
@@ -37,7 +38,7 @@ export class DiagnosticProvider {
     // Update diagnostics when HTML documents change
     const htmlUpdateHandler = vscode.workspace.onDidChangeTextDocument(async (event) => {
       if (event.document.languageId === "html") {
-        this.updateDiagnostics(event.document);
+        await this.updateDiagnostics(event.document);
       }
     });
     this.disposables.push(htmlUpdateHandler);
@@ -45,7 +46,7 @@ export class DiagnosticProvider {
     // Update diagnostics when TypeScript documents change
     const tsUpdateHandler = vscode.workspace.onDidChangeTextDocument(async (event) => {
       if (event.document.languageId === "typescript") {
-        this.updateDiagnostics(event.document);
+        await this.updateDiagnostics(event.document);
         await this.updateRelatedHtmlDiagnostics(event.document);
       }
     });
@@ -54,7 +55,7 @@ export class DiagnosticProvider {
     // Update diagnostics when TypeScript documents are saved
     const tsSaveHandler = vscode.workspace.onDidSaveTextDocument(async (document) => {
       if (document.languageId === "typescript") {
-        this.updateDiagnostics(document);
+        await this.updateDiagnostics(document);
         await this.updateRelatedHtmlDiagnostics(document);
       }
     });
@@ -63,9 +64,9 @@ export class DiagnosticProvider {
     // Update diagnostics when a document is opened
     const diagnosticOpenHandler = vscode.workspace.onDidOpenTextDocument(async (document) => {
       if (document.languageId === "html") {
-        this.updateDiagnostics(document);
+        await this.updateDiagnostics(document);
       } else if (document.languageId === "typescript") {
-        this.updateDiagnostics(document);
+        await this.updateDiagnostics(document);
       }
     });
     this.disposables.push(diagnosticOpenHandler);
@@ -73,10 +74,16 @@ export class DiagnosticProvider {
     // Update diagnostics when HTML documents are saved
     const htmlSaveHandler = vscode.workspace.onDidSaveTextDocument(async (document) => {
       if (document.languageId === "html") {
-        this.updateDiagnostics(document);
+        await this.updateDiagnostics(document);
       }
     });
     this.disposables.push(htmlSaveHandler);
+
+    // Listen for changes in any diagnostic collection to handle deduplication
+    const onDidChangeDiagnosticsHandler = vscode.languages.onDidChangeDiagnostics((e) => {
+      e.uris.forEach((uri) => this.publishFilteredDiagnostics(uri));
+    });
+    this.disposables.push(onDidChangeDiagnosticsHandler);
 
     // Initialize diagnostics for all open HTML documents
     for (const document of vscode.workspace.textDocuments) {
@@ -92,6 +99,7 @@ export class DiagnosticProvider {
   deactivate(): void {
     this.disposables.forEach((disposable) => disposable.dispose());
     this.disposables = [];
+    this.candidateDiagnostics.clear();
     this.diagnosticCollection.dispose();
   }
 
@@ -176,6 +184,7 @@ export class DiagnosticProvider {
   private async updateDiagnostics(document: vscode.TextDocument): Promise<void> {
     if (!this.context.extensionConfig.diagnosticsEnabled) {
       this.diagnosticCollection.clear();
+      this.candidateDiagnostics.delete(document.uri.toString());
       return;
     }
 
@@ -190,6 +199,8 @@ export class DiagnosticProvider {
       if (componentInfo) {
         await this.runDiagnostics(componentInfo.template, document, componentInfo.templateOffset, document.fileName);
       } else {
+        // Clear both collections when there's no inline template
+        this.candidateDiagnostics.delete(document.uri.toString());
         this.diagnosticCollection.delete(document.uri);
       }
     }
@@ -229,7 +240,9 @@ export class DiagnosticProvider {
       console.error("[DiagnosticProvider] Error providing diagnostics:", error);
     }
 
-    this.diagnosticCollection.set(document.uri, diagnostics);
+    // Store candidate diagnostics and attempt to publish filtered results
+    this.candidateDiagnostics.set(document.uri.toString(), diagnostics);
+    this.publishFilteredDiagnostics(document.uri);
   }
 
   /**
@@ -771,5 +784,41 @@ export class DiagnosticProvider {
       default:
         return vscode.DiagnosticSeverity.Warning;
     }
+  }
+
+  private publishFilteredDiagnostics(uri: vscode.Uri): void {
+    const candidateDiags = this.candidateDiagnostics.get(uri.toString()) || [];
+
+    // Get all current diagnostics for this file
+    const allCurrentDiagnostics = vscode.languages.getDiagnostics(uri);
+    const angularDiagnostics = allCurrentDiagnostics.filter(
+      (d) => d.source === "angular" || 
+             d.source === "Angular Language Service" ||
+             d.message.includes("is not a known element") ||
+             d.message.includes("is not a known property")
+    );
+
+    // Filter out our candidates that are duplicates of what Angular LS provides
+    const filteredDiags = candidateDiags.filter((myDiag) => {
+      const isDuplicate = angularDiagnostics.some((angularDiag) => {
+        // Check for overlapping ranges
+        const doRangesOverlap = !!angularDiag.range.intersection(myDiag.range);
+        
+        // Extract element name from our diagnostic message
+        const myDiagMessage = myDiag.message;
+        const elementMatch = myDiagMessage.match(/'([^']*)'/);
+        if (!elementMatch) return doRangesOverlap; // Fallback to just range check
+        
+        const elementName = elementMatch[1];
+        const angularDiagMessage = angularDiag.message;
+        const messageIncludesElementName = angularDiagMessage.includes(`'${elementName}'`) ||
+                                         angularDiagMessage.includes(`"${elementName}"`);
+        
+        return doRangesOverlap && messageIncludesElementName;
+      });
+      return !isDuplicate;
+    });
+
+    this.diagnosticCollection.set(uri, filteredDiags);
   }
 }
