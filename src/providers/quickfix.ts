@@ -170,6 +170,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
     try {
       const extractedTerm = document.getText(diagnostic.range).trim();
+      console.error('XXX diagnostic', diagnostic)
       const message = diagnostic.message;
       let termFromMessage: string | null = null;
 

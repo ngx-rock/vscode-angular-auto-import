@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@angular/compiler':
+        specifier: ^20.0.5
+        version: 20.0.5
       ts-morph:
         specifier: ^26.0.0
         version: 26.0.0
@@ -53,6 +56,10 @@ importers:
         version: 5.8.3
 
 packages:
+
+  '@angular/compiler@20.0.5':
+    resolution: {integrity: sha512-eHHnh+wIUC+8mfmlPnkzVfonQCA3LAbPWgYpvEQtBh0/R3cZBN6tmOxWQB8IuLu+cZ0eXS/a14mqHJp3c3u7Hg==}
+    engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
 
   '@azu/format-text@1.0.2':
     resolution: {integrity: sha512-Swi4N7Edy1Eqq82GxgEECXSSLyn6GOb5htRFPzBDdUkECGXtlf12ynO5oJSpWKPwCaUssOu7NfhDcCWpIC6Ywg==}
@@ -2344,6 +2351,10 @@ packages:
     resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
 
 snapshots:
+
+  '@angular/compiler@20.0.5':
+    dependencies:
+      tslib: 2.8.1
 
   '@azu/format-text@1.0.2': {}
 
