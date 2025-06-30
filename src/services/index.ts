@@ -4,3 +4,4 @@
 
 export * from "./indexer";
 export * from "./tsconfig";
+export * from "./selector-matching-service";
