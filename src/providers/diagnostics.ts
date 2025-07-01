@@ -226,7 +226,7 @@ export class DiagnosticProvider {
       const severity = this.getSeverityFromConfig(this.context.extensionConfig.diagnosticsSeverity);
 
       // Parse HTML with improved regex parsing
-      const htmlElements = this.parseHtmlWithRegex(templateText, document, offset);
+      const htmlElements = await this.parseTemplateAst(templateText, document, offset);
 
       // Check each found element
       for (const element of htmlElements) {
@@ -333,270 +333,56 @@ export class DiagnosticProvider {
     return null;
   }
 
-  private parseHtmlWithRegex(text: string, document: vscode.TextDocument, offset: number = 0): ParsedHtmlElement[] {
+  private async parseTemplateAst(text: string, document: vscode.TextDocument, offset: number = 0): Promise<ParsedHtmlElement[]> {
+    // Dynamically import required functions and AST classes from Angular compiler
+    const { parseTemplate, TmplAstElement, TmplAstTemplate, TmplAstBoundText } = await import('@angular/compiler');
+    const { nodes } = parseTemplate(text, 'ng-template.html');
     const elements: ParsedHtmlElement[] = [];
-
-    // A list of standard HTML attributes to exclude
-    const standardHtmlAttributes = new Set([
-      "id",
-      "class",
-      "style",
-      "title",
-      "lang",
-      "dir",
-      "hidden",
-      "tabindex",
-      "accesskey",
-      "contenteditable",
-      "draggable",
-      "spellcheck",
-      "translate",
-      "role",
-      "aria-label",
-      "aria-describedby",
-      "aria-labelledby",
-      "aria-hidden",
-      "aria-expanded",
-      "aria-controls",
-      "aria-current",
-      "aria-selected",
-      "data-toggle",
-      "data-target",
-      "data-dismiss",
-      "data-backdrop",
-      "href",
-      "target",
-      "rel",
-      "download",
-      "hreflang",
-      "type",
-      "media",
-      "src",
-      "alt",
-      "width",
-      "height",
-      "loading",
-      "crossorigin",
-      "usemap",
-      "value",
-      "name",
-      "disabled",
-      "readonly",
-      "required",
-      "placeholder",
-      "autocomplete",
-      "autofocus",
-      "multiple",
-      "size",
-      "min",
-      "max",
-      "step",
-      "pattern",
-      "form",
-      "formaction",
-      "formenctype",
-      "formmethod",
-      "formnovalidate",
-      "formtarget",
-      "checked",
-      "selected",
-      "defer",
-      "async",
-      "charset",
-      "content",
-      "http-equiv",
-      "property",
-      "itemscope",
-      "itemtype",
-      "itemprop",
-      "itemid",
-      "itemref",
-      "coords",
-      "shape",
-      "ping",
-      "referrerpolicy",
-      "sandbox",
-      "allow",
-      "allowfullscreen",
-      "allowpaymentrequest",
-      "controls",
-      "autoplay",
-      "loop",
-      "muted",
-      "preload",
-      "poster",
-      "span",
-      "rowspan",
-      "colspan",
-      "headers",
-      "scope",
-      "abbr",
-      "axis",
-      "datetime",
-      "open",
-      "wrap",
-      "cols",
-      "rows",
-      "dirname",
-      "for",
-      "list",
-      "accept",
-      "capture",
-      "challenge",
-      "keytype",
-      "method",
-      "action",
-      "enctype",
-      "novalidate",
-      "autocapitalize",
-      "inputmode",
-      "is",
-    ]);
-
-    // 1. Find all tags and their content
-    const tagRegex = /<([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*>/g;
-    let tagMatch: RegExpExecArray | null;
-
-    while ((tagMatch = tagRegex.exec(text)) !== null) {
-      const fullTagMatch = tagMatch[0];
-      const tagName = tagMatch[1];
-      const tagStartIndex = tagMatch.index;
-
-      // Check if the tag is an Angular component (contains a hyphen)
-      if (tagName.includes("-")) {
-        const startPos = document.positionAt(offset + tagStartIndex + 1); // +1 to skip <
-        const endPos = document.positionAt(offset + tagStartIndex + 1 + tagName.length);
-        const range = new vscode.Range(startPos, endPos);
-
-        elements.push({
-          type: "component",
-          name: tagName,
-          range: range,
-          tagName: tagName,
-        });
-      }
-
-      // 2. Find all attributes in this tag
-      const attrRegex =
-        /\s([a-zA-Z][a-zA-Z0-9._-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)*)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g;
-      let attrMatch: RegExpExecArray | null;
-
-      while ((attrMatch = attrRegex.exec(fullTagMatch)) !== null) {
-        const attributeName = attrMatch[1];
-
-        // Skip standard HTML attributes, built-in Angular attributes, and event bindings
-        if (
-          standardHtmlAttributes.has(attributeName.toLowerCase()) ||
-          attributeName.startsWith("ng-") ||
-          attributeName.startsWith("(") ||
-          attributeName.startsWith("[") ||
-          attributeName.includes("*ng") ||
-          attributeName.startsWith("*")
-        ) {
-          continue;
+    const visit = (nodesList: unknown[]) => {
+      for (const node of nodesList) {
+        if (node instanceof TmplAstElement) {
+          const startPos = document.positionAt(offset + node.sourceSpan.start.offset);
+          const endPos = document.positionAt(offset + node.sourceSpan.end.offset);
+          elements.push({ type: 'component', name: node.name, range: new vscode.Range(startPos, endPos), tagName: node.name });
+          for (const attr of node.attributes) {
+            const s = document.positionAt(offset + attr.sourceSpan.start.offset);
+            const e = document.positionAt(offset + attr.sourceSpan.end.offset);
+            elements.push({ type: 'attribute', name: attr.name, range: new vscode.Range(s, e), tagName: node.name });
+          }
+          for (const input of node.inputs) {
+            const s = document.positionAt(offset + input.sourceSpan.start.offset);
+            const e = document.positionAt(offset + input.sourceSpan.end.offset);
+            elements.push({ type: 'property-binding', name: input.name, range: new vscode.Range(s, e), tagName: node.name });
+          }
+          for (const ref of node.references) {
+            const s = document.positionAt(offset + ref.sourceSpan.start.offset);
+            const e = document.positionAt(offset + ref.sourceSpan.end.offset);
+            elements.push({ type: 'template-reference', name: ref.name, range: new vscode.Range(s, e), tagName: node.name });
+          }
+          visit(node.children);
+        } else if (node instanceof TmplAstTemplate) {
+          for (const attr of node.templateAttrs) {
+            const s = document.positionAt(offset + attr.sourceSpan.start.offset);
+            const e = document.positionAt(offset + attr.sourceSpan.end.offset);
+            elements.push({ type: 'structural-directive', name: attr.name, range: new vscode.Range(s, e), tagName: 'ng-template' });
+          }
+          visit(node.children);
+        } else if (node instanceof TmplAstBoundText) {
+          // Extract actual template substring for pipe detection
+          const textValue = text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset);
+          const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
+          let match: RegExpExecArray | null;
+          while ((match = pipeRegex.exec(textValue))) {
+            const pipeName = match[1];
+            const index = node.sourceSpan.start.offset + match.index;
+            const start = document.positionAt(offset + index);
+            const end = document.positionAt(offset + index + pipeName.length);
+            elements.push({ type: 'pipe', name: pipeName, range: new vscode.Range(start, end), tagName: 'pipe' });
+          }
         }
-
-        // Calculate the attribute's position in the document
-        const attrStart = tagStartIndex + (attrMatch.index || 0) + 1; // +1 to skip the space
-        const startPos = document.positionAt(offset + attrStart);
-        const endPos = document.positionAt(offset + attrStart + attributeName.length);
-        const range = new vscode.Range(startPos, endPos);
-
-        elements.push({
-          type: "attribute",
-          name: attributeName,
-          range: range,
-          tagName: tagName,
-        });
       }
-
-      // 3. Find structural directives in this tag
-      const structuralDirectiveRegex = /\*([a-zA-Z][a-zA-Z0-9-]*)/g;
-      let structMatch: RegExpExecArray | null;
-
-      while ((structMatch = structuralDirectiveRegex.exec(fullTagMatch)) !== null) {
-        const directiveName = structMatch[1];
-
-        const structStart = tagStartIndex + (structMatch.index || 0);
-        const startPos = document.positionAt(offset + structStart);
-        const endPos = document.positionAt(offset + structStart + structMatch[0].length);
-        const range = new vscode.Range(startPos, endPos);
-
-        elements.push({
-          type: "structural-directive",
-          name: directiveName,
-          range: range,
-          tagName: tagName,
-        });
-      }
-
-      // 4. Find property bindings like [ngClass], [ngStyle], etc.
-      const propertyBindingRegex = /\[([a-zA-Z][a-zA-Z0-9-]*)]/g;
-      let propMatch: RegExpExecArray | null;
-
-      while ((propMatch = propertyBindingRegex.exec(fullTagMatch)) !== null) {
-        const propertyName = propMatch[1];
-
-        // Skip standard HTML properties
-        if (standardHtmlAttributes.has(propertyName.toLowerCase())) {
-          continue;
-        }
-
-        const propStart = tagStartIndex + (propMatch.index || 0);
-        const startPos = document.positionAt(offset + propStart);
-        const endPos = document.positionAt(offset + propStart + propMatch[0].length);
-        const range = new vscode.Range(startPos, endPos);
-
-        elements.push({
-          type: "property-binding",
-          name: propertyName,
-          range: range,
-          tagName: tagName,
-        });
-      }
-
-      // 5. Find template reference variables like #userForm="ngForm"
-      const templateRefRegex = /#[a-zA-Z][a-zA-Z0-9]*\s*=\s*["']([a-zA-Z][a-zA-Z0-9-]*)["']/g;
-      let templateRefMatch: RegExpExecArray | null;
-
-      while ((templateRefMatch = templateRefRegex.exec(fullTagMatch)) !== null) {
-        const directiveName = templateRefMatch[1]; // Extract "ngForm" from #userForm="ngForm"
-
-        // Calculate position of the directive name (not the template variable name)
-        const directiveStart = templateRefMatch.index + templateRefMatch[0].indexOf(directiveName);
-        const startPos = document.positionAt(offset + tagStartIndex + directiveStart);
-        const endPos = document.positionAt(offset + tagStartIndex + directiveStart + directiveName.length);
-        const range = new vscode.Range(startPos, endPos);
-
-        elements.push({
-          type: "template-reference",
-          name: directiveName,
-          range: range,
-          tagName: tagName,
-        });
-      }
-    }
-
-    // 6. Find pipes throughout the text (independent of tags)
-    const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
-    let pipeMatch: RegExpExecArray | null;
-
-    while ((pipeMatch = pipeRegex.exec(text)) !== null) {
-      const pipeName = pipeMatch[1];
-
-      const pipeStart = pipeMatch.index + pipeMatch[0].indexOf(pipeName);
-      const startPos = document.positionAt(offset + pipeStart);
-      const endPos = document.positionAt(offset + pipeStart + pipeName.length);
-      const range = new vscode.Range(startPos, endPos);
-
-      elements.push({
-        type: "pipe",
-        name: pipeName,
-        range: range,
-        tagName: "pipe",
-      });
-    }
-
+    };
+    visit(nodes);
     return elements;
   }
 
