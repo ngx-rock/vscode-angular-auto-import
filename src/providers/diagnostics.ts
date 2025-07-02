@@ -495,6 +495,29 @@ export class DiagnosticProvider {
                 elements.push(...this._findPipesInExpression(attrText, document, offset, valueSpan.start.offset));
               }
             }
+
+            // Handle plain attribute directives applied directly to <ng-template>
+            // (for example: <ng-template myDirective>)
+            // biome-ignore lint/suspicious/noExplicitAny: accessing internal compiler properties.
+            const plainAttributes = (node as any).attributes ?? [];
+            for (const attr of plainAttributes) {
+              // Use `keySpan` when present for precise highlighting
+              // biome-ignore lint/suspicious/noExplicitAny: `keySpan` is internal and not in official typings.
+              const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
+              const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
+              if (keyText !== attr.name) {
+                continue;
+              }
+
+              const s = document.positionAt(offset + keySpan.start.offset);
+              const e = document.positionAt(offset + keySpan.end.offset);
+              elements.push({
+                type: "attribute",
+                name: attr.name,
+                range: new vscode.Range(s, e),
+                tagName: "ng-template",
+              });
+            }
             // Recursively visit children of this template
             visit(node.children);
           }
