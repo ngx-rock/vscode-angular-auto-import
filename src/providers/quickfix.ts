@@ -32,6 +32,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     "-998116", // A structural directive was used in the template without a corresponding import
     "-998002", // Can't bind to property since it isn't a known property
     "-998004", // No pipe found with name 'pipeName'
+    "-998003", // No directive found with exportAs 'xyz'
     "-998103", // Control flow directive without corresponding import
     "-992011", // Directive appears in imports but is not standalone
     "missing-directive-import",

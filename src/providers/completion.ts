@@ -43,14 +43,20 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const attributeContextRegex = /<[a-zA-Z0-9-]+[^>]*\s([a-zA-Z0-9-]*)$/; // For directives as attributes
     const structuralDirectiveRegex = /\*([a-zA-Z0-9_-]*)$/; // For structural directives like *ngIf, *libUiDemoShowIf
     const pipeRegex = /\|\s*([a-zA-Z0-9_]*)$/; // Matches if cursor is right after '|' or part of pipe name
+    // Matches template reference variable value context, e.g., #myCtrl="ngForm" | supports both ' and " quotes
+    const referenceValueRegex = /#[a-zA-Z0-9_-]*\s*=\s*[\"']([a-zA-Z0-9_-]*)[\"']?$/;
 
     const tagMatch = tagRegex.exec(linePrefix);
     const attributeMatch = attributeContextRegex.exec(linePrefix);
     const structuralMatch = structuralDirectiveRegex.exec(linePrefix);
     const pipeMatch = pipeRegex.exec(linePrefix);
+    const referenceValueMatch = referenceValueRegex.exec(linePrefix);
 
     let filterText = "";
     let replacementRange: vscode.Range | undefined;
+
+    // Helper boolean to represent attribute-like contexts (standard attribute or template reference value)
+    const hasAttributeContext = !!attributeMatch || !!referenceValueMatch;
 
     // Determine the context and the text to filter/replace
     if (tagMatch) {
@@ -67,6 +73,10 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       replacementRange = new vscode.Range(start, position);
     } else if (attributeMatch) {
       filterText = attributeMatch[1];
+      const start = position.translate({ characterDelta: -filterText.length });
+      replacementRange = new vscode.Range(start, position);
+    } else if (referenceValueMatch) {
+      filterText = referenceValueMatch[1];
       const start = position.translate({ characterDelta: -filterText.length });
       replacementRange = new vscode.Range(start, position);
     } else {
@@ -108,12 +118,12 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         let insertText = elementSelector;
         let relevance = 0; // For sorting suggestions
 
-        if (element.type === "component" && (tagMatch || (!pipeMatch && !attributeMatch))) {
+        if (element.type === "component" && (tagMatch || (!pipeMatch && !hasAttributeContext))) {
           if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
             itemKind = vscode.CompletionItemKind.Class; // Component as tag
             relevance = 2;
           }
-        } else if (element.type === "directive" && (tagMatch || attributeMatch || structuralMatch || !pipeMatch)) {
+        } else if (element.type === "directive" && (tagMatch || hasAttributeContext || structuralMatch || !pipeMatch)) {
           // Directives can be selectors (like components), attribute selectors, or structural directives
           if (elementSelector.startsWith("[") && elementSelector.endsWith("]")) {
             // Attribute selector
@@ -137,7 +147,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
               relevance = 1;
             }
           }
-        } else if (element.type === "pipe" && (pipeMatch || (!tagMatch && !attributeMatch))) {
+        } else if (element.type === "pipe" && (pipeMatch || (!tagMatch && !hasAttributeContext))) {
           if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
             itemKind = vscode.CompletionItemKind.Function; // Pipe
             relevance = 2;
@@ -201,7 +211,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             itemKind = vscode.CompletionItemKind.Keyword;
             relevance = 3; // High relevance for structural directives
           }
-        } else if (attributeMatch && (stdSelector.startsWith("[") || !stdSelector.startsWith("*"))) {
+        } else if (hasAttributeContext && (stdSelector.startsWith("[") || !stdSelector.startsWith("*"))) {
           // Attribute directive context
           const attrName = stdSelector.startsWith("[") ? stdSelector.slice(1, -1) : stdSelector;
           if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
@@ -218,7 +228,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             relevance = 1;
           }
         }
-      } else if (stdElement.type === "pipe" && (pipeMatch || (!tagMatch && !attributeMatch && !structuralMatch))) {
+      } else if (stdElement.type === "pipe" && (pipeMatch || (!tagMatch && !hasAttributeContext && !structuralMatch))) {
         // Pipe context - only suggest if we're in a pipe context or no specific context
         if (stdSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
           shouldInclude = true;
