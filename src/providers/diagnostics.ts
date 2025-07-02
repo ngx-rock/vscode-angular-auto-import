@@ -333,131 +333,192 @@ export class DiagnosticProvider {
     return null;
   }
 
+  /**
+   * Extracts pipes from a given expression string (e.g., from property bindings or interpolations).
+   * @param expressionText The raw text of the expression.
+   * @param document The document where the expression resides.
+   * @param baseOffset The base offset for calculating pipe positions.
+   * @param valueOffset The offset of the expression value itself.
+   * @returns An array of ParsedHtmlElement for each found pipe.
+   */
+  private _findPipesInExpression(
+    expressionText: string,
+    document: vscode.TextDocument,
+    baseOffset: number,
+    valueOffset: number
+  ): ParsedHtmlElement[] {
+    const pipeElements: ParsedHtmlElement[] = [];
+    const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = pipeRegex.exec(expressionText))) {
+      const pipeName = match[1];
+      const pipeOffsetInExpression = match.index + match[0].indexOf(pipeName);
+      const start = document.positionAt(baseOffset + valueOffset + pipeOffsetInExpression);
+      const end = document.positionAt(baseOffset + valueOffset + pipeOffsetInExpression + pipeName.length);
+      pipeElements.push({ type: "pipe", name: pipeName, range: new vscode.Range(start, end), tagName: "pipe" });
+    }
+    return pipeElements;
+  }
+
+  /**
+   * Parses a given Angular template string using the Angular compiler to generate a detailed Abstract Syntax Tree (AST).
+   * It then traverses this AST to identify various Angular-specific elements such as components, directives (in all forms),
+   * and pipes within expressions. This method is crucial for providing accurate diagnostics by pinpointing elements
+   * that are used in the template but might be missing from the component's module imports.
+   *
+   * The function is robust enough to handle both external HTML templates and inline templates defined within
+   * TypeScript files. It carefully calculates the precise location of each element in the original document,
+   * accounting for any offsets (e.g., when parsing an inline template).
+   *
+   * @param text The template content to parse.
+   * @param document The VS Code TextDocument from which the template originates. This is used for accurate position mapping.
+   * @param offset The starting offset of the template text within the document. Defaults to 0 for external HTML files.
+   * @returns A promise that resolves to an array of `ParsedHtmlElement` objects, each representing a found element. Returns an empty array on parsing failure.
+   */
   private async parseTemplateAst(
     text: string,
     document: vscode.TextDocument,
     offset: number = 0
   ): Promise<ParsedHtmlElement[]> {
-    // Dynamically import required functions and AST classes from Angular compiler
-    const { parseTemplate, TmplAstElement, TmplAstTemplate, TmplAstBoundText } = await import("@angular/compiler");
-    const { nodes } = parseTemplate(text, "ng-template.html");
-    const elements: ParsedHtmlElement[] = [];
-    const visit = (nodesList: unknown[]) => {
-      for (const node of nodesList) {
-        if (node instanceof TmplAstElement) {
-          const startPos = document.positionAt(offset + node.sourceSpan.start.offset);
-          const endPos = document.positionAt(offset + node.sourceSpan.end.offset);
-          elements.push({
-            type: "component",
-            name: node.name,
-            range: new vscode.Range(startPos, endPos),
-            tagName: node.name,
-          });
-          for (const attr of node.attributes) {
-            // biome-ignore lint/suspicious/noExplicitAny: keySpan is internal compiler field
-            const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
-            const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
-            if (keyText !== attr.name) {
-              // keySpan does not map to attribute name (e.g., 'ngForOf' resolves to 'of'), skip
-              continue;
-            }
-            const s = document.positionAt(offset + keySpan.start.offset);
-            const e = document.positionAt(offset + keySpan.end.offset);
-            elements.push({ type: "attribute", name: attr.name, range: new vscode.Range(s, e), tagName: node.name });
-          }
-          for (const input of node.inputs) {
-            const s = document.positionAt(offset + input.sourceSpan.start.offset);
-            const e = document.positionAt(offset + input.sourceSpan.end.offset);
+    try {
+      // Dynamically import the Angular compiler. This is essential for performance,
+      // ensuring the heavy compiler library is loaded only when needed.
+      const { parseTemplate, TmplAstElement, TmplAstTemplate, TmplAstBoundText } = await import("@angular/compiler");
+
+      // The second argument to parseTemplate is the file URL, used for more precise error reporting from the compiler.
+      const { nodes } = parseTemplate(text, document.uri.fsPath);
+      const elements: ParsedHtmlElement[] = [];
+
+      /**
+       * Recursively visits each node in the AST to find Angular elements.
+       * @param nodesList The list of nodes to visit.
+       */
+      const visit = (nodesList: unknown[]) => {
+        for (const node of nodesList) {
+          // --- 1. Handle Element Nodes (<app-component>, <div>, etc.) ---
+          if (node instanceof TmplAstElement) {
+            const startPos = document.positionAt(offset + node.sourceSpan.start.offset);
+            const endPos = document.positionAt(offset + node.sourceSpan.end.offset);
             elements.push({
-              type: "property-binding",
-              name: input.name,
-              range: new vscode.Range(s, e),
+              type: "component",
+              name: node.name,
+              range: new vscode.Range(startPos, endPos),
               tagName: node.name,
             });
 
-            // ---- NEW: detect pipes inside property-binding expression ----
-            // biome-ignore lint/suspicious/noExplicitAny: valueSpan is internal compiler property not exposed in typings
-            if ((input as any).valueSpan) {
-              // biome-ignore lint/suspicious/noExplicitAny: see above
-              const valueSpan = (input as any).valueSpan;
-              const bindingText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
-              const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
-              let match: RegExpExecArray | null;
-              while ((match = pipeRegex.exec(bindingText))) {
-                const pipeName = match[1];
-                const pipeOffsetInBinding = match.index + match[0].indexOf(pipeName);
-                const start = document.positionAt(offset + valueSpan.start.offset + pipeOffsetInBinding);
-                const end = document.positionAt(
-                  offset + valueSpan.start.offset + pipeOffsetInBinding + pipeName.length
-                );
-                elements.push({ type: "pipe", name: pipeName, range: new vscode.Range(start, end), tagName: "pipe" });
+            // Handle attributes (potential directives)
+            for (const attr of node.attributes) {
+              // `keySpan` is an internal, undocumented property of the Angular compiler AST.
+              // It provides a more accurate source span for the attribute/directive name itself,
+              // whereas `sourceSpan` covers the whole attribute including its value.
+              // We fall back to `sourceSpan` if `keySpan` is not available for safety.
+              // biome-ignore lint/suspicious/noExplicitAny: `keySpan` is internal and not in official typings.
+              const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
+
+              // Ensure the text from the span actually matches the attribute name.
+              // This avoids mismatches where `keySpan` might point to something else (e.g., in 'ngForOf', name is 'ngForOf' but key might just be 'of').
+              const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
+              if (keyText !== attr.name) {
+                continue;
               }
-            }
-          }
-          for (const ref of node.references) {
-            const s = document.positionAt(offset + ref.sourceSpan.start.offset);
-            const e = document.positionAt(offset + ref.sourceSpan.end.offset);
-            elements.push({
-              type: "template-reference",
-              name: ref.name,
-              range: new vscode.Range(s, e),
-              tagName: node.name,
-            });
-          }
-          visit(node.children);
-        } else if (node instanceof TmplAstTemplate) {
-          for (const attr of node.templateAttrs) {
-            // biome-ignore lint/suspicious/noExplicitAny: keySpan is internal compiler field
-            const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
-            const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
-            if (keyText === attr.name) {
-              // Only add diagnostic range when keyText matches the directive name (e.g., 'ngFor', 'ngIf')
+
               const s = document.positionAt(offset + keySpan.start.offset);
               const e = document.positionAt(offset + keySpan.end.offset);
+              elements.push({ type: "attribute", name: attr.name, range: new vscode.Range(s, e), tagName: node.name });
+            }
+
+            // Handle property bindings `[input]="..."`
+            for (const input of node.inputs) {
+              const s = document.positionAt(offset + input.sourceSpan.start.offset);
+              const e = document.positionAt(offset + input.sourceSpan.end.offset);
               elements.push({
-                type: "structural-directive",
-                name: attr.name,
+                type: "property-binding",
+                name: input.name,
                 range: new vscode.Range(s, e),
-                tagName: "ng-template",
+                tagName: node.name,
+              });
+
+              // Detect pipes within the binding's expression.
+              // `valueSpan` is another internal property that gives the span of the expression part.
+              // We must check for its existence to avoid runtime errors with future Angular versions.
+              // biome-ignore lint/suspicious/noExplicitAny: `valueSpan` is internal and not in official typings.
+              const valueSpan = (input as any)?.valueSpan;
+              if (valueSpan) {
+                const bindingText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
+                elements.push(
+                  ...this._findPipesInExpression(bindingText, document, offset, valueSpan.start.offset)
+                );
+              }
+            }
+
+            // Handle template references `#ref`
+            for (const ref of node.references) {
+              const s = document.positionAt(offset + ref.sourceSpan.start.offset);
+              const e = document.positionAt(offset + ref.sourceSpan.end.offset);
+              elements.push({
+                type: "template-reference",
+                name: ref.name,
+                range: new vscode.Range(s, e),
+                tagName: node.name,
               });
             }
 
-            // ---- NEW: detect pipes inside structural-directive expression ----
-            // biome-ignore lint/suspicious/noExplicitAny: valueSpan is internal compiler property not exposed in typings
-            if ((attr as any).valueSpan) {
-              // biome-ignore lint/suspicious/noExplicitAny: see above
-              const valueSpan = (attr as any).valueSpan;
-              const attrText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
-              const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
-              let match: RegExpExecArray | null;
-              while ((match = pipeRegex.exec(attrText))) {
-                const pipeName = match[1];
-                const pipeOffset = match.index + match[0].indexOf(pipeName);
-                const start = document.positionAt(offset + valueSpan.start.offset + pipeOffset);
-                const end = document.positionAt(offset + valueSpan.start.offset + pipeOffset + pipeName.length);
-                elements.push({ type: "pipe", name: pipeName, range: new vscode.Range(start, end), tagName: "pipe" });
+            // Recursively visit children of this element
+            visit(node.children);
+          }
+          // --- 2. Handle Template Nodes (<ng-template>, *ngFor, etc.) ---
+          else if (node instanceof TmplAstTemplate) {
+            // Handle structural directives on the template (`*ngFor`, `*ngIf`)
+            for (const attr of node.templateAttrs) {
+              // Same as above, we use the internal `keySpan` for better accuracy.
+              // biome-ignore lint/suspicious/noExplicitAny: `keySpan` is internal and not in official typings.
+              const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
+              const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
+
+              if (keyText === attr.name) {
+                const s = document.positionAt(offset + keySpan.start.offset);
+                const e = document.positionAt(offset + keySpan.end.offset);
+                elements.push({
+                  type: "structural-directive",
+                  name: attr.name,
+                  range: new vscode.Range(s, e),
+                  tagName: "ng-template",
+                });
+              }
+
+              // Detect pipes within the directive's expression.
+              // biome-ignore lint/suspicious/noExplicitAny: `valueSpan` is internal and not in official typings.
+              const valueSpan = (attr as any)?.valueSpan;
+              if (valueSpan) {
+                const attrText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
+                elements.push(...this._findPipesInExpression(attrText, document, offset, valueSpan.start.offset));
               }
             }
+            // Recursively visit children of this template
+            visit(node.children);
           }
-          visit(node.children);
-        } else if (node instanceof TmplAstBoundText) {
-          // Extract actual template substring for pipe detection
-          const textValue = text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset);
-          const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
-          let match: RegExpExecArray | null;
-          while ((match = pipeRegex.exec(textValue))) {
-            const pipeName = match[1];
-            const pipeStartInBound = match.index + match[0].indexOf(pipeName);
-            const index = node.sourceSpan.start.offset + pipeStartInBound;
-            const start = document.positionAt(offset + index);
-            const end = document.positionAt(offset + index + pipeName.length);
-            elements.push({ type: "pipe", name: pipeName, range: new vscode.Range(start, end), tagName: "pipe" });
+          // --- 3. Handle Bound Text Nodes (Interpolations: {{ ... }}) ---
+          else if (node instanceof TmplAstBoundText) {
+            // Extract the template substring to find pipes within interpolations.
+            const textValue = text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset);
+            elements.push(
+              ...this._findPipesInExpression(textValue, document, offset, node.sourceSpan.start.offset)
+            );
           }
         }
-      }
-    };
-    visit(nodes);
-    return elements;
+      };
+
+      visit(nodes);
+      return elements;
+    } catch (error) {
+      console.error(
+        `[DiagnosticProvider] Failed to import or use Angular compiler for parsing ${document.uri.fsPath}. This can happen if '@angular/compiler' is not installed in the workspace.`,
+        error
+      );
+      // On failure, return an empty array to prevent crashes downstream.
+      return [];
+    }
   }
 
   private async checkElementForMissingImport(
