@@ -227,7 +227,7 @@ export class DiagnosticProvider {
 
       // Parse HTML with improved regex parsing
       const htmlElements = await this.parseTemplateAst(templateText, document, offset);
-
+      // console.warn("parseTemplateAst", htmlElements);
       // Check each found element
       for (const element of htmlElements) {
         const diagnostic = await this.checkElementForMissingImport(element, indexer, document, componentPath, severity);
@@ -333,38 +333,111 @@ export class DiagnosticProvider {
     return null;
   }
 
-  private async parseTemplateAst(text: string, document: vscode.TextDocument, offset: number = 0): Promise<ParsedHtmlElement[]> {
+  private async parseTemplateAst(
+    text: string,
+    document: vscode.TextDocument,
+    offset: number = 0
+  ): Promise<ParsedHtmlElement[]> {
     // Dynamically import required functions and AST classes from Angular compiler
-    const { parseTemplate, TmplAstElement, TmplAstTemplate, TmplAstBoundText } = await import('@angular/compiler');
-    const { nodes } = parseTemplate(text, 'ng-template.html');
+    const { parseTemplate, TmplAstElement, TmplAstTemplate, TmplAstBoundText } = await import("@angular/compiler");
+    const { nodes } = parseTemplate(text, "ng-template.html");
     const elements: ParsedHtmlElement[] = [];
     const visit = (nodesList: unknown[]) => {
       for (const node of nodesList) {
         if (node instanceof TmplAstElement) {
           const startPos = document.positionAt(offset + node.sourceSpan.start.offset);
           const endPos = document.positionAt(offset + node.sourceSpan.end.offset);
-          elements.push({ type: 'component', name: node.name, range: new vscode.Range(startPos, endPos), tagName: node.name });
+          elements.push({
+            type: "component",
+            name: node.name,
+            range: new vscode.Range(startPos, endPos),
+            tagName: node.name,
+          });
           for (const attr of node.attributes) {
-            const s = document.positionAt(offset + attr.sourceSpan.start.offset);
-            const e = document.positionAt(offset + attr.sourceSpan.end.offset);
-            elements.push({ type: 'attribute', name: attr.name, range: new vscode.Range(s, e), tagName: node.name });
+            // biome-ignore lint/suspicious/noExplicitAny: keySpan is internal compiler field
+            const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
+            const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
+            if (keyText !== attr.name) {
+              // keySpan does not map to attribute name (e.g., 'ngForOf' resolves to 'of'), skip
+              continue;
+            }
+            const s = document.positionAt(offset + keySpan.start.offset);
+            const e = document.positionAt(offset + keySpan.end.offset);
+            elements.push({ type: "attribute", name: attr.name, range: new vscode.Range(s, e), tagName: node.name });
           }
           for (const input of node.inputs) {
             const s = document.positionAt(offset + input.sourceSpan.start.offset);
             const e = document.positionAt(offset + input.sourceSpan.end.offset);
-            elements.push({ type: 'property-binding', name: input.name, range: new vscode.Range(s, e), tagName: node.name });
+            elements.push({
+              type: "property-binding",
+              name: input.name,
+              range: new vscode.Range(s, e),
+              tagName: node.name,
+            });
+
+            // ---- NEW: detect pipes inside property-binding expression ----
+            // biome-ignore lint/suspicious/noExplicitAny: valueSpan is internal compiler property not exposed in typings
+            if ((input as any).valueSpan) {
+              // biome-ignore lint/suspicious/noExplicitAny: see above
+              const valueSpan = (input as any).valueSpan;
+              const bindingText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
+              const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
+              let match: RegExpExecArray | null;
+              while ((match = pipeRegex.exec(bindingText))) {
+                const pipeName = match[1];
+                const pipeOffsetInBinding = match.index + match[0].indexOf(pipeName);
+                const start = document.positionAt(offset + valueSpan.start.offset + pipeOffsetInBinding);
+                const end = document.positionAt(
+                  offset + valueSpan.start.offset + pipeOffsetInBinding + pipeName.length
+                );
+                elements.push({ type: "pipe", name: pipeName, range: new vscode.Range(start, end), tagName: "pipe" });
+              }
+            }
           }
           for (const ref of node.references) {
             const s = document.positionAt(offset + ref.sourceSpan.start.offset);
             const e = document.positionAt(offset + ref.sourceSpan.end.offset);
-            elements.push({ type: 'template-reference', name: ref.name, range: new vscode.Range(s, e), tagName: node.name });
+            elements.push({
+              type: "template-reference",
+              name: ref.name,
+              range: new vscode.Range(s, e),
+              tagName: node.name,
+            });
           }
           visit(node.children);
         } else if (node instanceof TmplAstTemplate) {
           for (const attr of node.templateAttrs) {
-            const s = document.positionAt(offset + attr.sourceSpan.start.offset);
-            const e = document.positionAt(offset + attr.sourceSpan.end.offset);
-            elements.push({ type: 'structural-directive', name: attr.name, range: new vscode.Range(s, e), tagName: 'ng-template' });
+            // biome-ignore lint/suspicious/noExplicitAny: keySpan is internal compiler field
+            const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
+            const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
+            if (keyText === attr.name) {
+              // Only add diagnostic range when keyText matches the directive name (e.g., 'ngFor', 'ngIf')
+              const s = document.positionAt(offset + keySpan.start.offset);
+              const e = document.positionAt(offset + keySpan.end.offset);
+              elements.push({
+                type: "structural-directive",
+                name: attr.name,
+                range: new vscode.Range(s, e),
+                tagName: "ng-template",
+              });
+            }
+
+            // ---- NEW: detect pipes inside structural-directive expression ----
+            // biome-ignore lint/suspicious/noExplicitAny: valueSpan is internal compiler property not exposed in typings
+            if ((attr as any).valueSpan) {
+              // biome-ignore lint/suspicious/noExplicitAny: see above
+              const valueSpan = (attr as any).valueSpan;
+              const attrText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
+              const pipeRegex = /\|\s*([a-zA-Z][a-zA-Z0-9_-]*)/g;
+              let match: RegExpExecArray | null;
+              while ((match = pipeRegex.exec(attrText))) {
+                const pipeName = match[1];
+                const pipeOffset = match.index + match[0].indexOf(pipeName);
+                const start = document.positionAt(offset + valueSpan.start.offset + pipeOffset);
+                const end = document.positionAt(offset + valueSpan.start.offset + pipeOffset + pipeName.length);
+                elements.push({ type: "pipe", name: pipeName, range: new vscode.Range(start, end), tagName: "pipe" });
+              }
+            }
           }
           visit(node.children);
         } else if (node instanceof TmplAstBoundText) {
@@ -374,10 +447,11 @@ export class DiagnosticProvider {
           let match: RegExpExecArray | null;
           while ((match = pipeRegex.exec(textValue))) {
             const pipeName = match[1];
-            const index = node.sourceSpan.start.offset + match.index;
+            const pipeStartInBound = match.index + match[0].indexOf(pipeName);
+            const index = node.sourceSpan.start.offset + pipeStartInBound;
             const start = document.positionAt(offset + index);
             const end = document.positionAt(offset + index + pipeName.length);
-            elements.push({ type: 'pipe', name: pipeName, range: new vscode.Range(start, end), tagName: 'pipe' });
+            elements.push({ type: "pipe", name: pipeName, range: new vscode.Range(start, end), tagName: "pipe" });
           }
         }
       }
@@ -394,6 +468,7 @@ export class DiagnosticProvider {
     severity: vscode.DiagnosticSeverity
   ): Promise<vscode.Diagnostic | null> {
     const possibleSelectors = this.generatePossibleSelectors(element);
+
     let foundElement: AngularElementData | undefined;
     let matchingSelector: string | undefined;
 

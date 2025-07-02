@@ -55,7 +55,7 @@ class PathAliasTrie {
 
     for (const [alias, pathArray] of Object.entries(paths)) {
       // Ensure pathArray is an array of strings
-      const pathArraySafe = Array.isArray(pathArray) ? pathArray as string[] : [];
+      const pathArraySafe = Array.isArray(pathArray) ? (pathArray as string[]) : [];
       console.log(`[PathAliasTrie] Processing alias: '${alias}' -> [${pathArraySafe.join(", ")}]`);
 
       if (pathArraySafe.length > 0) {

@@ -265,5 +265,3 @@ export function resolveRelativePath(from: string, to: string): string {
     return "";
   }
 }
-
-
