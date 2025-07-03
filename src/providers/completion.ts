@@ -35,56 +35,142 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
     const { indexer } = projCtx;
     const suggestions: vscode.CompletionItem[] = [];
-
     const linePrefix = document.lineAt(position).text.slice(0, position.character);
 
-    // More robust regex for tags, allowing for attributes before cursor
-    const tagRegex = /<([a-zA-Z0-9-]*)$/; // Matches if cursor is right after '<' or part of tag name
-    const attributeContextRegex = /<[a-zA-Z0-9-]+[^>]*\s([a-zA-Z0-9-]*)$/; // For directives as attributes
-    const structuralDirectiveRegex = /\*([a-zA-Z0-9_-]*)$/; // For structural directives like *ngIf, *libUiDemoShowIf
-    const pipeRegex = /\|\s*([a-zA-Z0-9_]*)$/; // Matches if cursor is right after '|' or part of pipe name
-    // Matches template reference variable value context, e.g., #myCtrl="ngForm" | supports both ' and " quotes
-    const referenceValueRegex = /#[a-zA-Z0-9_-]*\s*=\s*[\"']([a-zA-Z0-9_-]*)[\"']?$/;
-
-    const tagMatch = tagRegex.exec(linePrefix);
-    const attributeMatch = attributeContextRegex.exec(linePrefix);
-    const structuralMatch = structuralDirectiveRegex.exec(linePrefix);
-    const pipeMatch = pipeRegex.exec(linePrefix);
-    const referenceValueMatch = referenceValueRegex.exec(linePrefix);
-
+    // --- Context detection ---
     let filterText = "";
     let replacementRange: vscode.Range | undefined;
+    let context: "tag" | "attribute" | "pipe" | "structural-directive" | "reference-value" | "none" = "none";
 
-    // Helper boolean to represent attribute-like contexts (standard attribute or template reference value)
-    const hasAttributeContext = !!attributeMatch || !!referenceValueMatch;
+    // 1. Pipe context (simple regex is sufficient and fast)
+    const pipeRegex = /\|\s*([a-zA-Z0-9_]*)$/;
+    const pipeMatch = pipeRegex.exec(linePrefix);
+    // Matches template reference variable value context, e.g., #myCtrl="ngForm" | supports both ' and " quotes
+    const referenceValueRegex = /#[a-zA-Z0-9_-]*\s*=\s*[\"']([a-zA-Z0-9_-]*)[\"']?$/;
+    const referenceValueMatch = referenceValueRegex.exec(linePrefix);
 
-    // Determine the context and the text to filter/replace
-    if (tagMatch) {
-      filterText = tagMatch[1];
-      const start = position.translate({ characterDelta: -filterText.length });
-      replacementRange = new vscode.Range(start, position);
-    } else if (structuralMatch) {
-      filterText = structuralMatch[1];
-      const start = position.translate({ characterDelta: -filterText.length });
-      replacementRange = new vscode.Range(start, position);
-    } else if (pipeMatch) {
+    if (pipeMatch) {
+      context = "pipe";
       filterText = pipeMatch[1];
       const start = position.translate({ characterDelta: -filterText.length });
       replacementRange = new vscode.Range(start, position);
-    } else if (attributeMatch) {
-      filterText = attributeMatch[1];
-      const start = position.translate({ characterDelta: -filterText.length });
-      replacementRange = new vscode.Range(start, position);
     } else if (referenceValueMatch) {
+      context = "reference-value";
       filterText = referenceValueMatch[1];
       const start = position.translate({ characterDelta: -filterText.length });
       replacementRange = new vscode.Range(start, position);
     } else {
-      replacementRange = document.getWordRangeAtPosition(position, /[a-zA-Z0-9_-]+/);
-      if (replacementRange) {
-        filterText = document.getText(replacementRange);
+      // 2. AST-based context detection for tags and attributes
+      try {
+        const {
+          parseTemplate,
+          TmplAstTextAttribute,
+          TmplAstBoundAttribute,
+          TmplAstElement,
+          TmplAstTemplate,
+        } = await import("@angular/compiler");
+
+        // Infer the type of TmplAstNode from the return type of the parseTemplate function
+        type TmplAstNode = ReturnType<typeof parseTemplate>["nodes"][number];
+
+        /**
+         * Traverses the Angular Template AST to find the most specific node at a given position.
+         */
+        const findNodeAtPosition = (nodes: TmplAstNode[], pos: number): TmplAstNode | undefined => {
+          for (const node of nodes) {
+            if (!node.sourceSpan || pos < node.sourceSpan.start.offset || pos > node.sourceSpan.end.offset) {
+              continue;
+            }
+
+            let potentialChildren: TmplAstNode[] = [];
+            if (node instanceof TmplAstElement || node instanceof TmplAstTemplate) {
+              potentialChildren = [
+                ...node.attributes,
+                ...node.inputs,
+                ...node.outputs,
+                ...("templateAttrs" in node ? node.templateAttrs : []),
+                ...node.children,
+              ];
+            } else if ("children" in node && Array.isArray(node.children)) {
+              potentialChildren = (node as any).children;
+            }
+
+            const childNode = findNodeAtPosition(potentialChildren, pos);
+            return childNode || node;
+          }
+          return undefined;
+        };
+
+        const documentText = document.getText();
+        const offset = document.offsetAt(position);
+        // Use offset - 1 to get the node we are "inside" of
+        const nodeAtCursor = findNodeAtPosition(parseTemplate(documentText, document.uri.fsPath).nodes, offset - 1);
+
+        const wordRange = document.getWordRangeAtPosition(position, /[\w-]+/);
+        const currentWord = wordRange ? document.getText(wordRange) : "";
+
+        if (nodeAtCursor) {
+          if (
+            (nodeAtCursor instanceof TmplAstTextAttribute || nodeAtCursor instanceof TmplAstBoundAttribute) &&
+            linePrefix.trim().endsWith(nodeAtCursor.name) // Ensure we're completing the attribute name itself
+          ) {
+            context = nodeAtCursor.name.startsWith("*") ? "structural-directive" : "attribute";
+            filterText = nodeAtCursor.name.startsWith("*") ? nodeAtCursor.name.slice(1) : nodeAtCursor.name;
+          } else if (nodeAtCursor instanceof TmplAstElement) {
+            // Check if cursor is at the element tag name
+            const el = nodeAtCursor;
+            const openTagEnd = el.sourceSpan.start.offset + el.name.length + 1; // After `<tag`
+            if (offset <= openTagEnd) {
+              context = "tag";
+              filterText = el.name;
+            } else {
+              context = "attribute"; // Inside the element, suggesting an attribute
+              filterText = currentWord;
+            }
+          } else if (nodeAtCursor instanceof TmplAstTemplate) {
+            context = "structural-directive";
+            filterText = currentWord.startsWith("*") ? currentWord.slice(1) : currentWord;
+          }
+        }
+
+        // Fallback for when we're typing a new tag/attribute from scratch
+        if (context === "none") {
+          const structuralMatch = /\*([a-zA-Z0-9_-]*)$/.exec(linePrefix);
+          const tagMatch = /<([a-zA-Z0-9-]*)$/.exec(linePrefix);
+          const attributeMatch = /<[a-zA-Z0-9-]+[^>]*\s([a-zA-Z0-9-]*)$/.exec(linePrefix);
+
+          if (structuralMatch) {
+            context = "structural-directive";
+            filterText = structuralMatch[1];
+          } else if (tagMatch) {
+            context = "tag";
+            filterText = tagMatch[1];
+          } else if (attributeMatch) {
+            context = "attribute";
+            filterText = attributeMatch[1];
+          }
+        }
+
+        replacementRange = document.getWordRangeAtPosition(position, /[a-zA-Z0-9_-]+/);
+        if (replacementRange) {
+          filterText = document.getText(replacementRange);
+          // Adjust for structural directives where `*` is not part of the word
+          const charBefore = replacementRange.start.character > 0 ? linePrefix[replacementRange.start.character - 1] : "";
+          if (charBefore === "*") {
+            replacementRange = new vscode.Range(replacementRange.start.translate(0, -1), replacementRange.end);
+          }
+        }
+      } catch (e) {
+        // Suppress parser errors during active typing
+        console.error("Angular Template Parser error:", e);
+        return [];
       }
     }
+
+    const hasAttributeContext = context === "attribute" || context === "reference-value" || context === "structural-directive";
+    const hasTagContext = context === "tag";
+    const hasPipeContext = context === "pipe";
+    const hasStructuralDirectiveContext = context === "structural-directive";
 
     const seenElements = new Set<string>(); // To avoid duplicate elements
 
@@ -118,12 +204,12 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         let insertText = elementSelector;
         let relevance = 0; // For sorting suggestions
 
-        if (element.type === "component" && (tagMatch || (!pipeMatch && !hasAttributeContext))) {
+        if (element.type === "component" && (hasTagContext || (!hasPipeContext && !hasAttributeContext))) {
           if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
             itemKind = vscode.CompletionItemKind.Class; // Component as tag
             relevance = 2;
           }
-        } else if (element.type === "directive" && (tagMatch || hasAttributeContext || structuralMatch || !pipeMatch)) {
+        } else if (element.type === "directive" && (hasTagContext || hasAttributeContext || !hasPipeContext)) {
           // Directives can be selectors (like components), attribute selectors, or structural directives
           if (elementSelector.startsWith("[") && elementSelector.endsWith("]")) {
             // Attribute selector
@@ -133,7 +219,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
               itemKind = vscode.CompletionItemKind.Property; // Directive as attribute
               relevance = 1;
             }
-          } else if (structuralMatch) {
+          } else if (hasStructuralDirectiveContext) {
             // Structural directive context - match directive name directly
             if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
               insertText = elementSelector;
@@ -147,7 +233,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
               relevance = 1;
             }
           }
-        } else if (element.type === "pipe" && (pipeMatch || (!tagMatch && !hasAttributeContext))) {
+        } else if (element.type === "pipe" && (hasPipeContext || (!hasTagContext && !hasAttributeContext))) {
           if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
             itemKind = vscode.CompletionItemKind.Function; // Pipe
             relevance = 2;
@@ -203,7 +289,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       let relevance = 0;
 
       if (stdElement.type === "directive") {
-        if (structuralMatch && stdSelector.startsWith("*")) {
+        if (hasStructuralDirectiveContext && stdSelector.startsWith("*")) {
           // Structural directive context
           if (stdSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
             shouldInclude = true;
@@ -220,7 +306,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             itemKind = vscode.CompletionItemKind.Property;
             relevance = 2;
           }
-        } else if (tagMatch && !stdSelector.startsWith("*") && !stdSelector.startsWith("[")) {
+        } else if (hasTagContext && !stdSelector.startsWith("*") && !stdSelector.startsWith("[")) {
           // Tag context for non-structural directives
           if (stdSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
             shouldInclude = true;
@@ -228,7 +314,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             relevance = 1;
           }
         }
-      } else if (stdElement.type === "pipe" && (pipeMatch || (!tagMatch && !hasAttributeContext && !structuralMatch))) {
+      } else if (stdElement.type === "pipe" && (hasPipeContext || (!hasTagContext && !hasAttributeContext))) {
         // Pipe context - only suggest if we're in a pipe context or no specific context
         if (stdSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
           shouldInclude = true;
@@ -342,3 +428,4 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     return undefined;
   }
 }
+ 
