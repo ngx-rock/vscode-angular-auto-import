@@ -8,6 +8,7 @@ import { AngularElementData } from "../types";
 
 /**
  * Парсит сложный селектор Angular и возвращает массив индивидуальных селекторов.
+ * Использует CssSelector.parse из @angular/compiler для надежного парсинга.
  */
 export function parseAngularSelector(selectorString: string): string[] {
   if (!selectorString) {
@@ -16,6 +17,84 @@ export function parseAngularSelector(selectorString: string): string[] {
 
   console.log(`[parseAngularSelector] Parsing selector: "${selectorString}"`);
 
+  try {
+    // Используем динамический импорт для @angular/compiler
+    return parseAngularSelectorSync(selectorString);
+  } catch (error) {
+    console.warn(`[parseAngularSelector] Error parsing selector "${selectorString}":`, error);
+    
+    // Fallback to legacy parsing
+    console.log(`[parseAngularSelector] Falling back to legacy parsing for: "${selectorString}"`);
+    return parseAngularSelectorLegacy(selectorString);
+  }
+}
+
+/**
+ * Синхронная версия парсинга с использованием CssSelector.
+ * Использует require() для совместимости с CommonJS.
+ */
+function parseAngularSelectorSync(selectorString: string): string[] {
+  // Используем require для динамической загрузки @angular/compiler
+  const { CssSelector } = require('@angular/compiler');
+  
+  // Используем CssSelector.parse для надежного парсинга селекторов
+  const cssSelectors = CssSelector.parse(selectorString);
+  const parsedSelectors: string[] = [];
+
+  for (const cssSelector of cssSelectors) {
+    console.log(`[parseAngularSelector] Processing CssSelector:`, {
+      element: cssSelector.element,
+      classNames: cssSelector.classNames,
+      attrs: cssSelector.attrs
+    });
+
+    // Добавляем элементный селектор
+    if (cssSelector.element) {
+      parsedSelectors.push(cssSelector.element);
+    }
+
+    // Добавляем селекторы классов
+    for (const className of cssSelector.classNames) {
+      parsedSelectors.push(`.${className}`);
+      parsedSelectors.push(className);
+    }
+
+    // Добавляем атрибутные селекторы
+    // attrs массив содержит пары: [name1, value1, name2, value2, ...]
+    for (let i = 0; i < cssSelector.attrs.length; i += 2) {
+      const attrName = cssSelector.attrs[i];
+      const attrValue = cssSelector.attrs[i + 1];
+
+      if (attrName) {
+        // Добавляем имя атрибута
+        parsedSelectors.push(attrName);
+        
+        // Добавляем полную форму атрибута
+        if (attrValue && attrValue !== '') {
+          parsedSelectors.push(`[${attrName}="${attrValue}"]`);
+        } else {
+          parsedSelectors.push(`[${attrName}]`);
+        }
+      }
+    }
+
+    // Добавляем полный селектор как строку для поиска
+    const fullSelector = cssSelector.toString();
+    if (fullSelector) {
+      parsedSelectors.push(fullSelector);
+    }
+  }
+
+  const uniqueSelectors = [...new Set(parsedSelectors.filter(s => s && s.length > 0))];
+  console.log(`[parseAngularSelector] Final unique selectors: [${uniqueSelectors.join(", ")}]`);
+
+  return uniqueSelectors;
+}
+
+/**
+ * Legacy парсинг селекторов (fallback для случаев когда CssSelector.parse не работает).
+ */
+function parseAngularSelectorLegacy(selectorString: string): string[] {
   // Разделяем по запятым и очищаем от пробелов
   const rawSelectors = selectorString
     .split(",")
@@ -25,20 +104,17 @@ export function parseAngularSelector(selectorString: string): string[] {
   const parsedSelectors: string[] = [];
 
   for (const rawSelector of rawSelectors) {
-    console.log(`[parseAngularSelector] Processing raw selector: "${rawSelector}"`);
+    console.log(`[parseAngularSelectorLegacy] Processing raw selector: "${rawSelector}"`);
 
     // Нормализуем селектор и извлекаем все возможные варианты
     const normalized = normalizeSelector(rawSelector);
     if (normalized.length > 0) {
       parsedSelectors.push(...normalized);
-      console.log(`[parseAngularSelector] Added normalized selectors: [${normalized.join(", ")}]`);
+      console.log(`[parseAngularSelectorLegacy] Added normalized selectors: [${normalized.join(", ")}]`);
     }
   }
 
-  const uniqueSelectors = [...new Set(parsedSelectors)];
-  console.log(`[parseAngularSelector] Final unique selectors: [${uniqueSelectors.join(", ")}]`);
-
-  return uniqueSelectors;
+  return [...new Set(parsedSelectors)];
 }
 
 /**
