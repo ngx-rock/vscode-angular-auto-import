@@ -9,7 +9,6 @@
 import * as assert from "node:assert";
 import * as path from "node:path";
 import {
-  extractAngularElementInfo,
   generateImportStatement,
   isAngularFile,
   normalizeSelector,
@@ -19,133 +18,6 @@ import {
 describe("Utility Functions", function () {
   // Set timeout for all tests in this suite
   this.timeout(5000);
-
-  describe("extractAngularElementInfo", () => {
-    it("should extract component information correctly", () => {
-      const componentCode = `
-import { Component } from '@angular/core';
-
-@Component({
-  selector: 'app-test',
-  templateUrl: './test.component.html',
-  styleUrls: ['./test.component.css']
-})
-export class TestComponent {
-  constructor() {}
-}
-`;
-
-      const result = extractAngularElementInfo(componentCode, "/src/app/test.component.ts");
-
-      assert.ok(result, "Should extract component info");
-      assert.strictEqual(result.name, "TestComponent", "Should extract correct class name");
-      assert.strictEqual(result.type, "component", "Should identify as component");
-      assert.strictEqual(result.originalSelector, "app-test", "Should extract correct selector");
-      assert.ok(Array.isArray(result.selectors), "Should have selectors array");
-      assert.ok(result.selectors.includes("app-test"), "Should include component selector in array");
-    });
-
-    it("should extract directive information correctly", () => {
-      const directiveCode = `
-import { Directive, Input } from '@angular/core';
-
-@Directive({
-  selector: '[appHighlight]'
-})
-export class HighlightDirective {
-  @Input() appHighlight: string = '';
-}
-`;
-
-      const result = extractAngularElementInfo(directiveCode, "/src/app/highlight.directive.ts");
-
-      assert.ok(result, "Should extract directive info");
-      assert.strictEqual(result.name, "HighlightDirective", "Should extract correct class name");
-      assert.strictEqual(result.type, "directive", "Should identify as directive");
-      assert.strictEqual(result.originalSelector, "[appHighlight]", "Should extract correct selector");
-    });
-
-    it("should extract pipe information correctly", () => {
-      const pipeCode = `
-import { Pipe, PipeTransform } from '@angular/core';
-
-@Pipe({
-  name: 'capitalize'
-})
-export class CapitalizePipe implements PipeTransform {
-  transform(value: string): string {
-    return value.charAt(0).toUpperCase() + value.slice(1);
-  }
-}
-`;
-
-      const result = extractAngularElementInfo(pipeCode, "/src/app/capitalize.pipe.ts");
-
-      assert.ok(result, "Should extract pipe info");
-      assert.strictEqual(result.name, "CapitalizePipe", "Should extract correct class name");
-      assert.strictEqual(result.type, "pipe", "Should identify as pipe");
-      assert.strictEqual(result.originalSelector, "capitalize", "Should extract correct pipe name");
-    });
-
-    it("should handle multiple selectors for directives", () => {
-      const directiveCode = `
-@Directive({
-  selector: 'button[appButton], a[appButton], [appButton]'
-})
-export class ButtonDirective {}
-`;
-
-      const result = extractAngularElementInfo(directiveCode, "/src/app/button.directive.ts");
-
-      assert.ok(result, "Should extract directive info");
-      assert.strictEqual(result.type, "directive", "Should identify as directive");
-      assert.ok(Array.isArray(result.selectors), "Should have selectors array");
-      assert.ok(result.selectors.length > 1, "Should have multiple selectors");
-      assert.ok(
-        result.selectors.some((s: string) => s.includes("button[appButton]")),
-        "Should include button selector"
-      );
-      assert.ok(
-        result.selectors.some((s: string) => s.includes("[appButton]")),
-        "Should include attribute selector"
-      );
-    });
-
-    it("should return null for non-Angular files", () => {
-      const regularCode = `
-export class RegularClass {
-  constructor() {}
-}
-`;
-
-      const result = extractAngularElementInfo(regularCode, "/src/app/regular.ts");
-
-      assert.strictEqual(result, null, "Should return null for non-Angular files");
-    });
-
-    it("should handle malformed decorators gracefully", () => {
-      const malformedCode = `
-@Component({
-  selector: 'app-test'
-  // missing closing brace
-export class TestComponent {}
-`;
-
-      // Should not throw an error
-      assert.doesNotThrow(() => {
-        const result = extractAngularElementInfo(malformedCode, "/src/app/test.component.ts");
-
-        // Should either return null or handle gracefully
-        assert.ok(result === null || typeof result === "object", "Should handle malformed code gracefully");
-      }, "Should not throw error for malformed code");
-    });
-
-    it("should handle null and undefined inputs", () => {
-      assert.strictEqual(extractAngularElementInfo(null as any, "/test.ts"), null, "Should handle null code");
-      assert.strictEqual(extractAngularElementInfo("test", null as any), null, "Should handle null file path");
-      assert.strictEqual(extractAngularElementInfo(undefined as any, "/test.ts"), null, "Should handle undefined code");
-    });
-  });
 
   describe("isAngularFile", () => {
     const testCases = [
@@ -421,11 +293,6 @@ export class TestComponent {}
 
   describe("Edge Cases and Error Handling", () => {
     it("should not throw errors for malformed inputs", () => {
-      // Test extractAngularElementInfo with malformed code
-      assert.doesNotThrow(() => {
-        extractAngularElementInfo("malformed{code", "/test.ts");
-      }, "extractAngularElementInfo should not throw for malformed inputs");
-
       // Test generateImportStatement with null/undefined
       assert.doesNotThrow(() => {
         generateImportStatement(null as any, undefined as any);

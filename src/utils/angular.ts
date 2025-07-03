@@ -266,64 +266,6 @@ export function getAngularElement(selector: string, indexer: AngularIndexer): An
 }
 
 /**
- * Извлекает информацию об Angular элементе из кода
- */
-export function extractAngularElementInfo(code: string, filePath: string): AngularElementData | null {
-  if (!code || !filePath) {
-    return null;
-  }
-
-  try {
-    // Extract class name
-    const classMatch = code.match(/export\s+class\s+(\w+)/);
-    if (!classMatch) {
-      return null;
-    }
-    const className = classMatch[1];
-
-    // Determine type based on file name
-    let type: "component" | "directive" | "pipe";
-    if (filePath.includes(".component.")) {
-      type = "component";
-    } else if (filePath.includes(".directive.")) {
-      type = "directive";
-    } else if (filePath.includes(".pipe.")) {
-      type = "pipe";
-    } else {
-      return null;
-    }
-
-    // Extract selector/name
-    let selector: string;
-    if (type === "pipe") {
-      const nameMatch = code.match(/name:\s*['"]([^'"]*)['"]/);
-      if (!nameMatch) {
-        return null;
-      }
-      selector = nameMatch[1];
-    } else {
-      const selectorMatch = code.match(/selector:\s*['"]([^'"]*)['"]/);
-      if (!selectorMatch) {
-        return null;
-      }
-      selector = selectorMatch[1];
-    }
-
-    const selectors = parseAngularSelector(selector);
-
-    return new AngularElementData(
-      filePath,
-      className,
-      type,
-      selector, // originalSelector
-      selectors
-    );
-  } catch (_error) {
-    return null;
-  }
-}
-
-/**
  * Проверяет, является ли файл Angular файлом
  */
 export function isAngularFile(filePath: string): boolean {
