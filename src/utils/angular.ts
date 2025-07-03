@@ -34,61 +34,87 @@ export function parseAngularSelector(selectorString: string): string[] {
  * Использует require() для совместимости с CommonJS.
  */
 function parseAngularSelectorSync(selectorString: string): string[] {
-  // Используем require для динамической загрузки @angular/compiler
-  const { CssSelector } = require('@angular/compiler');
-  
+  // biome-ignore lint: Using `require` for an ES module in a CommonJS context is necessary here.
+  const { CssSelector } = require("@angular/compiler");
+
   // Используем CssSelector.parse для надежного парсинга селекторов
   const cssSelectors = CssSelector.parse(selectorString);
   const parsedSelectors: string[] = [];
 
   for (const cssSelector of cssSelectors) {
-    console.log(`[parseAngularSelector] Processing CssSelector:`, {
-      element: cssSelector.element,
-      classNames: cssSelector.classNames,
-      attrs: cssSelector.attrs
-    });
-
-    // Добавляем элементный селектор
-    if (cssSelector.element) {
-      parsedSelectors.push(cssSelector.element);
-    }
-
-    // Добавляем селекторы классов
-    for (const className of cssSelector.classNames) {
-      parsedSelectors.push(`.${className}`);
-      parsedSelectors.push(className);
-    }
-
-    // Добавляем атрибутные селекторы
-    // attrs массив содержит пары: [name1, value1, name2, value2, ...]
-    for (let i = 0; i < cssSelector.attrs.length; i += 2) {
-      const attrName = cssSelector.attrs[i];
-      const attrValue = cssSelector.attrs[i + 1];
-
-      if (attrName) {
-        // Добавляем имя атрибута
-        parsedSelectors.push(attrName);
-        
-        // Добавляем полную форму атрибута
-        if (attrValue && attrValue !== '') {
-          parsedSelectors.push(`[${attrName}="${attrValue}"]`);
-        } else {
-          parsedSelectors.push(`[${attrName}]`);
-        }
-      }
-    }
-
-    // Добавляем полный селектор как строку для поиска
-    const fullSelector = cssSelector.toString();
-    if (fullSelector) {
-      parsedSelectors.push(fullSelector);
-    }
+    processCssSelector(cssSelector, parsedSelectors);
   }
 
-  const uniqueSelectors = [...new Set(parsedSelectors.filter(s => s && s.length > 0))];
+  const uniqueSelectors = [...new Set(parsedSelectors.filter((s) => s && s.length > 0))];
   console.log(`[parseAngularSelector] Final unique selectors: [${uniqueSelectors.join(", ")}]`);
 
   return uniqueSelectors;
+}
+
+/**
+ * Определяет интерфейс для объекта CssSelector для типобезопасности.
+ */
+interface CssSelectorForParsing {
+    element: string | null;
+    classNames: string[];
+    attrs: string[];
+    notSelectors: CssSelectorForParsing[];
+    toString(): string;
+}
+
+/**
+ * Рекурсивно обрабатывает CssSelector и его notSelectors.
+ */
+function processCssSelector(cssSelector: CssSelectorForParsing, collection: string[]): void {
+  console.log(`[processCssSelector] Processing CssSelector:`, {
+    element: cssSelector.element,
+    classNames: cssSelector.classNames,
+    attrs: cssSelector.attrs,
+    notSelectors: cssSelector.notSelectors.length,
+  });
+
+  // Добавляем элементный селектор
+  if (cssSelector.element) {
+    collection.push(cssSelector.element);
+  }
+
+  // Добавляем селекторы классов
+  for (const className of cssSelector.classNames) {
+    collection.push(`.${className}`);
+    collection.push(className);
+  }
+
+  // Добавляем атрибутные селекторы
+  // attrs массив содержит пары: [name1, value1, name2, value2, ...]
+  for (let i = 0; i < cssSelector.attrs.length; i += 2) {
+    const attrName = cssSelector.attrs[i];
+    const attrValue = cssSelector.attrs[i + 1];
+
+    if (attrName) {
+      // Добавляем имя атрибута
+      collection.push(attrName);
+
+      // Добавляем полную форму атрибута
+      if (attrValue && attrValue !== "") {
+        collection.push(`[${attrName}="${attrValue}"]`);
+      } else {
+        collection.push(`[${attrName}]`);
+      }
+    }
+  }
+
+  // Рекурсивно обрабатываем :not() селекторы
+  if (cssSelector.notSelectors && cssSelector.notSelectors.length > 0) {
+    for (const notSelector of cssSelector.notSelectors) {
+      processCssSelector(notSelector, collection);
+    }
+  }
+
+  // Добавляем полный селектор как строку для поиска
+  const fullSelector = cssSelector.toString();
+  if (fullSelector) {
+    collection.push(fullSelector);
+  }
 }
 
 /**
