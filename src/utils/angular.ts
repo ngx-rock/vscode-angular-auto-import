@@ -80,7 +80,7 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
 
   // Добавляем селекторы классов
   for (const className of cssSelector.classNames) {
-    collection.push(`.${className}`);
+    // collection.push(`.${className}`); 
     collection.push(className);
   }
 
