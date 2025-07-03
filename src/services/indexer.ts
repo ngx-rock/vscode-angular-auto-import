@@ -73,7 +73,60 @@ class SelectorTrie {
       }
       currentNode = nextNode;
     }
-    return currentNode.elements.length > 0 ? currentNode.elements[0] : undefined;
+    // No elements recorded for this selector
+    if (currentNode.elements.length === 0) {
+      return undefined;
+    }
+
+    // Fast-path if there is a single candidate
+    if (currentNode.elements.length === 1) {
+      return currentNode.elements[0];
+    }
+
+    // Heuristics for choosing the best candidate when multiple elements share the selector.
+
+    // 1. Prefer elements whose *original* selector list contains the searched selector exactly.
+    const exactMatches = currentNode.elements.filter((el) => {
+      return el.originalSelector
+        .split(",")
+        .map((s) => s.trim())
+        .some((part) => part === selector);
+    });
+
+    const candidatePool = exactMatches.length > 0 ? exactMatches : currentNode.elements;
+
+    // 2. Sort candidates to apply additional preferences:
+    //    a) Prefer components over directives over pipes.
+    //    b) Prefer shorter original selector strings (less specific, e.g., no attribute constraints).
+    //    c) Deterministic fallback – alphabetical by class name.
+    const scoreType = (el: AngularElementData): number => {
+      switch (el.type) {
+        case "component":
+          return 0;
+        case "directive":
+          return 1;
+        case "pipe":
+          return 2;
+        default:
+          return 3;
+      }
+    };
+
+    candidatePool.sort((a, b) => {
+      const typeDiff = scoreType(a) - scoreType(b);
+      if (typeDiff !== 0) {
+        return typeDiff;
+      }
+
+      const lenDiff = a.originalSelector.length - b.originalSelector.length;
+      if (lenDiff !== 0) {
+        return lenDiff;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+
+    return candidatePool[0];
   }
 
   public getAllSelectors(): string[] {
