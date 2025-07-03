@@ -496,6 +496,29 @@ export class DiagnosticProvider {
               }
             }
 
+            // ***** NEW: Handle property bindings (e.g., [libUiDisplay]="true") applied directly to <ng-template> *****
+            // Similar to the handling for `TmplAstElement` above.
+            // biome-ignore lint/suspicious/noExplicitAny: accessing internal compiler properties that may change between Angular versions.
+            const templateInputs: any[] = (node as any).inputs ?? [];
+            for (const input of templateInputs) {
+              const s = document.positionAt(offset + input.sourceSpan.start.offset);
+              const e = document.positionAt(offset + input.sourceSpan.end.offset);
+              elements.push({
+                type: "property-binding",
+                name: input.name,
+                range: new vscode.Range(s, e),
+                tagName: "ng-template",
+              });
+
+              // Detect pipes within the binding's expression (if any)
+              // biome-ignore lint/suspicious/noExplicitAny: `valueSpan` is internal and not in official typings.
+              const valueSpan = (input as any)?.valueSpan;
+              if (valueSpan) {
+                const bindingText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
+                elements.push(...this._findPipesInExpression(bindingText, document, offset, valueSpan.start.offset));
+              }
+            }
+
             // Handle plain attribute directives applied directly to <ng-template>
             // (for example: <ng-template myDirective>)
             // biome-ignore lint/suspicious/noExplicitAny: accessing internal compiler properties.

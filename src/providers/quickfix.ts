@@ -52,7 +52,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       return [];
     }
 
-    const diagnosticsToFix = context.diagnostics.filter((diagnostic) => !!range.intersection(diagnostic.range));
+    const diagnosticsToFix = context.diagnostics.filter((diagnostic) => diagnostic.range.contains(range));
 
     if (diagnosticsToFix.length === 0) {
       return [];
@@ -177,12 +177,12 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
       // Extract term from various message patterns
       const patterns = [
-        /['"]([^'"]+)['"]\s+is\s+not\s+a\s+known\s+element/i,
+        // Combines checks for unknown elements, attributes, components, etc.
+        /['"]([^'"]+)['"]\s+is\s+(?:not\s+)?a\s+known\s+(?:element|attribute|component|directive|pipe)/i,
         /(?:pipe|The pipe)\s+['"]([^'"]+)['"]\s+(?:could not be found|is not found)/i,
         /No pipe found with name\s+['"]([^'"]+)['"]/i,
         /structural directive\s+[`'"]([^`'"]+)[`'"]\s+was used/i,
         /[`'"](\*[a-zA-Z][a-zA-Z0-9]*)[`'"]/i,
-        /['"]([^'"]+)['"]\s+is\s+not\s+a\s+known\s+attribute/i,
         /Can't bind to\s+['"]([^'"]+)['"]\s+since it isn't a known property/i,
       ];
 
@@ -270,26 +270,37 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
     let cleaned = text.trim();
 
-    // Remove < > and any attributes for tags
+    // Remove HTML brackets if present
     cleaned = cleaned.replace(/^<([a-zA-Z0-9-]+)[\s\S]*?>?$/, "$1");
+
+    // If the string contains '=' (e.g., "[foo] \u003D \"bar\"") take the part before '=' to drop value assignment
+    const eqIdx = cleaned.indexOf("=");
+    if (eqIdx !== -1) {
+      cleaned = cleaned.slice(0, eqIdx).trim();
+    }
+
+    // If we still have something like [foo] or *foo, keep it – we'll normalize further below
 
     // Handle structural directives
     if (cleaned.startsWith("*")) {
       return cleaned;
     }
 
-    // Handle attribute directives
-    if (cleaned.startsWith("[") && cleaned.endsWith("]")) {
-      cleaned = cleaned.slice(1, -1);
+    // Handle attribute directives like [foo]
+    if (cleaned.startsWith("[") && cleaned.includes("]")) {
+      const nameInside = cleaned.slice(1, cleaned.indexOf("]"));
+      return nameInside;
     }
 
-    // For pipes
+    // For pipes (e.g., "| foo") – capture after '|'
     const pipeMatch = cleaned.match(/\|\s*([a-zA-Z0-9_-]+)/);
     if (pipeMatch?.[1]) {
       return pipeMatch[1];
     }
 
-    return cleaned.split(/[^a-zA-Z0-9_-]/)[0];
+    // Fallback – split on non-identifier characters and return the first meaningful chunk
+    const parts = cleaned.split(/[^a-zA-Z0-9_-]+/).filter(Boolean);
+    return parts[0] ?? "";
   }
 
   private generateAlternativeSelectors(selector: string): string[] {
