@@ -9,7 +9,6 @@ import type { ExtensionConfig } from "../config";
 import type { AngularIndexer } from "../services";
 import type { ProcessedTsConfig } from "../types";
 import { setGlobalDiagnosticProvider } from "../utils/import";
-import { CodeActionProvider } from "./code-actions";
 import { CompletionProvider } from "./completion";
 import { DiagnosticProvider } from "./diagnostics";
 import { QuickfixImportProvider } from "./quickfix";
@@ -45,20 +44,6 @@ export function registerProviders(context: vscode.ExtensionContext, providerCont
     "*" // Trigger characters
   );
   context.subscriptions.push(completionDisposable);
-
-  // Code Action Provider
-  const codeActionProvider = new CodeActionProvider(providerContext);
-  const codeActionDisposable = vscode.languages.registerCodeActionsProvider(
-    [
-      { scheme: "file", language: "typescript" },
-      { scheme: "file", language: "html" },
-    ],
-    codeActionProvider,
-    {
-      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.SourceOrganizeImports],
-    }
-  );
-  context.subscriptions.push(codeActionDisposable);
 
   // Quickfix Provider
   const quickfixProvider = new QuickfixImportProvider(providerContext);
