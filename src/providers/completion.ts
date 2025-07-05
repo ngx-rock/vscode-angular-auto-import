@@ -92,7 +92,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
                 ...node.children,
               ];
             } else if ("children" in node && Array.isArray(node.children)) {
-              potentialChildren = (node as any).children;
+              potentialChildren = (node as { children: TmplAstNode[] }).children;
             }
 
             const childNode = findNodeAtPosition(potentialChildren, pos);

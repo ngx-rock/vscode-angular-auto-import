@@ -206,9 +206,6 @@ export class DiagnosticProvider {
     }
   }
 
-  /**
-   * Runs diagnostics for a template.
-   */
   private async runDiagnostics(
     templateText: string,
     document: vscode.TextDocument,
@@ -222,54 +219,198 @@ export class DiagnosticProvider {
 
     const { indexer } = projCtx;
     const diagnostics: vscode.Diagnostic[] = [];
-    try {
-      const severity = this.getSeverityFromConfig(this.context.extensionConfig.diagnosticsSeverity);
+    const severity = this.getSeverityFromConfig(this.context.extensionConfig.diagnosticsSeverity);
 
-      // Parse HTML with improved regex parsing
-      const htmlElements = await this.parseTemplateAst(templateText, document, offset);
-      // console.warn("parseTemplateAst", htmlElements);
-      // Check each found element
-      for (const element of htmlElements) {
-        const diagnostic = await this.checkElementForMissingImport(element, indexer, document, componentPath, severity);
-
-        if (diagnostic) {
-          diagnostics.push(diagnostic);
-        }
-      }
-    } catch (error) {
-      console.error("[DiagnosticProvider] Error providing diagnostics:", error);
+    const tsDocument = await this.getTsDocument(document, componentPath);
+    if (!tsDocument) {
+      return;
     }
 
-    // Store candidate diagnostics and attempt to publish filtered results
+    // Parse the template to get all elements and their full context
+    const parsedElements = await this.parseCompleteTemplate(templateText, document, offset);
+
+    // Keep track of diagnosed elements to avoid duplicate diagnostics for the same component/directive class
+    const diagnosedClasses = new Set<string>();
+
+    for (const element of parsedElements) {
+      const diagnostic = await this.checkElement(element, indexer, tsDocument, severity, diagnosedClasses);
+      if (diagnostic) {
+        diagnostics.push(diagnostic);
+      }
+    }
+
     this.candidateDiagnostics.set(document.uri.toString(), diagnostics);
     this.publishFilteredDiagnostics(document.uri);
   }
 
-  /**
-   * Gets the project context for a document.
-   */
-  private getProjectContextForDocument(document: vscode.TextDocument) {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-    if (workspaceFolder) {
-      const projectRootPath = workspaceFolder.uri.fsPath;
-      const indexer = this.context.projectIndexers.get(projectRootPath);
-      const tsConfig = this.context.projectTsConfigs.get(projectRootPath) ?? null;
-      if (indexer) {
-        return { projectRootPath, indexer, tsConfig };
-      }
-    } else {
-      // Fallback for files not directly in a workspace folder but within a known project root
-      for (const rootPath of this.context.projectIndexers.keys()) {
-        if (document.uri.fsPath.startsWith(rootPath + path.sep)) {
-          const indexer = this.context.projectIndexers.get(rootPath);
-          const tsConfig = this.context.projectTsConfigs.get(rootPath) ?? null;
-          if (indexer) {
-            return { projectRootPath: rootPath, indexer, tsConfig };
+  private async parseCompleteTemplate(
+    text: string,
+    document: vscode.TextDocument,
+    offset: number
+  ): Promise<ParsedHtmlFullElement[]> {
+    const elements: ParsedHtmlFullElement[] = [];
+    try {
+      const compiler = await import("@angular/compiler");
+      const { nodes } = compiler.parseTemplate(text, document.uri.fsPath);
+
+      type CompilerModule = typeof compiler;
+      type TemplateNode = (typeof nodes)[0];
+      type AttributeNode =
+        | InstanceType<CompilerModule["TmplAstTextAttribute"]>
+        | InstanceType<CompilerModule["TmplAstBoundAttribute"]>
+        | InstanceType<CompilerModule["TmplAstBoundEvent"]>;
+
+      const visit = (nodesList: TemplateNode[]) => {
+        for (const node of nodesList) {
+          if (node instanceof compiler.TmplAstElement || node instanceof compiler.TmplAstTemplate) {
+            const isTemplate = node instanceof compiler.TmplAstTemplate;
+            const allAttrsList: AttributeNode[] = isTemplate
+              ? [...node.templateAttrs, ...node.inputs, ...node.outputs]
+              : [...node.attributes, ...node.inputs, ...node.outputs];
+
+            const attributes = allAttrsList.map((attr) => ({
+              name: attr.name,
+              value: "value" in attr ? String(attr.value) : "",
+            }));
+
+            // One entry for the element tag itself
+            elements.push({
+              name: isTemplate ? "ng-template" : node.name,
+              type: "component",
+              isAttribute: false,
+              range: new vscode.Range(
+                document.positionAt(offset + node.sourceSpan.start.offset),
+                document.positionAt(offset + node.sourceSpan.end.offset)
+              ),
+              tagName: isTemplate ? "ng-template" : node.name,
+              attributes,
+            });
+
+            // One entry for each attribute
+            for (const attr of allAttrsList) {
+              const keySpan = attr.keySpan ?? attr.sourceSpan;
+              if (keySpan) {
+                elements.push({
+                  name: attr.name,
+                  type: "attribute",
+                  isAttribute: true,
+                  range: new vscode.Range(
+                    document.positionAt(offset + keySpan.start.offset),
+                    document.positionAt(offset + keySpan.end.offset)
+                  ),
+                  tagName: isTemplate ? "ng-template" : node.name,
+                  attributes,
+                });
+              }
+            }
+          }
+
+          if (node instanceof compiler.TmplAstBoundText) {
+            const pipes = this._findPipesInExpression(
+              text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset),
+              document,
+              offset,
+              node.sourceSpan.start.offset
+            );
+            for (const pipe of pipes) {
+              elements.push({ ...pipe, isAttribute: false, attributes: [] });
+            }
+          }
+
+          if (node && typeof node === "object" && "children" in node && Array.isArray(node.children)) {
+            visit(node.children as TemplateNode[]);
           }
         }
+      };
+
+      visit(nodes);
+    } catch (e) {
+      console.error(`[DiagnosticProvider] Failed to parse template: ${document.uri.fsPath}`, e);
+    }
+    return elements;
+  }
+
+  private async checkElement(
+    element: ParsedHtmlFullElement,
+    indexer: AngularIndexer,
+    tsDocument: vscode.TextDocument,
+    severity: vscode.DiagnosticSeverity,
+    diagnosedClasses: Set<string>
+  ): Promise<vscode.Diagnostic | null> {
+    const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
+    const possibleSelectors = this.generatePossibleSelectorsForElement(element);
+
+    for (const selector of possibleSelectors) {
+      const candidate = getAngularElement(selector, indexer);
+
+      if (!candidate || diagnosedClasses.has(candidate.name)) {
+        continue;
+      }
+
+      if (
+        (element.isAttribute && candidate.type !== "directive") ||
+        (!element.isAttribute && candidate.type !== "component" && candidate.type !== "pipe")
+      ) {
+        continue;
+      }
+
+      // Skip selector matching for pipes
+      if (candidate.type !== "pipe") {
+        const matcher = new SelectorMatcher();
+        matcher.addSelectables(CssSelector.parse(candidate.originalSelector));
+
+        const templateCssSelector = new CssSelector();
+        templateCssSelector.setElement(element.tagName);
+        for (const attr of element.attributes) {
+          templateCssSelector.addAttribute(attr.name, attr.value);
+        }
+
+        let isMatch = false;
+        matcher.match(templateCssSelector, () => {
+          isMatch = true;
+        });
+
+        if (!isMatch) {
+          continue;
+        }
+      }
+
+      if (!this.isElementImported(tsDocument, candidate)) {
+        diagnosedClasses.add(candidate.name);
+        const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
+        const diagnostic = new vscode.Diagnostic(element.range, message, severity);
+        diagnostic.code = `missing-${candidate.type}-import:${candidate.name}`;
+        diagnostic.source = "angular-auto-import";
+        return diagnostic;
       }
     }
-    return undefined;
+
+    return null;
+  }
+
+  private generatePossibleSelectorsForElement(element: ParsedHtmlFullElement): string[] {
+    const name = element.name;
+    const selectors = new Set<string>([name]);
+
+    if (element.isAttribute) {
+      selectors.add(`[${name}]`);
+      if (name.startsWith("*")) {
+        selectors.add(name.substring(1));
+      } else {
+        selectors.add(`*${name}`);
+      }
+      const kebab = name.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
+      if (kebab !== name) {
+        selectors.add(`[${kebab}]`);
+      }
+
+      const camel = name.replace(/-([a-z])/g, (_m, l) => l.toUpperCase());
+      if (camel !== name) {
+        selectors.add(`[${camel}]`);
+      }
+    }
+
+    return [...selectors];
   }
 
   private getSourceFile(document: vscode.TextDocument): SourceFile | undefined {
@@ -280,7 +421,6 @@ export class DiagnosticProvider {
 
     const { project } = projCtx.indexer;
 
-    // Get the active document content (similar to importElementToFile)
     const activeDocument = vscode.workspace.textDocuments.find((doc) => doc.fileName === document.fileName);
 
     const currentContent = activeDocument ? activeDocument.getText() : document.getText();
@@ -288,7 +428,6 @@ export class DiagnosticProvider {
     let sourceFile = project.getSourceFile(document.fileName);
 
     if (sourceFile) {
-      // Always sync with the current content (active document or provided document)
       if (sourceFile.getFullText() !== currentContent) {
         sourceFile.replaceWithText(currentContent);
       }
@@ -333,14 +472,6 @@ export class DiagnosticProvider {
     return null;
   }
 
-  /**
-   * Extracts pipes from a given expression string (e.g., from property bindings or interpolations).
-   * @param expressionText The raw text of the expression.
-   * @param document The document where the expression resides.
-   * @param baseOffset The base offset for calculating pipe positions.
-   * @param valueOffset The offset of the expression value itself.
-   * @returns An array of ParsedHtmlElement for each found pipe.
-   */
   private _findPipesInExpression(
     expressionText: string,
     document: vscode.TextDocument,
@@ -361,350 +492,52 @@ export class DiagnosticProvider {
     return pipeElements;
   }
 
-  /**
-   * Parses a given Angular template string using the Angular compiler to generate a detailed Abstract Syntax Tree (AST).
-   * It then traverses this AST to identify various Angular-specific elements such as components, directives (in all forms),
-   * and pipes within expressions. This method is crucial for providing accurate diagnostics by pinpointing elements
-   * that are used in the template but might be missing from the component's module imports.
-   *
-   * The function is robust enough to handle both external HTML templates and inline templates defined within
-   * TypeScript files. It carefully calculates the precise location of each element in the original document,
-   * accounting for any offsets (e.g., when parsing an inline template).
-   *
-   * @param text The template content to parse.
-   * @param document The VS Code TextDocument from which the template originates. This is used for accurate position mapping.
-   * @param offset The starting offset of the template text within the document. Defaults to 0 for external HTML files.
-   * @returns A promise that resolves to an array of `ParsedHtmlElement` objects, each representing a found element. Returns an empty array on parsing failure.
-   */
-  private async parseTemplateAst(
-    text: string,
-    document: vscode.TextDocument,
-    offset: number = 0
-  ): Promise<ParsedHtmlElement[]> {
-    try {
-      // Dynamically import the Angular compiler. This is essential for performance,
-      // ensuring the heavy compiler library is loaded only when needed.
-      const { parseTemplate, TmplAstElement, TmplAstTemplate, TmplAstBoundText } = await import("@angular/compiler");
-
-      // The second argument to parseTemplate is the file URL, used for more precise error reporting from the compiler.
-      const { nodes } = parseTemplate(text, document.uri.fsPath);
-      const elements: ParsedHtmlElement[] = [];
-
-      /**
-       * Recursively visits each node in the AST to find Angular elements.
-       * @param nodesList The list of nodes to visit.
-       */
-      const visit = (nodesList: unknown[]) => {
-        for (const node of nodesList) {
-          // --- 1. Handle Element Nodes (<app-component>, <div>, etc.) ---
-          if (node instanceof TmplAstElement) {
-            const startPos = document.positionAt(offset + node.sourceSpan.start.offset);
-            const endPos = document.positionAt(offset + node.sourceSpan.end.offset);
-            elements.push({
-              type: "component",
-              name: node.name,
-              range: new vscode.Range(startPos, endPos),
-              tagName: node.name,
-            });
-
-            // Handle attributes (potential directives)
-            for (const attr of node.attributes) {
-              // `keySpan` is an internal, undocumented property of the Angular compiler AST.
-              // It provides a more accurate source span for the attribute/directive name itself,
-              // whereas `sourceSpan` covers the whole attribute including its value.
-              // We fall back to `sourceSpan` if `keySpan` is not available for safety.
-              // biome-ignore lint/suspicious/noExplicitAny: `keySpan` is internal and not in official typings.
-              const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
-
-              // Ensure the text from the span actually matches the attribute name.
-              // This avoids mismatches where `keySpan` might point to something else (e.g., in 'ngForOf', name is 'ngForOf' but key might just be 'of').
-              const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
-              if (keyText !== attr.name) {
-                continue;
-              }
-
-              const s = document.positionAt(offset + keySpan.start.offset);
-              const e = document.positionAt(offset + keySpan.end.offset);
-              elements.push({ type: "attribute", name: attr.name, range: new vscode.Range(s, e), tagName: node.name });
-            }
-
-            // Handle property bindings `[input]="..."`
-            for (const input of node.inputs) {
-              const s = document.positionAt(offset + input.sourceSpan.start.offset);
-              const e = document.positionAt(offset + input.sourceSpan.end.offset);
-              elements.push({
-                type: "property-binding",
-                name: input.name,
-                range: new vscode.Range(s, e),
-                tagName: node.name,
-              });
-
-              // Detect pipes within the binding's expression.
-              // `valueSpan` is another internal property that gives the span of the expression part.
-              // We must check for its existence to avoid runtime errors with future Angular versions.
-              // biome-ignore lint/suspicious/noExplicitAny: `valueSpan` is internal and not in official typings.
-              const valueSpan = (input as any)?.valueSpan;
-              if (valueSpan) {
-                const bindingText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
-                elements.push(
-                  ...this._findPipesInExpression(bindingText, document, offset, valueSpan.start.offset)
-                );
-              }
-            }
-
-            // Handle template references `#ref`
-            for (const ref of node.references) {
-              const s = document.positionAt(offset + ref.sourceSpan.start.offset);
-              const e = document.positionAt(offset + ref.sourceSpan.end.offset);
-              elements.push({
-                type: "template-reference",
-                name: ref.name,
-                range: new vscode.Range(s, e),
-                tagName: node.name,
-              });
-            }
-
-            // Recursively visit children of this element
-            visit(node.children);
-          }
-          // --- 2. Handle Template Nodes (<ng-template>, *ngFor, etc.) ---
-          else if (node instanceof TmplAstTemplate) {
-            // Handle structural directives on the template (`*ngFor`, `*ngIf`)
-            for (const attr of node.templateAttrs) {
-              // Same as above, we use the internal `keySpan` for better accuracy.
-              // biome-ignore lint/suspicious/noExplicitAny: `keySpan` is internal and not in official typings.
-              const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
-              const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
-
-              if (keyText === attr.name) {
-                const s = document.positionAt(offset + keySpan.start.offset);
-                const e = document.positionAt(offset + keySpan.end.offset);
-                elements.push({
-                  type: "structural-directive",
-                  name: attr.name,
-                  range: new vscode.Range(s, e),
-                  tagName: "ng-template",
-                });
-              }
-
-              // Detect pipes within the directive's expression.
-              // biome-ignore lint/suspicious/noExplicitAny: `valueSpan` is internal and not in official typings.
-              const valueSpan = (attr as any)?.valueSpan;
-              if (valueSpan) {
-                const attrText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
-                elements.push(...this._findPipesInExpression(attrText, document, offset, valueSpan.start.offset));
-              }
-            }
-
-            // ***** NEW: Handle property bindings (e.g., [libUiDisplay]="true") applied directly to <ng-template> *****
-            // Similar to the handling for `TmplAstElement` above.
-            // biome-ignore lint/suspicious/noExplicitAny: accessing internal compiler properties that may change between Angular versions.
-            const templateInputs: any[] = (node as any).inputs ?? [];
-            for (const input of templateInputs) {
-              const s = document.positionAt(offset + input.sourceSpan.start.offset);
-              const e = document.positionAt(offset + input.sourceSpan.end.offset);
-              elements.push({
-                type: "property-binding",
-                name: input.name,
-                range: new vscode.Range(s, e),
-                tagName: "ng-template",
-              });
-
-              // Detect pipes within the binding's expression (if any)
-              // biome-ignore lint/suspicious/noExplicitAny: `valueSpan` is internal and not in official typings.
-              const valueSpan = (input as any)?.valueSpan;
-              if (valueSpan) {
-                const bindingText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
-                elements.push(...this._findPipesInExpression(bindingText, document, offset, valueSpan.start.offset));
-              }
-            }
-
-            // Handle plain attribute directives applied directly to <ng-template>
-            // (for example: <ng-template myDirective>)
-            // biome-ignore lint/suspicious/noExplicitAny: accessing internal compiler properties.
-            const plainAttributes = (node as any).attributes ?? [];
-            for (const attr of plainAttributes) {
-              // Use `keySpan` when present for precise highlighting
-              // biome-ignore lint/suspicious/noExplicitAny: `keySpan` is internal and not in official typings.
-              const keySpan = (attr as any).keySpan ?? attr.sourceSpan;
-              const keyText = text.slice(keySpan.start.offset, keySpan.end.offset).trim();
-              if (keyText !== attr.name) {
-                continue;
-              }
-
-              const s = document.positionAt(offset + keySpan.start.offset);
-              const e = document.positionAt(offset + keySpan.end.offset);
-              elements.push({
-                type: "attribute",
-                name: attr.name,
-                range: new vscode.Range(s, e),
-                tagName: "ng-template",
-              });
-            }
-            // Recursively visit children of this template
-            visit(node.children);
-          }
-          // --- 3. Handle Bound Text Nodes (Interpolations: {{ ... }}) ---
-          else if (node instanceof TmplAstBoundText) {
-            // Extract the template substring to find pipes within interpolations.
-            const textValue = text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset);
-            elements.push(
-              ...this._findPipesInExpression(textValue, document, offset, node.sourceSpan.start.offset)
-            );
-          }
-        }
-      };
-
-      visit(nodes);
-      return elements;
-    } catch (error) {
-      console.error(
-        `[DiagnosticProvider] Failed to import or use Angular compiler for parsing ${document.uri.fsPath}. This can happen if '@angular/compiler' is not installed in the workspace.`,
-        error
-      );
-      // On failure, return an empty array to prevent crashes downstream.
-      return [];
-    }
-  }
-
-  private async checkElementForMissingImport(
-    element: ParsedHtmlElement,
-    indexer: AngularIndexer,
-    document: vscode.TextDocument,
-    componentPath: string,
-    severity: vscode.DiagnosticSeverity
-  ): Promise<vscode.Diagnostic | null> {
-    const possibleSelectors = this.generatePossibleSelectors(element);
-
-    let foundElement: AngularElementData | undefined;
-    let matchingSelector: string | undefined;
-
-    for (const selector of possibleSelectors) {
-      const elementData = getAngularElement(selector, indexer);
-      if (elementData) {
-        let typeMatch = false;
-        switch (element.type) {
-          case "component":
-            typeMatch = elementData.type === "component";
-            break;
-          case "attribute":
-          case "property-binding":
-          case "template-reference":
-            typeMatch = elementData.type === "directive";
-            break;
-          case "structural-directive":
-            typeMatch = elementData.type === "directive";
-            break;
-          case "pipe":
-            typeMatch = elementData.type === "pipe";
-            break;
-        }
-
-        if (typeMatch) {
-          foundElement = elementData;
-          matchingSelector = selector;
-          break;
-        }
+  private getProjectContextForDocument(document: vscode.TextDocument) {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+    if (workspaceFolder) {
+      const projectRootPath = workspaceFolder.uri.fsPath;
+      const indexer = this.context.projectIndexers.get(projectRootPath);
+      const tsConfig = this.context.projectTsConfigs.get(projectRootPath) ?? null;
+      if (indexer) {
+        return { projectRootPath, indexer, tsConfig };
       }
-    }
-
-    if (!foundElement || !matchingSelector) {
-      return null; // Element not found in index, or type mismatch.
-    }
-
-    // Now check if the found element is already imported in the component.
-    // We need the TextDocument for the component's TS file.
-    let tsDocument: vscode.TextDocument;
-    if (document.fileName === componentPath) {
-      tsDocument = document; // We are in an inline template, document is already the TS file
     } else {
-      // We are in an external HTML file. We need to get the corresponding TS document.
-      const tsDocUri = vscode.Uri.file(componentPath);
-      tsDocument =
-        vscode.workspace.textDocuments.find((doc) => doc.uri.fsPath === tsDocUri.fsPath) ||
-        (await vscode.workspace.openTextDocument(tsDocUri));
+      for (const rootPath of this.context.projectIndexers.keys()) {
+        if (document.uri.fsPath.startsWith(rootPath + path.sep)) {
+          const indexer = this.context.projectIndexers.get(rootPath);
+          const tsConfig = this.context.projectTsConfigs.get(rootPath) ?? null;
+          if (indexer) {
+            return { projectRootPath: rootPath, indexer, tsConfig };
+          }
+        }
+      }
     }
-
-    if (this.isElementImported(tsDocument, foundElement)) {
-      return null; // Already imported.
-    }
-
-    // It's not imported, create a diagnostic.
-    const message = `'${element.name}' is a known ${foundElement.type}, but it is not imported.`;
-    const diagnostic = new vscode.Diagnostic(element.range, message, severity);
-    diagnostic.code = `missing-${foundElement.type}-import`; // Custom code for quick fix
-    diagnostic.source = "angular-auto-import";
-
-    return diagnostic;
+    return undefined;
   }
 
-  private generatePossibleSelectors(element: ParsedHtmlElement): string[] {
-    const selectors: string[] = [];
-    const name = element.name;
-
-    // Add the base name
-    selectors.push(name);
-
-    switch (element.type) {
-      case "component":
-        // For components, only add the base name (tag selector)
-        break;
-
-      case "attribute":
-      case "property-binding": {
-        // For attributes, add the version with square brackets
-        selectors.push(`[${name}]`);
-
-        // Convert camelCase to kebab-case
-        const kebabCase = name.replace(/([A-Z])/g, "-$1").toLowerCase();
-        if (kebabCase !== name) {
-          selectors.push(kebabCase);
-          selectors.push(`[${kebabCase}]`);
-        }
-
-        // Convert kebab-case to camelCase
-        const camelCase = name.replace(/-([a-z])/g, (_: string, letter: string) => letter.toUpperCase());
-        if (camelCase !== name) {
-          selectors.push(camelCase);
-          selectors.push(`[${camelCase}]`);
-        }
-        break;
-      }
-
-      case "template-reference":
-        // For template reference variables, add the version with square brackets
-        selectors.push(`[${name}]`);
-        break;
-
-      case "structural-directive":
-        // For structural directives, add variants with and without *
-        if (name.startsWith("*")) {
-          const withoutStar = name.substring(1);
-          selectors.push(withoutStar);
-          selectors.push(`[${withoutStar}]`);
-        } else {
-          selectors.push(`*${name}`);
-          selectors.push(`[${name}]`);
-        }
-        break;
-
-      case "pipe":
-        // For pipes, use only the base name
-        break;
+  private async getTsDocument(
+    document: vscode.TextDocument,
+    componentPath: string
+  ): Promise<vscode.TextDocument | null> {
+    if (document.fileName === componentPath) {
+      return document;
     }
-
-    return [...new Set(selectors)]; // Remove duplicates
+    const tsDocUri = vscode.Uri.file(componentPath);
+    try {
+      return await vscode.workspace.openTextDocument(tsDocUri);
+    } catch (error) {
+      console.error(`Could not open TS document for diagnostics: ${componentPath}`, error);
+      return null;
+    }
   }
 
   private isElementImported(document: vscode.TextDocument, element: AngularElementData): boolean {
     try {
       const sourceFile = this.getSourceFile(document);
       if (!sourceFile) {
-        // Cannot verify, assume not imported to allow quick fix
         return false;
       }
 
-      // Find the component class and check its `imports` array
       for (const classDeclaration of sourceFile.getClasses()) {
         const componentDecorator = classDeclaration.getDecorator("Component");
         if (componentDecorator) {
@@ -721,7 +554,6 @@ export class DiagnosticProvider {
                   .getElements()
                   .some((el: Expression) => el.getText().trim() === element.name);
                 if (isInImportsArray) {
-                  // Now, let's be sure it's also imported at the top of the file
                   const hasTopLevelImport = sourceFile.getImportDeclarations().some((imp) => {
                     return imp.getNamedImports().some((named) => named.getName() === element.name);
                   });
@@ -737,7 +569,7 @@ export class DiagnosticProvider {
       return false;
     } catch (error) {
       console.error("[DiagnosticProvider] Error checking element import with ts-morph:", error);
-      return false; // On error, assume not imported
+      return false;
     }
   }
 
@@ -755,23 +587,16 @@ export class DiagnosticProvider {
   }
 
   private publishFilteredDiagnostics(uri: vscode.Uri): void {
-    // Retrieve candidate diagnostics and remove any duplicates generated by our own provider.
-    // Duplicates can occur when the same Angular element is reported multiple times (e.g., parsed as both
-    // an attribute and a property-binding). We treat diagnostics as duplicates when both the message **and**
-    // the diagnostic range are identical.
     const rawCandidateDiags = this.candidateDiagnostics.get(uri.toString()) || [];
 
     const candidateDiags: vscode.Diagnostic[] = [];
     for (const diag of rawCandidateDiags) {
-      const alreadyExists = candidateDiags.some(
-        (d) => d.message === diag.message && d.range.isEqual(diag.range)
-      );
+      const alreadyExists = candidateDiags.some((d) => d.message === diag.message && d.range.isEqual(diag.range));
       if (!alreadyExists) {
         candidateDiags.push(diag);
       }
     }
 
-    // Get all current diagnostics for this file
     const allCurrentDiagnostics = vscode.languages.getDiagnostics(uri);
     const angularDiagnostics = allCurrentDiagnostics.filter(
       (d) =>
@@ -781,17 +606,14 @@ export class DiagnosticProvider {
         d.message.includes("is not a known property")
     );
 
-    // Filter out our candidates that are duplicates of what Angular LS provides
     const filteredDiags = candidateDiags.filter((myDiag) => {
       const isDuplicate = angularDiagnostics.some((angularDiag) => {
-        // Check for overlapping ranges
         const doRangesOverlap = !!angularDiag.range.intersection(myDiag.range);
 
-        // Extract element name from our diagnostic message
         const myDiagMessage = myDiag.message;
         const elementMatch = myDiagMessage.match(/'([^']*)'/);
         if (!elementMatch) {
-          return doRangesOverlap; // Fallback to just range check
+          return doRangesOverlap;
         }
 
         const elementName = elementMatch[1];
@@ -806,4 +628,10 @@ export class DiagnosticProvider {
 
     this.diagnosticCollection.set(uri, filteredDiags);
   }
+}
+
+interface ParsedHtmlFullElement extends ParsedHtmlElement {
+  type: "component" | "pipe" | "attribute" | "structural-directive" | "property-binding" | "template-reference";
+  isAttribute: boolean;
+  attributes: { name: string; value: string }[];
 }
