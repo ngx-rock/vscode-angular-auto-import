@@ -355,27 +355,24 @@ export class DiagnosticProvider {
         continue;
       }
 
-      processedCandidatesThisCall.add(candidate.name);
-
-      if (
-        (element.isAttribute && candidate.type !== "directive") ||
-        (!element.isAttribute && candidate.type !== "component" && candidate.type !== "pipe")
-      ) {
-        continue;
-      }
-
       // Skip selector matching for pipes
       if (candidate.type !== "pipe") {
         const matcher = new SelectorMatcher();
-        matcher.addSelectables(CssSelector.parse(candidate.originalSelector));
+        const individualSelectors = CssSelector.parse(candidate.originalSelector);
+
+        // We add each individual selector to the matcher.
+        // This is crucial for complex selectors like `ng-template[myDirective]`.
+        matcher.addSelectables(individualSelectors);
 
         const templateCssSelector = new CssSelector();
         templateCssSelector.setElement(element.tagName);
         for (const attr of element.attributes) {
-          templateCssSelector.addAttribute(attr.name, attr.value);
+          templateCssSelector.addAttribute(attr.name, attr.value ?? "");
         }
 
         let isMatch = false;
+        // The callback will be invoked for each selector that matches.
+        // We only need one match to proceed.
         matcher.match(templateCssSelector, () => {
           isMatch = true;
         });
@@ -384,6 +381,9 @@ export class DiagnosticProvider {
           continue;
         }
       }
+
+      // Only add to processed after a successful match.
+      processedCandidatesThisCall.add(candidate.name);
 
       if (!this.isElementImported(tsDocument, candidate)) {
         const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
