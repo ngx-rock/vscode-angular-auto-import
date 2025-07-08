@@ -648,6 +648,7 @@ export class AngularIndexer {
       console.log(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${this.selectorTrie.size} elements.`
       );
+ 
       await this.saveIndexToWorkspace(context);
       return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
     } finally {

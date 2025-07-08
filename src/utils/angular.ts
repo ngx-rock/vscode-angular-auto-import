@@ -17,8 +17,7 @@ export function parseAngularSelector(selectorString: string): string[] {
 
   console.log(`[parseAngularSelector] Parsing selector: "${selectorString}"`);
 
-  try {
-    // Используем динамический импорт для @angular/compiler
+  try { 
     return parseAngularSelectorSync(selectorString);
   } catch (error) {
     console.warn(`[parseAngularSelector] Error parsing selector "${selectorString}":`, error);
@@ -28,11 +27,7 @@ export function parseAngularSelector(selectorString: string): string[] {
     return parseAngularSelectorLegacy(selectorString);
   }
 }
-
-/**
- * Синхронная версия парсинга с использованием CssSelector.
- * Использует require() для совместимости с CommonJS.
- */
+ 
 function parseAngularSelectorSync(selectorString: string): string[] {
   // biome-ignore lint: Using `require` for an ES module in a CommonJS context is necessary here.
   const { CssSelector } = require("@angular/compiler");

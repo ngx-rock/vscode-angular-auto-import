@@ -229,13 +229,10 @@ export class DiagnosticProvider {
     // Parse the template to get all elements and their full context
     const parsedElements = await this.parseCompleteTemplate(templateText, document, offset);
 
-    // Keep track of diagnosed elements to avoid duplicate diagnostics for the same component/directive class
-    const diagnosedClasses = new Set<string>();
-
     for (const element of parsedElements) {
-      const diagnostic = await this.checkElement(element, indexer, tsDocument, severity, diagnosedClasses);
-      if (diagnostic) {
-        diagnostics.push(diagnostic);
+      const elementDiagnostics = await this.checkElement(element, indexer, tsDocument, severity);
+      if (elementDiagnostics.length > 0) {
+        diagnostics.push(...elementDiagnostics);
       }
     }
 
@@ -255,22 +252,23 @@ export class DiagnosticProvider {
 
       type CompilerModule = typeof compiler;
       type TemplateNode = (typeof nodes)[0];
-      type AttributeNode =
+      type AttributeLikeNode =
         | InstanceType<CompilerModule["TmplAstTextAttribute"]>
         | InstanceType<CompilerModule["TmplAstBoundAttribute"]>
-        | InstanceType<CompilerModule["TmplAstBoundEvent"]>;
+        | InstanceType<CompilerModule["TmplAstBoundEvent"]>
+        | InstanceType<CompilerModule["TmplAstReference"]>;
 
       const visit = (nodesList: TemplateNode[]) => {
         for (const node of nodesList) {
           if (node instanceof compiler.TmplAstElement || node instanceof compiler.TmplAstTemplate) {
             const isTemplate = node instanceof compiler.TmplAstTemplate;
-            const allAttrsList: AttributeNode[] = isTemplate
-              ? [...node.templateAttrs, ...node.inputs, ...node.outputs]
-              : [...node.attributes, ...node.inputs, ...node.outputs];
+            const allAttrsList: AttributeLikeNode[] = isTemplate
+              ? [...node.templateAttrs, ...node.inputs, ...node.outputs, ...node.references]
+              : [...node.attributes, ...node.inputs, ...node.outputs, ...node.references];
 
             const attributes = allAttrsList.map((attr) => ({
               name: attr.name,
-              value: "value" in attr ? String(attr.value) : "",
+              value: "value" in attr && attr.value ? String(attr.value) : "",
             }));
 
             // One entry for the element tag itself
@@ -286,13 +284,22 @@ export class DiagnosticProvider {
               attributes,
             });
 
-            // One entry for each attribute
+            // One entry for each attribute or reference
             for (const attr of allAttrsList) {
               const keySpan = attr.keySpan ?? attr.sourceSpan;
               if (keySpan) {
+                let type: ParsedHtmlFullElement["type"] = "attribute";
+                if (attr instanceof compiler.TmplAstReference) {
+                  type = "template-reference";
+                } else if (node instanceof compiler.TmplAstTemplate || attr.name.startsWith("*")) {
+                  type = "structural-directive";
+                } else if (attr instanceof compiler.TmplAstBoundAttribute) {
+                  type = "property-binding";
+                }
+
                 elements.push({
                   name: attr.name,
-                  type: "attribute",
+                  type: type,
                   isAttribute: true,
                   range: new vscode.Range(
                     document.positionAt(offset + keySpan.start.offset),
@@ -334,18 +341,21 @@ export class DiagnosticProvider {
     element: ParsedHtmlFullElement,
     indexer: AngularIndexer,
     tsDocument: vscode.TextDocument,
-    severity: vscode.DiagnosticSeverity,
-    diagnosedClasses: Set<string>
-  ): Promise<vscode.Diagnostic | null> {
+    severity: vscode.DiagnosticSeverity
+  ): Promise<vscode.Diagnostic[]> {
     const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
     const possibleSelectors = this.generatePossibleSelectorsForElement(element);
+    const diagnostics: vscode.Diagnostic[] = [];
+    const processedCandidatesThisCall = new Set<string>();
 
     for (const selector of possibleSelectors) {
       const candidate = getAngularElement(selector, indexer);
 
-      if (!candidate || diagnosedClasses.has(candidate.name)) {
+      if (!candidate || processedCandidatesThisCall.has(candidate.name)) {
         continue;
       }
+
+      processedCandidatesThisCall.add(candidate.name);
 
       if (
         (element.isAttribute && candidate.type !== "directive") ||
@@ -376,16 +386,15 @@ export class DiagnosticProvider {
       }
 
       if (!this.isElementImported(tsDocument, candidate)) {
-        diagnosedClasses.add(candidate.name);
         const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
         const diagnostic = new vscode.Diagnostic(element.range, message, severity);
         diagnostic.code = `missing-${candidate.type}-import:${candidate.name}`;
         diagnostic.source = "angular-auto-import";
-        return diagnostic;
+        diagnostics.push(diagnostic);
       }
     }
 
-    return null;
+    return diagnostics;
   }
 
   private generatePossibleSelectorsForElement(element: ParsedHtmlFullElement): string[] {
