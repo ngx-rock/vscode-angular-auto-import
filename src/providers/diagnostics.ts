@@ -197,7 +197,12 @@ export class DiagnosticProvider {
     } else if (document.languageId === "typescript") {
       const componentInfo = this.extractInlineTemplate(document);
       if (componentInfo) {
-        await this.runDiagnostics(componentInfo.template, document, componentInfo.templateOffset, document.fileName);
+        await this.runDiagnostics(
+          componentInfo.template,
+          document,
+          componentInfo.templateOffset,
+          document.fileName
+        );
       } else {
         // Clear both collections when there's no inline template
         this.candidateDiagnostics.delete(document.uri.toString());
@@ -227,7 +232,7 @@ export class DiagnosticProvider {
     }
 
     // Parse the template to get all elements and their full context
-    const parsedElements = await this.parseCompleteTemplate(templateText, document, offset);
+    const parsedElements = await this.parseCompleteTemplate(templateText, document, offset, indexer);
 
     for (const element of parsedElements) {
       const elementDiagnostics = await this.checkElement(element, indexer, tsDocument, severity);
@@ -243,7 +248,8 @@ export class DiagnosticProvider {
   private async parseCompleteTemplate(
     text: string,
     document: vscode.TextDocument,
-    offset: number
+    offset: number,
+    indexer: AngularIndexer
   ): Promise<ParsedHtmlFullElement[]> {
     const elements: ParsedHtmlFullElement[] = [];
     try {
@@ -264,24 +270,29 @@ export class DiagnosticProvider {
             const isTemplate = node instanceof compiler.TmplAstTemplate;
  
             const allAttrsList: AttributeLikeNode[] = [...node.attributes, ...node.inputs, ...node.outputs, ...node.references]
-            
+
             const attributes = allAttrsList.map((attr) => ({
               name: attr.name,
               value: "value" in attr && attr.value ? String(attr.value) : "",
             }));
 
-            // One entry for the element tag itself
-            elements.push({
-              name: isTemplate ? "ng-template" : node.name,
-              type: "component",
-              isAttribute: false,
-              range: new vscode.Range(
-                document.positionAt(offset + node.sourceSpan.start.offset),
-                document.positionAt(offset + node.sourceSpan.end.offset)
-              ),
-              tagName: isTemplate ? "ng-template" : node.name,
-              attributes,
-            });
+            const foundElement = indexer.getElement(isTemplate ? "ng-template" : node.name);
+            const isKnownComponent = foundElement?.type === "component";
+
+            // One entry for the element tag itself, only if it could be a component
+            if (isKnownComponent || !isKnownHtmlTag(isTemplate ? "ng-template" : node.name)) {
+              elements.push({
+                name: isTemplate ? "ng-template" : node.name,
+                type: "component",
+                isAttribute: false,
+                range: new vscode.Range(
+                  document.positionAt(offset + node.startSourceSpan.start.offset),
+                  document.positionAt(offset + node.startSourceSpan.end.offset)
+                ),
+                tagName: isTemplate ? "ng-template" : node.name,
+                attributes,
+              });
+            }
 
             // One entry for each attribute or reference
             for (const attr of allAttrsList) {
@@ -636,6 +647,121 @@ export class DiagnosticProvider {
 
     this.diagnosticCollection.set(uri, filteredDiags);
   }
+}
+
+function isKnownHtmlTag(tag: string): boolean {
+  const knownTags = new Set([
+    "a",
+    "abbr",
+    "address",
+    "area",
+    "article",
+    "aside",
+    "audio",
+    "b",
+    "base",
+    "bdi",
+    "bdo",
+    "blockquote",
+    "body",
+    "br",
+    "button",
+    "canvas",
+    "caption",
+    "cite",
+    "code",
+    "col",
+    "colgroup",
+    "data",
+    "datalist",
+    "dd",
+    "del",
+    "details",
+    "dfn",
+    "dialog",
+    "div",
+    "dl",
+    "dt",
+    "em",
+    "embed",
+    "fieldset",
+    "figcaption",
+    "figure",
+    "footer",
+    "form",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "head",
+    "header",
+    "hr",
+    "html",
+    "i",
+    "iframe",
+    "img",
+    "input",
+    "ins",
+    "kbd",
+    "label",
+    "legend",
+    "li",
+    "link",
+    "main",
+    "map",
+    "mark",
+    "meta",
+    "meter",
+    "nav",
+    "noscript",
+    "object",
+    "ol",
+    "optgroup",
+    "option",
+    "output",
+    "p",
+    "param",
+    "picture",
+    "pre",
+    "progress",
+    "q",
+    "rp",
+    "rt",
+    "ruby",
+    "s",
+    "samp",
+    "script",
+    "section",
+    "select",
+    "small",
+    "source",
+    "span",
+    "strong",
+    "style",
+    "sub",
+    "summary",
+    "sup",
+    "table",
+    "tbody",
+    "td",
+    "template",
+    "textarea",
+    "tfoot",
+    "th",
+    "thead",
+    "time",
+    "title",
+    "tr",
+    "track",
+    "u",
+    "ul",
+    "var",
+    "video",
+    "wbr",
+  ]);
+  return knownTags.has(tag.toLowerCase());
 }
 
 interface ParsedHtmlFullElement extends ParsedHtmlElement {
