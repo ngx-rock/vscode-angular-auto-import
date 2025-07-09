@@ -262,10 +262,9 @@ export class DiagnosticProvider {
         for (const node of nodesList) {
           if (node instanceof compiler.TmplAstElement || node instanceof compiler.TmplAstTemplate) {
             const isTemplate = node instanceof compiler.TmplAstTemplate;
-            const allAttrsList: AttributeLikeNode[] = isTemplate
-              ? [...node.templateAttrs, ...node.inputs, ...node.outputs, ...node.references]
-              : [...node.attributes, ...node.inputs, ...node.outputs, ...node.references];
-
+ 
+            const allAttrsList: AttributeLikeNode[] = [...node.attributes, ...node.inputs, ...node.outputs, ...node.references]
+            
             const attributes = allAttrsList.map((attr) => ({
               name: attr.name,
               value: "value" in attr && attr.value ? String(attr.value) : "",
@@ -333,7 +332,7 @@ export class DiagnosticProvider {
       visit(nodes);
     } catch (e) {
       console.error(`[DiagnosticProvider] Failed to parse template: ${document.uri.fsPath}`, e);
-    }
+    } 
     return elements;
   }
 
