@@ -298,6 +298,11 @@ export class DiagnosticProvider {
             for (const attr of allAttrsList) {
               const keySpan = attr.keySpan ?? attr.sourceSpan;
               if (keySpan) {
+                // Skip event bindings, as they are not importable directives.
+                if (attr instanceof compiler.TmplAstBoundEvent) {
+                  continue;
+                }
+
                 let type: ParsedHtmlFullElement["type"] = "attribute";
                 if (attr instanceof compiler.TmplAstReference) {
                   type = "template-reference";
@@ -715,6 +720,7 @@ function isKnownHtmlTag(tag: string): boolean {
     "meta",
     "meter",
     "nav",
+    "ng-template",
     "noscript",
     "object",
     "ol",
