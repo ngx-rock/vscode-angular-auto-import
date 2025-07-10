@@ -269,7 +269,17 @@ export class DiagnosticProvider {
           if (node instanceof compiler.TmplAstElement || node instanceof compiler.TmplAstTemplate) {
             const isTemplate = node instanceof compiler.TmplAstTemplate;
  
-            const allAttrsList: AttributeLikeNode[] = [...node.attributes, ...node.inputs, ...node.outputs, ...node.references]
+            const regularAttrs: AttributeLikeNode[] = [
+              ...node.attributes,
+              ...node.inputs,
+              ...node.outputs,
+              ...node.references,
+            ];
+
+            const templateAttrs =
+              node instanceof compiler.TmplAstTemplate ? [...node.templateAttrs] : [];
+
+            const allAttrsList: AttributeLikeNode[] = [...regularAttrs, ...templateAttrs];
 
             const attributes = allAttrsList.map((attr) => ({
               name: attr.name,
@@ -295,35 +305,44 @@ export class DiagnosticProvider {
             }
 
             // One entry for each attribute or reference
-            for (const attr of allAttrsList) {
+            const processAttribute = (attr: AttributeLikeNode, isTemplateAttr: boolean) => {
               const keySpan = attr.keySpan ?? attr.sourceSpan;
-              if (keySpan) {
-                // Skip event bindings, as they are not importable directives.
-                if (attr instanceof compiler.TmplAstBoundEvent) {
-                  continue;
-                }
-
-                let type: ParsedHtmlFullElement["type"] = "attribute";
-                if (attr instanceof compiler.TmplAstReference) {
-                  type = "template-reference";
-                } else if (node instanceof compiler.TmplAstTemplate || attr.name.startsWith("*")) {
-                  type = "structural-directive";
-                } else if (attr instanceof compiler.TmplAstBoundAttribute) {
-                  type = "property-binding";
-                }
-
-                elements.push({
-                  name: attr.name,
-                  type: type,
-                  isAttribute: true,
-                  range: new vscode.Range(
-                    document.positionAt(offset + keySpan.start.offset),
-                    document.positionAt(offset + keySpan.end.offset)
-                  ),
-                  tagName: isTemplate ? "ng-template" : node.name,
-                  attributes,
-                });
+              if (!keySpan) {
+                return;
               }
+
+              // Skip event bindings, as they are not importable directives.
+              if (attr instanceof compiler.TmplAstBoundEvent) {
+                return;
+              }
+
+              let type: ParsedHtmlFullElement["type"] = "attribute";
+              if (attr instanceof compiler.TmplAstReference) {
+                type = "template-reference";
+              } else if (isTemplateAttr || attr.name.startsWith("*")) {
+                type = "structural-directive";
+              } else if (attr instanceof compiler.TmplAstBoundAttribute) {
+                type = "property-binding";
+              }
+
+              elements.push({
+                name: attr.name,
+                type: type,
+                isAttribute: true,
+                range: new vscode.Range(
+                  document.positionAt(offset + keySpan.start.offset),
+                  document.positionAt(offset + keySpan.end.offset)
+                ),
+                tagName: isTemplate ? "ng-template" : node.name,
+                attributes,
+              });
+            };
+
+            for (const attr of regularAttrs) {
+              processAttribute(attr, false);
+            }
+            for (const attr of templateAttrs) {
+              processAttribute(attr, true);
             }
           }
 
