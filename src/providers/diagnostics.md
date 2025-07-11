@@ -1,31 +1,60 @@
-# Провайдер Диагностики (`DiagnosticsProvider`)
+# Diagnostic Provider (`DiagnosticProvider`)
 
-Этот класс отвечает за генерацию кастомных ошибок и предупреждений (диагностик) в коде, которые VS Code отображает в виде волнистых подчеркиваний. В контексте данного расширения, его основная задача — находить потенциальные проблемы с импортами Angular-элементов, которые не могут быть обнаружены стандартным Angular Language Service.
+## Overview
 
-## Принцип работы
+The `DiagnosticProvider` generates custom error and warning diagnostics displayed as wavy underlines in VS Code. Its main purpose is identifying missing Angular element imports that the standard Angular Language Service cannot detect.
 
-`DiagnosticsProvider` — это не стандартный провайдер VS Code, а кастомная реализация, которая запускается расширением для анализа открытых файлов.
+## Core Workflow
 
-1.  **Активация**: Проверка запускается при открытии или изменении HTML-файла.
-2.  **Парсинг HTML**:
-    -   Провайдер парсит весь HTML-документ, чтобы извлечь из него все теги и их атрибуты. Для этого используется легковесный HTML-парсер.
-    -   Он составляет список всех уникальных имен тегов (например, `my-component`) и атрибутов (например, `myDirective`, `bigRows`), найденных в документе.
-3.  **Проверка на наличие в индексе**:
-    -   Для каждого найденного тега и атрибута провайдер обращается к `AngularIndexer` и пытается найти его в индексе с помощью `indexer.getElement()`.
-4.  **Проверка на наличие в текущем файле**:
-    -   Если элемент **найден в индексе**, провайдер выполняет следующий, самый важный шаг: он парсит ассоциированный с HTML-шаблоном `.ts` файл компонента.
-    -   Используя `ts-morph`, он проверяет, импортирован ли найденный элемент (например, `MyComponent` или `MyDirective`) в `@Component({ imports: [...] })` или в `@NgModule`.
-5.  **Создание диагностики**:
-    -   Если элемент найден в **индексе**, но **не импортирован** в `.ts` файле, провайдер создает объект `vscode.Diagnostic`.
-    -   Эта диагностика содержит:
-        -   Сообщение об ошибке (например, `Component 'MyComponent' is not imported.`).
-        -   Диапазон в HTML-файле, который нужно подчеркнуть.
-        -   Уровень серьезности (`vscode.DiagnosticSeverity.Warning` или `Error`).
-        -   Специальный код ошибки (например, `missing-component-import`), который затем используется `QuickfixImportProvider` для предложения исправления.
-6.  **Обновление ошибок в VS Code**:
-    -   Собранная коллекция диагностик отправляется в VS Code, который отображает их в редакторе.
+1. **Template Parsing**: Uses `@angular/compiler` to parse HTML templates and extract all elements, attributes, and pipes
+2. **Element Classification**: Categorizes findings as components, directives, pipes, structural directives, etc.
+3. **Selector Matching**: Uses Angular's `SelectorMatcher` and `CssSelector` to precisely match template elements against indexed Angular elements
+4. **Import Verification**: Analyzes TypeScript component files with `ts-morph` to check if elements are imported in `@Component({ imports: [...] })`
+5. **Diagnostic Generation**: Creates `vscode.Diagnostic` objects with specific error codes for unimported but available elements
 
-## Ключевая особенность
+## Key Architecture
 
--   В отличие от стандартных линтеров, этот провайдер обладает полной информацией о **всех компонентах во всем проекте** (благодаря `AngularIndexer`). Это позволяет ему находить ошибки, связанные не с синтаксисом, а с отсутствием связей между файлами.
--   Он является источником данных для `QuickfixImportProvider`. Сначала `DiagnosticsProvider` создает ошибку, а затем `QuickfixImportProvider` предлагает для нее исправление. 
+### Selector Matching System
+
+```typescript
+const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
+const matcher = new SelectorMatcher();
+const individualSelectors = CssSelector.parse(candidate.originalSelector);
+matcher.addSelectables(individualSelectors);
+
+const templateCssSelector = new CssSelector();
+templateCssSelector.setElement(element.tagName);
+for (const attr of element.attributes) {
+  templateCssSelector.addAttribute(attr.name, attr.value ?? "");
+}
+
+matcher.match(templateCssSelector, () => { isMatch = true; });
+```
+
+This system handles complex selectors like `ng-template[myDirective]` by checking both tag names and attributes.
+
+### Element Types
+
+- **`component`**: Custom Angular components (`<my-component>`)
+- **`pipe`**: Angular pipes (`{{ value | myPipe }}`)
+- **`structural-directive`**: Structural directives (`*ngIf`, `*myDirective`)
+- **`property-binding`**: Property bindings (`[myProperty]`)
+- **`template-reference`**: Template variables (`#myRef`)
+
+### Diagnostic Structure
+
+```typescript
+const diagnostic = new vscode.Diagnostic(element.range, message, severity);
+diagnostic.code = `missing-${candidate.type}-import:${candidate.name}`;
+diagnostic.source = "angular-auto-import";
+```
+
+## Integration Points
+
+- **QuickFix Provider**: Diagnostic codes trigger auto-import suggestions
+- **Angular Indexer**: Provides project-wide element discovery
+- **Deduplication**: Filters out diagnostics that overlap with Angular Language Service errors
+
+## Key Innovation
+
+Unlike syntax-based linters, this provider has complete project awareness through the `AngularIndexer`, enabling detection of import-related issues for components that exist elsewhere in the project. 

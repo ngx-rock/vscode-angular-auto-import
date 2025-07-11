@@ -412,7 +412,7 @@ export class DiagnosticProvider {
         });
 
         if (!isMatch) {
-          continue;
+        continue;
         }
       }
 
