@@ -3,9 +3,9 @@
  * Responsible for handling tsconfig.json and resolving path aliases.
  */
 
-import * as fs from "fs";
-import * as path from "path";
-import { ProcessedTsConfig } from "../types";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import type { ProcessedTsConfig } from "../types";
 import { getRelativeFilePath, normalizePath, switchFileType } from "../utils";
 
 class TrieNode {
@@ -36,11 +36,7 @@ class PathAliasTrie {
 
     console.log("[PathAliasTrie] === BUILDING TRIE FOR PATH ALIASES ===");
     console.log(`[PathAliasTrie] Base URL: ${absoluteBaseUrl}`);
-    console.log(
-      `[PathAliasTrie] Found ${
-        Object.keys(paths).length
-      } path mappings in tsconfig`
-    );
+    console.log(`[PathAliasTrie] Found ${Object.keys(paths).length} path mappings in tsconfig`);
 
     // Find the project root by going up from baseUrl until we find a directory that contains src/ or similar
     let projectRoot = absoluteBaseUrl;
@@ -58,14 +54,12 @@ class PathAliasTrie {
     console.log(`[PathAliasTrie] Detected project root: ${projectRoot}`);
 
     for (const [alias, pathArray] of Object.entries(paths)) {
-      console.log(
-        `[PathAliasTrie] Processing alias: '${alias}' -> [${pathArray.join(
-          ", "
-        )}]`
-      );
+      // Ensure pathArray is an array of strings
+      const pathArraySafe = Array.isArray(pathArray) ? (pathArray as string[]) : [];
+      console.log(`[PathAliasTrie] Processing alias: '${alias}' -> [${pathArraySafe.join(", ")}]`);
 
-      if (pathArray.length > 0) {
-        const originalPath = pathArray[0];
+      if (pathArraySafe.length > 0) {
+        const originalPath = pathArraySafe[0];
         const physicalPath = path.resolve(absoluteBaseUrl, originalPath);
 
         // A "barrel-style" alias is any non-wildcard alias.
@@ -101,31 +95,27 @@ class PathAliasTrie {
           .split("/")
           .filter((p) => p.length > 0);
 
-        console.log(
-          `[PathAliasTrie]   Relative path from project root: ${relativePath}`
-        );
-        console.log(
-          `[PathAliasTrie]   Path segments: [${pathSegments.join(", ")}]`
-        );
+        console.log(`[PathAliasTrie]   Relative path from project root: ${relativePath}`);
+        console.log(`[PathAliasTrie]   Path segments: [${pathSegments.join(", ")}]`);
 
         let currentNode = this.root;
         for (const segment of pathSegments) {
           if (!currentNode.children.has(segment)) {
             currentNode.children.set(segment, new TrieNode());
           }
-          currentNode = currentNode.children.get(segment)!;
+          const nextNode = currentNode.children.get(segment);
+          if (!nextNode) {
+            throw new Error("Unexpected missing node in alias trie insertion");
+          }
+          currentNode = nextNode;
         }
         currentNode.alias = cleanAlias;
         currentNode.isBarrel = !isWildcard;
         console.log(
-          `[PathAliasTrie] ✅ MAPPED: '${cleanAlias}' (${
-            !isWildcard ? "barrel" : "wildcard"
-          }) -> ${relativePath}`
+          `[PathAliasTrie] ✅ MAPPED: '${cleanAlias}' (${!isWildcard ? "barrel" : "wildcard"}) -> ${relativePath}`
         );
       } else {
-        console.log(
-          `[PathAliasTrie] ⚠️ SKIPPED: Empty path array for alias '${alias}'`
-        );
+        console.log(`[PathAliasTrie] ⚠️ SKIPPED: Empty path array for alias '${alias}'`);
       }
     }
     console.log("[PathAliasTrie] === TRIE BUILDING COMPLETE ===");
@@ -145,28 +135,18 @@ class PathAliasTrie {
 
     // If project root is provided, convert to relative path
     if (projectRoot && absoluteTargetPath.startsWith(projectRoot)) {
-      targetPath = normalizePath(
-        path.relative(projectRoot, absoluteTargetPath)
-      );
+      targetPath = normalizePath(path.relative(projectRoot, absoluteTargetPath));
     }
 
-    const originalPathSegments = targetPath
-      .split("/")
-      .filter((p) => p.length > 0);
+    const originalPathSegments = targetPath.split("/").filter((p) => p.length > 0);
     const lowerPathSegments = targetPath
       .toLowerCase()
       .split("/")
       .filter((p) => p.length > 0);
 
     console.log(`[PathAliasTrie] Finding match for: ${targetPath}`);
-    console.log(
-      `[PathAliasTrie] Path segments (for matching):`,
-      lowerPathSegments
-    );
-    console.log(
-      `[PathAliasTrie] Path segments (original case):`,
-      originalPathSegments
-    );
+    console.log(`[PathAliasTrie] Path segments (for matching):`, lowerPathSegments);
+    console.log(`[PathAliasTrie] Path segments (original case):`, originalPathSegments);
 
     let currentNode = this.root;
     let longestMatch: {
@@ -189,7 +169,11 @@ class PathAliasTrie {
       console.log(`[PathAliasTrie] Checking segment ${i}: '${segment}'`);
 
       if (currentNode.children.has(segment)) {
-        currentNode = currentNode.children.get(segment)!;
+        const nextNode = currentNode.children.get(segment);
+        if (!nextNode) {
+          break;
+        }
+        currentNode = nextNode;
         console.log(`[PathAliasTrie] Found node for segment '${segment}'`);
 
         if (currentNode.alias) {
@@ -205,9 +189,7 @@ class PathAliasTrie {
           );
         }
       } else {
-        console.log(
-          `[PathAliasTrie] No node found for segment '${segment}', stopping traversal`
-        );
+        console.log(`[PathAliasTrie] No node found for segment '${segment}', stopping traversal`);
         break;
       }
     }
@@ -219,16 +201,10 @@ class PathAliasTrie {
         console.log(`[PathAliasTrie] Using barrel import: ${importPath}`);
       } else {
         // Use original cased segments for the remainder
-        const remainingSegments = originalPathSegments.slice(
-          longestMatch.depth
-        );
+        const remainingSegments = originalPathSegments.slice(longestMatch.depth);
         const remainingPath = remainingSegments.join("/");
-        importPath = normalizePath(
-          path.posix.join(longestMatch.alias, remainingPath)
-        );
-        console.log(
-          `[PathAliasTrie] Using wildcard import: ${longestMatch.alias} + ${remainingPath} = ${importPath}`
-        );
+        importPath = normalizePath(path.posix.join(longestMatch.alias, remainingPath));
+        console.log(`[PathAliasTrie] Using wildcard import: ${longestMatch.alias} + ${remainingPath} = ${importPath}`);
       }
       console.log(
         `[PathAliasTrie] SUCCESS: Matched '${absoluteTargetPath}' to alias '${longestMatch.alias}'. Resulting import: '${importPath}'.`
@@ -236,285 +212,217 @@ class PathAliasTrie {
       return { importPath, isBarrel: longestMatch.isBarrel };
     }
 
-    console.log(
-      `[PathAliasTrie] FALLBACK: No match found for '${absoluteTargetPath}'.`
-    );
+    console.log(`[PathAliasTrie] FALLBACK: No match found for '${absoluteTargetPath}'.`);
     return null;
   }
 }
 
-export class TsConfigHelper {
-  private static tsConfigCache: Map<string, ProcessedTsConfig | null> =
-    new Map();
-  private static trieCache: Map<string, PathAliasTrie | null> = new Map();
+// Helper functions for tsconfig processing
 
-  public static clearCache(projectRoot?: string) {
-    if (projectRoot) {
-      this.tsConfigCache.delete(projectRoot);
-      this.trieCache.delete(projectRoot);
-      console.log(`TsConfigHelper cache cleared for ${projectRoot}.`);
-    } else {
-      this.tsConfigCache.clear();
-      this.trieCache.clear();
-      console.log("TsConfigHelper cache fully cleared.");
+const tsConfigCache: Map<string, ProcessedTsConfig | null> = new Map();
+const trieCache: Map<string, PathAliasTrie | null> = new Map();
+
+export function clearCache(projectRoot?: string) {
+  if (projectRoot) {
+    tsConfigCache.delete(projectRoot);
+    trieCache.delete(projectRoot);
+    console.log(`TsConfigHelper cache cleared for ${projectRoot}.`);
+  } else {
+    tsConfigCache.clear();
+    trieCache.clear();
+    console.log("TsConfigHelper cache fully cleared.");
+  }
+}
+
+export async function findAndParseTsConfig(projectRoot: string): Promise<ProcessedTsConfig | null> {
+  const cacheKey = projectRoot;
+  console.log(`[TsConfigHelper] Looking for tsconfig in project: ${projectRoot}`);
+
+  if (tsConfigCache.has(cacheKey)) {
+    console.log(`[TsConfigHelper] Using cached tsconfig for ${projectRoot}`);
+    const cached = tsConfigCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached;
     }
   }
+  try {
+    let tsconfigResult: { path: string; config: unknown } | null = null;
 
-  public static async findAndParseTsConfig(
-    projectRoot: string
-  ): Promise<ProcessedTsConfig | null> {
-    const cacheKey = projectRoot;
-    console.log(
-      `[TsConfigHelper] Looking for tsconfig in project: ${projectRoot}`
-    );
-
-    if (this.tsConfigCache.has(cacheKey)) {
-      console.log(`[TsConfigHelper] Using cached tsconfig for ${projectRoot}`);
-      return this.tsConfigCache.get(cacheKey)!;
+    // Сначала ищем tsconfig.json в указанной директории
+    const tsconfigPath = path.join(projectRoot, "tsconfig.json");
+    if (fs.existsSync(tsconfigPath)) {
+      try {
+        const tsconfigContent = JSON.parse(fs.readFileSync(tsconfigPath, "utf-8"));
+        tsconfigResult = {
+          path: tsconfigPath,
+          config: tsconfigContent,
+        };
+        console.log(`[TsConfigHelper] Found tsconfig.json at: ${tsconfigPath}`);
+      } catch (error) {
+        console.error(`[TsConfigHelper] Error parsing tsconfig.json:`, error);
+      }
     }
-    try {
-      let tsconfigResult: { path: string; config: any } | null = null;
 
-      // Сначала ищем tsconfig.json в указанной директории
-      const tsconfigPath = path.join(projectRoot, "tsconfig.json");
-      if (fs.existsSync(tsconfigPath)) {
+    // Если стандартный tsconfig не найден, попробуем tsconfig.base.json (часто используется в Nx)
+    if (!tsconfigResult) {
+      console.log(`[TsConfigHelper] Standard tsconfig not found, trying tsconfig.base.json...`);
+      const baseTsconfigPath = path.join(projectRoot, "tsconfig.base.json");
+      if (fs.existsSync(baseTsconfigPath)) {
         try {
-          const tsconfigContent = JSON.parse(
-            fs.readFileSync(tsconfigPath, "utf-8")
-          );
+          const baseTsconfigContent = JSON.parse(fs.readFileSync(baseTsconfigPath, "utf-8"));
           tsconfigResult = {
-            path: tsconfigPath,
-            config: tsconfigContent,
+            path: baseTsconfigPath,
+            config: baseTsconfigContent,
           };
-          console.log(
-            `[TsConfigHelper] Found tsconfig.json at: ${tsconfigPath}`
-          );
+          console.log(`[TsConfigHelper] Found tsconfig.base.json at: ${baseTsconfigPath}`);
         } catch (error) {
-          console.error(`[TsConfigHelper] Error parsing tsconfig.json:`, error);
+          console.error(`[TsConfigHelper] Error parsing tsconfig.base.json:`, error);
         }
       }
+    }
 
-      // Если стандартный tsconfig не найден, попробуем tsconfig.base.json (часто используется в Nx)
-      if (!tsconfigResult) {
-        console.log(
-          `[TsConfigHelper] Standard tsconfig not found, trying tsconfig.base.json...`
-        );
-        const baseTsconfigPath = path.join(projectRoot, "tsconfig.base.json");
-        if (fs.existsSync(baseTsconfigPath)) {
-          try {
-            const baseTsconfigContent = JSON.parse(
-              fs.readFileSync(baseTsconfigPath, "utf-8")
-            );
-            tsconfigResult = {
-              path: baseTsconfigPath,
-              config: baseTsconfigContent,
-            };
-            console.log(
-              `[TsConfigHelper] Found tsconfig.base.json at: ${baseTsconfigPath}`
-            );
-          } catch (error) {
-            console.error(
-              `[TsConfigHelper] Error parsing tsconfig.base.json:`,
-              error
-            );
-          }
-        }
-      }
-
-      if (!tsconfigResult) {
-        console.log(
-          `[TsConfigHelper] No tsconfig or tsconfig.base.json found for ${projectRoot}`
-        );
-        this.tsConfigCache.set(cacheKey, null);
-        this.trieCache.set(cacheKey, null);
-        return null;
-      }
-
-      console.log(`[TsConfigHelper] Found tsconfig at: ${tsconfigResult.path}`);
-
-      const absoluteBaseUrl = path.resolve(
-        path.dirname(tsconfigResult.path),
-        tsconfigResult.config.compilerOptions?.baseUrl || "."
-      );
-
-      const paths = tsconfigResult.config.compilerOptions?.paths || {};
-      console.log(
-        `[TsConfigHelper] Found ${
-          Object.keys(paths).length
-        } path aliases in tsconfig`
-      );
-      console.log(`[TsConfigHelper] Base URL: ${absoluteBaseUrl}`);
-      console.log(`[TsConfigHelper] Paths:`, paths);
-
-      const processedConfig: ProcessedTsConfig = {
-        absoluteBaseUrl,
-        paths,
-        sourceFilePath: tsconfigResult.path,
-      };
-      this.tsConfigCache.set(cacheKey, processedConfig);
-
-      // Создаём и кэшируем Trie для резолвинга алиасов
-      console.log(`[TsConfigHelper] Creating PathAliasTrie for ${projectRoot}`);
-      const trie = new PathAliasTrie(processedConfig);
-      this.trieCache.set(cacheKey, trie);
-      console.log(
-        `[TsConfigHelper] ✅ PathAliasTrie created and cached for ${projectRoot}`
-      );
-
-      return processedConfig;
-    } catch (e) {
-      console.error(
-        `[TsConfigHelper] Error parsing tsconfig for ${projectRoot}:`,
-        e
-      );
-      this.tsConfigCache.set(cacheKey, null);
-      this.trieCache.set(cacheKey, null);
+    if (!tsconfigResult) {
+      console.log(`[TsConfigHelper] No tsconfig or tsconfig.base.json found for ${projectRoot}`);
+      tsConfigCache.set(cacheKey, null);
+      trieCache.set(cacheKey, null);
       return null;
     }
+
+    console.log(`[TsConfigHelper] Found tsconfig at: ${tsconfigResult.path}`);
+
+    const config = tsconfigResult.config as {
+      compilerOptions?: {
+        baseUrl?: string;
+        paths?: Record<string, string[]>;
+      };
+    };
+    const absoluteBaseUrl = path.resolve(path.dirname(tsconfigResult.path), config.compilerOptions?.baseUrl || ".");
+
+    const paths = config.compilerOptions?.paths || {};
+    console.log(`[TsConfigHelper] Found ${Object.keys(paths).length} path aliases in tsconfig`);
+    console.log(`[TsConfigHelper] Base URL: ${absoluteBaseUrl}`);
+    console.log(`[TsConfigHelper] Paths:`, paths);
+
+    const processedConfig: ProcessedTsConfig = {
+      absoluteBaseUrl,
+      paths,
+      sourceFilePath: tsconfigResult.path,
+    };
+    tsConfigCache.set(cacheKey, processedConfig);
+
+    // Создаём и кэшируем Trie для резолвинга алиасов
+    console.log(`[TsConfigHelper] Creating PathAliasTrie for ${projectRoot}`);
+    const trie = new PathAliasTrie(processedConfig);
+    trieCache.set(cacheKey, trie);
+    console.log(`[TsConfigHelper] ✅ PathAliasTrie created and cached for ${projectRoot}`);
+
+    return processedConfig;
+  } catch (e) {
+    console.error(`[TsConfigHelper] Error parsing tsconfig for ${projectRoot}:`, e);
+    tsConfigCache.set(cacheKey, null);
+    trieCache.set(cacheKey, null);
+    return null;
+  }
+}
+
+/**
+ * Resolves an absolute module path to an import path, using a
+ * tsconfig alias (via the Trie) or falling back to a relative path.
+ * @param absoluteTargetModulePathNoExt Absolute path to the file to be imported, without extension.
+ * @param absoluteCurrentFilePath Absolute path to the file where the import will be added.
+ * @param projectRoot The root directory of the current project.
+ * @returns A string for the import statement (e.g., '@app/components/my-comp' or '../../my-comp').
+ */
+export async function resolveImportPath(
+  absoluteTargetModulePathNoExt: string,
+  absoluteCurrentFilePath: string,
+  projectRoot: string
+): Promise<string> {
+  console.log(`[TsConfigHelper] === RESOLVING IMPORT PATH ===`);
+  console.log(`[TsConfigHelper] Target: ${absoluteTargetModulePathNoExt}`);
+  console.log(`[TsConfigHelper] Current file: ${absoluteCurrentFilePath}`);
+  console.log(`[TsConfigHelper] Project root: ${projectRoot}`);
+
+  // Handle empty target path
+  if (!absoluteTargetModulePathNoExt || absoluteTargetModulePathNoExt.trim() === "") {
+    console.log(`[TsConfigHelper] Empty target path, returning "."`);
+    return ".";
   }
 
-  /**
-   * Resolves an absolute module path to an import path, using a
-   * tsconfig alias (via the Trie) or falling back to a relative path.
-   * @param absoluteTargetModulePathNoExt Absolute path to the file to be imported, without extension.
-   * @param absoluteCurrentFilePath Absolute path to the file where the import will be added.
-   * @param projectRoot The root directory of the current project.
-   * @returns A string for the import statement (e.g., '@app/components/my-comp' or '../../my-comp').
-   */
-  public static async resolveImportPath(
-    absoluteTargetModulePathNoExt: string,
-    absoluteCurrentFilePath: string,
-    projectRoot: string
-  ): Promise<string> {
-    console.log(`[TsConfigHelper] === RESOLVING IMPORT PATH ===`);
-    console.log(`[TsConfigHelper] Target: ${absoluteTargetModulePathNoExt}`);
-    console.log(`[TsConfigHelper] Current file: ${absoluteCurrentFilePath}`);
-    console.log(`[TsConfigHelper] Project root: ${projectRoot}`);
+  // Check that files are within the project boundaries
+  if (!absoluteTargetModulePathNoExt.startsWith(projectRoot)) {
+    console.warn(`[TsConfigHelper] Target file is outside project root, using absolute path`);
+    return absoluteTargetModulePathNoExt;
+  }
 
-    // Handle empty target path
-    if (
-      !absoluteTargetModulePathNoExt ||
-      absoluteTargetModulePathNoExt.trim() === ""
-    ) {
-      console.log(`[TsConfigHelper] Empty target path, returning "."`);
-      return ".";
-    }
-
-    // Check that files are within the project boundaries
-    if (!absoluteTargetModulePathNoExt.startsWith(projectRoot)) {
-      console.warn(
-        `[TsConfigHelper] Target file is outside project root, using absolute path`
-      );
-      return absoluteTargetModulePathNoExt;
-    }
-
-    if (!absoluteCurrentFilePath.startsWith(projectRoot)) {
-      console.warn(
-        `[TsConfigHelper] Current file is outside project root, using relative path fallback`
-      );
-      const relativePath = getRelativeFilePath(
-        absoluteCurrentFilePath,
-        absoluteTargetModulePathNoExt
-      );
-      console.log(
-        `[TsConfigHelper] Relative path (outside project): ${relativePath}`
-      );
-      return relativePath;
-    }
-
-    // Show what's in the cache
-    console.log(
-      `[TsConfigHelper] Available cached projects:`,
-      Array.from(this.trieCache.keys())
-    );
-
-    let trie = this.trieCache.get(projectRoot);
-    if (!trie) {
-      console.log(
-        `[TsConfigHelper] ❌ NO TRIE: No trie found for project ${projectRoot}`
-      );
-      console.log(
-        `[TsConfigHelper] Available cached trie keys:`,
-        Array.from(this.trieCache.keys())
-      );
-
-      // Attempt to load tsconfig and create the trie
-      console.log(
-        `[TsConfigHelper] Attempting to load tsconfig for project ${projectRoot}...`
-      );
-      let tsconfig = this.tsConfigCache.get(projectRoot);
-      if (!tsconfig) {
-        console.log(
-          `[TsConfigHelper] No cached tsconfig found, loading from disk...`
-        );
-        try {
-          tsconfig = await this.findAndParseTsConfig(projectRoot);
-        } catch (error) {
-          console.error(
-            `[TsConfigHelper] Error loading tsconfig from disk:`,
-            error
-          );
-        }
-      }
-
-      if (tsconfig) {
-        console.log(`[TsConfigHelper] Found tsconfig, creating new trie...`);
-        try {
-          const newTrie = new PathAliasTrie(tsconfig);
-          this.trieCache.set(projectRoot, newTrie);
-          trie = newTrie;
-          console.log(`[TsConfigHelper] New trie created and cached`);
-        } catch (error) {
-          console.error(`[TsConfigHelper] Error creating new trie:`, error);
-        }
-      } else {
-        console.log(`[TsConfigHelper] No tsconfig found for project`);
-      }
-    }
-
-    // Calculate relative path first to compare with alias
-    const relativePath = getRelativeFilePath(
-      absoluteCurrentFilePath,
-      absoluteTargetModulePathNoExt
-    );
-
-    if (trie) {
-      console.log(
-        `[TsConfigHelper] Trie found for project, searching for match...`
-      );
-      const match = trie.findLongestPrefixMatch(
-        absoluteTargetModulePathNoExt,
-        projectRoot
-      );
-      if (match) {
-        console.log(`[TsConfigHelper] ✅ ALIAS MATCH: ${match.importPath}`);
-        console.log(
-          `[TsConfigHelper] Relative path alternative: ${relativePath}`
-        );
-
-        // Always prefer barrel imports over relative paths
-        if (match.isBarrel) {
-          console.log(
-            `[TsConfigHelper] 🎯 USING BARREL IMPORT: ${match.importPath}`
-          );
-          return match.importPath;
-        }
-
-        // For non-barrel (wildcard) aliases, always prefer aliases over relative paths
-        // according to the configured priority which expects clean imports
-        console.log(
-          `[TsConfigHelper] 🎯 USING ALIAS for cleaner import: ${match.importPath}`
-        );
-        return match.importPath;
-      } else {
-        console.log(`[TsConfigHelper] ❌ NO ALIAS MATCH: Trie search failed`);
-      }
-    }
-
-    // Fallback: calculate relative path
-    console.log(
-      `[TsConfigHelper] 🔄 FALLBACK: Using relative path: ${relativePath}`
-    );
+  if (!absoluteCurrentFilePath.startsWith(projectRoot)) {
+    console.warn(`[TsConfigHelper] Current file is outside project root, using relative path fallback`);
+    const relativePath = getRelativeFilePath(absoluteCurrentFilePath, absoluteTargetModulePathNoExt);
+    console.log(`[TsConfigHelper] Relative path (outside project): ${relativePath}`);
     return relativePath;
   }
+
+  // Show what's in the cache
+  console.log(`[TsConfigHelper] Available cached projects:`, Array.from(trieCache.keys()));
+
+  let trie = trieCache.get(projectRoot);
+  if (!trie) {
+    console.log(`[TsConfigHelper] ❌ NO TRIE: No trie found for project ${projectRoot}`);
+    console.log(`[TsConfigHelper] Available cached trie keys:`, Array.from(trieCache.keys()));
+
+    // Attempt to load tsconfig and create the trie
+    console.log(`[TsConfigHelper] Attempting to load tsconfig for project ${projectRoot}...`);
+    let tsconfig = tsConfigCache.get(projectRoot);
+    if (!tsconfig) {
+      console.log(`[TsConfigHelper] No cached tsconfig found, loading from disk...`);
+      try {
+        tsconfig = await findAndParseTsConfig(projectRoot);
+      } catch (error) {
+        console.error(`[TsConfigHelper] Error loading tsconfig from disk:`, error);
+      }
+    }
+
+    if (tsconfig) {
+      console.log(`[TsConfigHelper] Found tsconfig, creating new trie...`);
+      try {
+        const newTrie = new PathAliasTrie(tsconfig);
+        trieCache.set(projectRoot, newTrie);
+        trie = newTrie;
+        console.log(`[TsConfigHelper] New trie created and cached`);
+      } catch (error) {
+        console.error(`[TsConfigHelper] Error creating new trie:`, error);
+      }
+    } else {
+      console.log(`[TsConfigHelper] No tsconfig found for project`);
+    }
+  }
+
+  // Calculate relative path first to compare with alias
+  const relativePath = getRelativeFilePath(absoluteCurrentFilePath, absoluteTargetModulePathNoExt);
+
+  if (trie) {
+    console.log(`[TsConfigHelper] Trie found for project, searching for match...`);
+    const match = trie.findLongestPrefixMatch(absoluteTargetModulePathNoExt, projectRoot);
+    if (match) {
+      console.log(`[TsConfigHelper] ✅ ALIAS MATCH: ${match.importPath}`);
+      console.log(`[TsConfigHelper] Relative path alternative: ${relativePath}`);
+
+      // Always prefer barrel imports over relative paths
+      if (match.isBarrel) {
+        console.log(`[TsConfigHelper] 🎯 USING BARREL IMPORT: ${match.importPath}`);
+        return match.importPath;
+      }
+
+      // For non-barrel (wildcard) aliases, always prefer aliases over relative paths
+      // according to the configured priority which expects clean imports
+      console.log(`[TsConfigHelper] 🎯 USING ALIAS for cleaner import: ${match.importPath}`);
+      return match.importPath;
+    } else {
+      console.log(`[TsConfigHelper] ❌ NO ALIAS MATCH: Trie search failed`);
+    }
+  }
+
+  // Fallback: calculate relative path
+  console.log(`[TsConfigHelper] 🔄 FALLBACK: Using relative path: ${relativePath}`);
+  return relativePath;
 }

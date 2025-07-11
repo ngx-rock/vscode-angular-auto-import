@@ -1,11 +1,14 @@
 /**
  * Утилиты для работы с Angular элементами и селекторами
  */
+
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
+import type { AngularIndexer } from "../services";
 import { AngularElementData } from "../types";
 
 /**
  * Парсит сложный селектор Angular и возвращает массив индивидуальных селекторов.
+ * Использует CssSelector.parse из @angular/compiler для надежного парсинга.
  */
 export function parseAngularSelector(selectorString: string): string[] {
   if (!selectorString) {
@@ -14,6 +17,105 @@ export function parseAngularSelector(selectorString: string): string[] {
 
   console.log(`[parseAngularSelector] Parsing selector: "${selectorString}"`);
 
+  try { 
+    return parseAngularSelectorSync(selectorString);
+  } catch (error) {
+    console.warn(`[parseAngularSelector] Error parsing selector "${selectorString}":`, error);
+    
+    // Fallback to legacy parsing
+    console.log(`[parseAngularSelector] Falling back to legacy parsing for: "${selectorString}"`);
+    return parseAngularSelectorLegacy(selectorString);
+  }
+}
+ 
+function parseAngularSelectorSync(selectorString: string): string[] {
+  // biome-ignore lint: Using `require` for an ES module in a CommonJS context is necessary here.
+  const { CssSelector } = require("@angular/compiler");
+
+  // Используем CssSelector.parse для надежного парсинга селекторов
+  const cssSelectors = CssSelector.parse(selectorString);
+  const parsedSelectors: string[] = [];
+
+  for (const cssSelector of cssSelectors) {
+    processCssSelector(cssSelector, parsedSelectors);
+  }
+
+  const uniqueSelectors = [...new Set(parsedSelectors.filter((s) => s && s.length > 0))];
+  console.log(`[parseAngularSelector] Final unique selectors: [${uniqueSelectors.join(", ")}]`);
+
+  return uniqueSelectors;
+}
+
+/**
+ * Определяет интерфейс для объекта CssSelector для типобезопасности.
+ */
+interface CssSelectorForParsing {
+    element: string | null;
+    classNames: string[];
+    attrs: string[];
+    notSelectors: CssSelectorForParsing[];
+    toString(): string;
+}
+
+/**
+ * Рекурсивно обрабатывает CssSelector и его notSelectors.
+ */
+function processCssSelector(cssSelector: CssSelectorForParsing, collection: string[]): void {
+  console.log(`[processCssSelector] Processing CssSelector:`, {
+    element: cssSelector.element,
+    classNames: cssSelector.classNames,
+    attrs: cssSelector.attrs,
+    notSelectors: cssSelector.notSelectors.length,
+  });
+
+  // Добавляем элементный селектор
+  if (cssSelector.element) {
+    collection.push(cssSelector.element);
+  }
+
+  // Добавляем селекторы классов
+  for (const className of cssSelector.classNames) {
+    // collection.push(`.${className}`); 
+    collection.push(className);
+  }
+
+  // Добавляем атрибутные селекторы
+  // attrs массив содержит пары: [name1, value1, name2, value2, ...]
+  for (let i = 0; i < cssSelector.attrs.length; i += 2) {
+    const attrName = cssSelector.attrs[i];
+    const attrValue = cssSelector.attrs[i + 1];
+
+    if (attrName) {
+      // Добавляем имя атрибута
+      collection.push(attrName);
+
+      // Добавляем полную форму атрибута
+      if (attrValue && attrValue !== "") {
+        collection.push(`[${attrName}="${attrValue}"]`);
+      } else {
+        collection.push(`[${attrName}]`);
+      }
+    }
+  }
+
+  // Рекурсивно обрабатываем :not() селекторы
+  if (cssSelector.notSelectors && cssSelector.notSelectors.length > 0) {
+    for (const notSelector of cssSelector.notSelectors) {
+      processCssSelector(notSelector, collection);
+    }
+  }
+
+  // Добавляем полный селектор как строку для поиска
+  const fullSelector = cssSelector.toString();
+  if (fullSelector) {
+    collection.push(fullSelector);
+  }
+}
+
+/**
+ * Legacy парсинг селекторов (fallback для случаев когда CssSelector.parse не работает).
+ */
+function parseAngularSelectorLegacy(selectorString: string): string[] {
   // Разделяем по запятым и очищаем от пробелов
   const rawSelectors = selectorString
     .split(",")
@@ -23,30 +125,17 @@ export function parseAngularSelector(selectorString: string): string[] {
   const parsedSelectors: string[] = [];
 
   for (const rawSelector of rawSelectors) {
-    console.log(
-      `[parseAngularSelector] Processing raw selector: "${rawSelector}"`
-    );
+    console.log(`[parseAngularSelectorLegacy] Processing raw selector: "${rawSelector}"`);
 
     // Нормализуем селектор и извлекаем все возможные варианты
     const normalized = normalizeSelector(rawSelector);
     if (normalized.length > 0) {
       parsedSelectors.push(...normalized);
-      console.log(
-        `[parseAngularSelector] Added normalized selectors: [${normalized.join(
-          ", "
-        )}]`
-      );
+      console.log(`[parseAngularSelectorLegacy] Added normalized selectors: [${normalized.join(", ")}]`);
     }
   }
 
-  const uniqueSelectors = [...new Set(parsedSelectors)];
-  console.log(
-    `[parseAngularSelector] Final unique selectors: [${uniqueSelectors.join(
-      ", "
-    )}]`
-  );
-
-  return uniqueSelectors;
+  return [...new Set(parsedSelectors)];
 }
 
 /**
@@ -85,7 +174,7 @@ export function normalizeSelector(selector: string): string[] {
 
     // Извлекаем элементную часть
     const elementMatch = trimmed.match(/^([a-zA-Z0-9-]+)\[/);
-    if (elementMatch && elementMatch[1]) {
+    if (elementMatch?.[1]) {
       variants.push(elementMatch[1]); // button
     }
 
@@ -115,10 +204,7 @@ export function normalizeSelector(selector: string): string[] {
 /**
  * Получает Angular элемент по селектору
  */
-export function getAngularElement(
-  selector: string,
-  indexer: any // Will be typed properly when indexer is created
-): AngularElementData | undefined {
+export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
   if (!selector || typeof selector !== "string") {
     return undefined;
   }
@@ -160,101 +246,18 @@ export function getAngularElement(
         return foundInIndex;
       }
     } catch (error) {
-      console.warn(
-        `Error getting element from indexer for selector '${sel}':`,
-        error
-      );
+      console.warn(`Error getting element from indexer for selector '${sel}':`, error);
       continue;
     }
 
     // 2. Then try standard Angular elements
     const std = STANDARD_ANGULAR_ELEMENTS[sel];
     if (std) {
-      return new AngularElementData(
-        std.importPath,
-        std.name,
-        std.type,
-        std.originalSelector,
-        std.selectors
-      );
+      return new AngularElementData(std.importPath, std.name, std.type, std.originalSelector, std.selectors);
     }
   }
 
   return undefined;
-}
-
-/**
- * Генерирует хеш строки
- */
-export function generateHash(content: string): string {
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return hash.toString();
-}
-
-/**
- * Извлекает информацию об Angular элементе из кода
- */
-export function extractAngularElementInfo(
-  code: string,
-  filePath: string
-): any | null {
-  if (!code || !filePath) {
-    return null;
-  }
-
-  try {
-    // Extract class name
-    const classMatch = code.match(/export\s+class\s+(\w+)/);
-    if (!classMatch) {
-      return null;
-    }
-    const className = classMatch[1];
-
-    // Determine type based on file name
-    let type: "component" | "directive" | "pipe";
-    if (filePath.includes(".component.")) {
-      type = "component";
-    } else if (filePath.includes(".directive.")) {
-      type = "directive";
-    } else if (filePath.includes(".pipe.")) {
-      type = "pipe";
-    } else {
-      return null;
-    }
-
-    // Extract selector/name
-    let selector: string;
-    if (type === "pipe") {
-      const nameMatch = code.match(/name:\s*['"]([^'"]*)['"]/);
-      if (!nameMatch) {
-        return null;
-      }
-      selector = nameMatch[1];
-    } else {
-      const selectorMatch = code.match(/selector:\s*['"]([^'"]*)['"]/);
-      if (!selectorMatch) {
-        return null;
-      }
-      selector = selectorMatch[1];
-    }
-
-    const selectors = parseAngularSelector(selector);
-
-    return {
-      name: className,
-      type,
-      selector,
-      selectors,
-      path: filePath,
-    };
-  } catch (error) {
-    return null;
-  }
 }
 
 /**
@@ -284,7 +287,7 @@ export function resolveRelativePath(from: string, to: string): string {
   }
 
   try {
-    const path = require("path");
+    const path = require("node:path");
     const fromDir = path.dirname(from);
     let relativePath = path.relative(fromDir, to);
 
@@ -293,11 +296,11 @@ export function resolveRelativePath(from: string, to: string): string {
 
     // Ensure relative path starts with ./ or ../
     if (!relativePath.startsWith(".")) {
-      relativePath = "./" + relativePath;
+      relativePath = `./${relativePath}`;
     }
 
     return relativePath;
-  } catch (error) {
+  } catch (_error) {
     return "";
   }
 }

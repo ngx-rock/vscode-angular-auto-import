@@ -43,13 +43,7 @@ export class AngularElementData {
 }
 
 export interface ParsedHtmlElement {
-  type:
-    | "attribute"
-    | "structural-directive"
-    | "component"
-    | "property-binding"
-    | "pipe"
-    | "template-reference";
+  type: "attribute" | "structural-directive" | "component" | "property-binding" | "pipe" | "template-reference";
   name: string;
   range: import("vscode").Range;
   tagName: string;

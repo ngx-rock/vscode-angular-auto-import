@@ -24,30 +24,32 @@
  *    over disk content, ensuring that unsaved changes are properly handled.
  */
 
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import {
-  ArrayLiteralExpression,
-  Node,
-  ObjectLiteralExpression,
-  PropertyAssignment,
-  SourceFile,
+  type ArrayLiteralExpression,
+  type Node,
+  type ObjectLiteralExpression,
+  type PropertyAssignment,
+  type SourceFile,
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
-import { TsConfigHelper } from "../services";
-import { AngularElementData, ProcessedTsConfig } from "../types";
+import * as TsConfigHelper from "../services/tsconfig";
+import type { AngularElementData, ProcessedTsConfig } from "../types";
 import { switchFileType } from "./path";
 
 /**
  * Global reference to diagnostic provider for updating diagnostics
  */
-let globalDiagnosticProvider: any = null;
+let globalDiagnosticProvider: import("../providers/diagnostics").DiagnosticProvider | null = null;
 
 /**
  * Sets the global diagnostic provider
  */
-export function setGlobalDiagnosticProvider(provider: any): void {
+export function setGlobalDiagnosticProvider(
+  provider: import("../providers/diagnostics").DiagnosticProvider | null
+): void {
   globalDiagnosticProvider = provider;
 }
 
@@ -55,9 +57,7 @@ export function setGlobalDiagnosticProvider(provider: any): void {
  * Gets the active VSCode document for a given file path
  */
 function getActiveDocument(filePath: string): vscode.TextDocument | undefined {
-  return vscode.workspace.textDocuments.find(
-    (doc) => doc.uri.fsPath === filePath
-  );
+  return vscode.workspace.textDocuments.find((doc) => doc.uri.fsPath === filePath);
 }
 
 /**
@@ -67,14 +67,12 @@ export async function importElementToFile(
   element: AngularElementData,
   componentFilePathAbs: string,
   projectRootPath: string,
-  indexerProject: any, // ts-morph Project instance
+  indexerProject: import("ts-morph").Project,
   _tsConfig: ProcessedTsConfig | null
 ): Promise<boolean> {
   try {
     if (!indexerProject) {
-      console.error(
-        "ts-morph Project instance is required for importElementToFile"
-      );
+      console.error("ts-morph Project instance is required for importElementToFile");
       return false;
     }
 
@@ -86,18 +84,12 @@ export async function importElementToFile(
       // Use content from active VSCode document (includes unsaved changes)
       currentContent = activeDocument.getText();
       console.log(
-        `[importElementToFile] Using content from active VSCode document: ${path.basename(
-          componentFilePathAbs
-        )}`
+        `[importElementToFile] Using content from active VSCode document: ${path.basename(componentFilePathAbs)}`
       );
     } else {
       // Fallback to reading from disk
       currentContent = fs.readFileSync(componentFilePathAbs, "utf-8");
-      console.log(
-        `[importElementToFile] Using content from disk: ${path.basename(
-          componentFilePathAbs
-        )}`
-      );
+      console.log(`[importElementToFile] Using content from disk: ${path.basename(componentFilePathAbs)}`);
     }
 
     // Ensure ts-morph SourceFile is synchronized with current content
@@ -105,22 +97,14 @@ export async function importElementToFile(
     if (sourceFile) {
       if (sourceFile.getFullText() !== currentContent) {
         sourceFile.replaceWithText(currentContent);
-        console.log(
-          `[importElementToFile] Synchronized ts-morph SourceFile with current content`
-        );
+        console.log(`[importElementToFile] Synchronized ts-morph SourceFile with current content`);
       }
     } else {
-      sourceFile = indexerProject.createSourceFile(
-        componentFilePathAbs,
-        currentContent,
-        { overwrite: true }
-      );
+      sourceFile = indexerProject.createSourceFile(componentFilePathAbs, currentContent, { overwrite: true });
       console.log(`[importElementToFile] Created new ts-morph SourceFile`);
     }
 
-    console.log(
-      `[importElementToFile] === IMPORTING ${element.type.toUpperCase()} ===`
-    );
+    console.log(`[importElementToFile] === IMPORTING ${element.type.toUpperCase()} ===`);
     console.log(`[importElementToFile] Element name: ${element.name}`);
     console.log(`[importElementToFile] Element type: ${element.type}`);
     console.log(`[importElementToFile] Element relative path: ${element.path}`);
@@ -130,22 +114,13 @@ export async function importElementToFile(
     if (element.path.startsWith("@angular/")) {
       // For standard Angular elements, use the path directly as import path
       importPathString = element.path;
-      console.log(
-        `[importElementToFile] Using standard Angular import: ${importPathString}`
-      );
+      console.log(`[importElementToFile] Using standard Angular import: ${importPathString}`);
     } else {
       // For project elements, resolve import path using tsconfig
       const absoluteTargetModulePath = path.join(projectRootPath, element.path);
-      const absoluteTargetModulePathNoExt = switchFileType(
-        absoluteTargetModulePath,
-        ""
-      );
-      console.log(
-        `[importElementToFile] Absolute target path: ${absoluteTargetModulePath}`
-      );
-      console.log(
-        `[importElementToFile] Absolute target path (no ext): ${absoluteTargetModulePathNoExt}`
-      );
+      const absoluteTargetModulePathNoExt = switchFileType(absoluteTargetModulePath, "");
+      console.log(`[importElementToFile] Absolute target path: ${absoluteTargetModulePath}`);
+      console.log(`[importElementToFile] Absolute target path (no ext): ${absoluteTargetModulePathNoExt}`);
 
       importPathString = await TsConfigHelper.resolveImportPath(
         absoluteTargetModulePathNoExt,
@@ -154,9 +129,7 @@ export async function importElementToFile(
       );
     }
 
-    console.log(
-      `[importElementToFile] Component file: ${componentFilePathAbs}`
-    );
+    console.log(`[importElementToFile] Component file: ${componentFilePathAbs}`);
     console.log(`[importElementToFile] Project root: ${projectRootPath}`);
     console.log(
       `[importElementToFile] 🎯 FINAL IMPORT PATH for ${element.type} '${element.name}': '${importPathString}'`
@@ -166,43 +139,35 @@ export async function importElementToFile(
     let annotationModified = false;
 
     // Check if already imported from the same module
-    let importDeclaration = sourceFile.getImportDeclaration(
-      (d: any) =>
+    const importDeclaration = sourceFile.getImportDeclaration(
+      (d) =>
         d.getModuleSpecifierValue() === importPathString &&
-        d.getNamedImports().some((ni: any) => ni.getName() === element.name)
+        d.getNamedImports().some((ni) => ni.getName() === element.name)
     );
 
     if (!importDeclaration) {
       // Check if there's an existing import from the same module path
       const existingImportFromSameModule = sourceFile.getImportDeclaration(
-        (d: any) => d.getModuleSpecifierValue() === importPathString
+        (d) => d.getModuleSpecifierValue() === importPathString
       );
 
       if (existingImportFromSameModule) {
         // Add to existing import from the same module
         const namedImports = existingImportFromSameModule.getNamedImports();
-        const alreadyImported = namedImports.some(
-          (ni: any) => ni.getName() === element.name
-        );
+        const alreadyImported = namedImports.some((ni) => ni.getName() === element.name);
 
         if (!alreadyImported) {
           existingImportFromSameModule.addNamedImport(element.name);
           importStatementModified = true;
-          console.log(
-            `Added ${element.name} to existing import from ${importPathString}.`
-          );
+          console.log(`Added ${element.name} to existing import from ${importPathString}.`);
         } else {
-          console.log(
-            `${element.name} already imported from ${importPathString}.`
-          );
+          console.log(`${element.name} already imported from ${importPathString}.`);
         }
       } else {
         // Check if imported with the same name but different path
         const existingImportWithName = sourceFile
           .getImportDeclarations()
-          .find((d: any) =>
-            d.getNamedImports().some((ni: any) => ni.getName() === element.name)
-          );
+          .find((d) => d.getNamedImports().some((ni) => ni.getName() === element.name));
 
         if (existingImportWithName) {
           console.log(
@@ -217,21 +182,15 @@ export async function importElementToFile(
             moduleSpecifier: importPathString,
           });
           importStatementModified = true;
-          console.log(
-            `Added new import statement for ${element.name} from ${importPathString}.`
-          );
+          console.log(`Added new import statement for ${element.name} from ${importPathString}.`);
         }
       }
     } else {
-      console.log(
-        `${element.name} already imported correctly from ${importPathString}.`
-      );
+      console.log(`${element.name} already imported correctly from ${importPathString}.`);
     }
 
     // Add to @Component imports array
-    console.log(
-      `[importElementToFile] Adding ${element.type} '${element.name}' to @Component imports array...`
-    );
+    console.log(`[importElementToFile] Adding ${element.type} '${element.name}' to @Component imports array...`);
     annotationModified = addImportToAnnotationTsMorph(element, sourceFile);
 
     if (importStatementModified || annotationModified) {
@@ -252,26 +211,16 @@ export async function importElementToFile(
           // We must save it to trigger other extensions and update state.
           await activeDocument.save();
           console.log(
-            `[importElementToFile] Applied edits and saved active document: ${path.basename(
-              componentFilePathAbs
-            )}`
+            `[importElementToFile] Applied edits and saved active document: ${path.basename(componentFilePathAbs)}`
           );
         } else {
-          console.error(
-            `Failed to apply WorkspaceEdit to ${path.basename(
-              componentFilePathAbs
-            )}`
-          );
+          console.error(`Failed to apply WorkspaceEdit to ${path.basename(componentFilePathAbs)}`);
           return false;
         }
       } else {
         // Fallback to direct file write if document is not active
         fs.writeFileSync(componentFilePathAbs, newContent);
-        console.log(
-          `Successfully updated file ${path.basename(
-            componentFilePathAbs
-          )} for ${element.name}.`
-        );
+        console.log(`Successfully updated file ${path.basename(componentFilePathAbs)} for ${element.name}.`);
       }
 
       // Force-refresh diagnostics to prevent race conditions with other providers.
@@ -281,23 +230,15 @@ export async function importElementToFile(
             componentFilePathAbs
           )} and related HTML file.`
         );
-        await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(
-          componentFilePathAbs
-        );
+        await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(componentFilePathAbs);
 
         const htmlFilePath = switchFileType(componentFilePathAbs, ".html");
         if (fs.existsSync(htmlFilePath)) {
-          await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(
-            htmlFilePath
-          );
+          await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(htmlFilePath);
         }
       }
 
-      console.log(
-        `Successfully updated active document ${path.basename(
-          componentFilePathAbs
-        )} for ${element.name}.`
-      );
+      console.log(`Successfully updated active document ${path.basename(componentFilePathAbs)} for ${element.name}.`);
 
       return true;
     } else {
@@ -311,9 +252,7 @@ export async function importElementToFile(
   } catch (e) {
     const error = e instanceof Error ? e : new Error(String(e));
     console.error("Error importing element:", error);
-    vscode.window.showErrorMessage(
-      `Error importing ${element.name}: ${error.message}`
-    );
+    vscode.window.showErrorMessage(`Error importing ${element.name}: ${error.message}`);
     return false;
   }
 }
@@ -321,42 +260,27 @@ export async function importElementToFile(
 /**
  * Добавляет элемент в массив imports декоратора @Component
  */
-function addImportToAnnotationTsMorph(
-  element: AngularElementData,
-  sourceFile: SourceFile
-): boolean {
+function addImportToAnnotationTsMorph(element: AngularElementData, sourceFile: SourceFile): boolean {
   let modified = false;
   for (const classDeclaration of sourceFile.getClasses()) {
     const componentDecorator = classDeclaration.getDecorator("Component");
     if (componentDecorator) {
       const decoratorArgs = componentDecorator.getArguments();
-      if (
-        decoratorArgs.length > 0 &&
-        decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)
-      ) {
+      if (decoratorArgs.length > 0 && decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
         const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
-        let importsProperty = objectLiteral.getProperty("imports") as
-          | PropertyAssignment
-          | undefined;
+        const importsProperty = objectLiteral.getProperty("imports") as PropertyAssignment | undefined;
 
         if (importsProperty) {
           const initializer = importsProperty.getInitializer();
-          if (
-            initializer &&
-            initializer.isKind(SyntaxKind.ArrayLiteralExpression)
-          ) {
+          if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
             const importsArray = initializer as ArrayLiteralExpression;
-            const existingImportNames = importsArray
-              .getElements()
-              .map((el: Node) => el.getText().trim());
+            const existingImportNames = importsArray.getElements().map((el: Node) => el.getText().trim());
             if (!existingImportNames.includes(element.name)) {
               importsArray.addElement(element.name);
               modified = true;
               console.log(`Added ${element.name} to @Component imports array.`);
             } else {
-              console.log(
-                `${element.name} already in @Component imports array.`
-              );
+              console.log(`${element.name} already in @Component imports array.`);
             }
           } else {
             console.warn(
@@ -374,9 +298,7 @@ function addImportToAnnotationTsMorph(
 
           objectLiteral.addPropertyAssignment(newPropertyAssignment);
           modified = true;
-          console.log(
-            `Added 'imports: [${element.name}]' to @Component decorator.`
-          );
+          console.log(`Added 'imports: [${element.name}]' to @Component decorator.`);
         }
       }
       break; // Assuming one @Component decorator per file

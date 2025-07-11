@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/extension.ts", "src/test/suite/**/*.ts", "src/test/runTest.ts"],
+  "project": ["src/**/*.ts"],
+  "ignore": ["src/test/fixtures/**"]
+} 

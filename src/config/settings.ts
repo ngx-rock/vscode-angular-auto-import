@@ -21,9 +21,7 @@ export function getConfiguration(): ExtensionConfig {
   };
 }
 
-export function onConfigurationChanged(
-  callback: (config: ExtensionConfig) => void
-): vscode.Disposable {
+export function onConfigurationChanged(callback: (config: ExtensionConfig) => void): vscode.Disposable {
   return vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("angular-auto-import")) {
       callback(getConfiguration());
