@@ -4,6 +4,19 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.2.0] - 2025-07-11
+
+### Changed
+- Rewrote selector parsing using `@angular/compiler` for dramatically improved accuracy.
+- Major internal refactoring for better performance and future-proofing.
+- Replaced project tooling with Biome.
+
+### Added
+- More intelligent autocompletion for various Angular template syntaxes.
+
+### Fixed
+- Reduced noisy or duplicate diagnostics.
+
 ## [1.1.1] - 2025-06-24
 
 ### Fixed
