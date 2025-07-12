@@ -404,27 +404,40 @@ export class DiagnosticProvider {
           templateCssSelector.addAttribute(attr.name, attr.value ?? "");
         }
 
-        let isMatch = false;
+        const matchedSelectors: string[] = [];
         // The callback will be invoked for each selector that matches.
-        // We only need one match to proceed.
-        matcher.match(templateCssSelector, () => {
-          isMatch = true;
+        // We capture them all and will use the most specific one.
+        matcher.match(templateCssSelector, (selector) => {
+          matchedSelectors.push(selector.toString());
         });
 
-        if (!isMatch) {
-        continue;
+        if (matchedSelectors.length === 0) {
+          continue;
         }
-      }
 
-      // Only add to processed after a successful match.
-      processedCandidatesThisCall.add(candidate.name);
+        // The last matched selector is considered the most specific one by Angular's engine.
+        const specificSelector = matchedSelectors[matchedSelectors.length - 1];
 
-      if (!this.isElementImported(tsDocument, candidate)) {
-        const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
-        const diagnostic = new vscode.Diagnostic(element.range, message, severity);
-        diagnostic.code = `missing-${candidate.type}-import:${candidate.name}`;
-        diagnostic.source = "angular-auto-import";
-        diagnostics.push(diagnostic);
+        // Only add to processed after a successful match.
+        processedCandidatesThisCall.add(candidate.name);
+
+        if (!this.isElementImported(tsDocument, candidate)) {
+          const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
+          const diagnostic = new vscode.Diagnostic(element.range, message, severity);
+          diagnostic.code = `missing-${candidate.type}-import:${specificSelector}`;
+          diagnostic.source = "angular-auto-import";
+          diagnostics.push(diagnostic);
+        }
+      } else {
+        // For pipes, the candidate name is the selector
+        processedCandidatesThisCall.add(candidate.name);
+        if (!this.isElementImported(tsDocument, candidate)) {
+          const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
+          const diagnostic = new vscode.Diagnostic(element.range, message, severity);
+          diagnostic.code = `missing-${candidate.type}-import:${element.name}`;
+          diagnostic.source = "angular-auto-import";
+          diagnostics.push(diagnostic);
+        }
       }
     }
 

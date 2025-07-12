@@ -171,13 +171,7 @@ describe("QuickfixImportProvider", function () {
       );
     });
 
-    it("should have comprehensive diagnostic codes", () => {
-      const codes = QuickfixImportProvider.fixesDiagnosticCode;
-      assert.ok(codes.includes("NG8001"), "Should include NG8001 (unknown element)");
-      assert.ok(codes.includes("NG6004"), "Should include NG6004 (pipe not found)");
-      assert.ok(codes.includes("missing-component-import"), "Should include custom diagnostic codes");
-      assert.ok(codes.length > 10, "Should have comprehensive list of diagnostic codes");
-    });
+ 
   });
 
   describe("#provideCodeActions", () => {

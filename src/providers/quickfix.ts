@@ -21,26 +21,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
   constructor(private context: ProviderContext) {}
 
-  // Common Angular Language Service error codes for missing components/pipes
-  public static readonly fixesDiagnosticCode: (string | number)[] = [
-    "NG8001", // '%name%' is not a known element (if 'name' is an Angular component)
-    "NG8002", // '%name%' is not a known element (if 'name' is an HTML element, but used as component)
-    "NG8003", // '%name%' is not a known attribute name (often for directives)
-    "NG6004", // The pipe '%name%' could not be found!
-    "NG8116", // Structural directive used without corresponding import
-    "NG8103", // Missing control flow directive
-    "-998116", // A structural directive was used in the template without a corresponding import
-    "-998002", // Can't bind to property since it isn't a known property
-    "-998004", // No pipe found with name 'pipeName'
-    "-998003", // No directive found with exportAs 'xyz'
-    "-998103", // Control flow directive without corresponding import
-    "-992011", // Directive appears in imports but is not standalone
-    "missing-directive-import",
-    "missing-structural-directive-import",
-    "missing-component-import",
-    "missing-pipe-import",
-  ];
-
   async provideCodeActions(
     document: vscode.TextDocument,
     range: vscode.Range | vscode.Selection,
@@ -133,33 +113,8 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   }
 
   private isFixableDiagnostic(diagnostic: vscode.Diagnostic): boolean {
-    if (!diagnostic || !diagnostic.message) {
-      return false;
-    }
-
-    // Check diagnostic code
-    if (diagnostic.code) {
-      const codeStr = String(diagnostic.code);
-      if (QuickfixImportProvider.fixesDiagnosticCode.some((c) => String(c) === codeStr)) {
-        return true;
-      }
-    }
-
-    // Check source
-    if (diagnostic.source === "angular-auto-import") {
-      return true;
-    }
-
-    // Check message patterns
-    const message = diagnostic.message.toLowerCase();
-    return (
-      message.includes("is not a known element") ||
-      message.includes("is not a known attribute") ||
-      message.includes("structural directive") ||
-      (message.includes("pipe") && (message.includes("could not be found") || message.includes("is not found"))) ||
-      message.includes("can't bind to") ||
-      message.includes("unknown html tag")
-    );
+    // Only handle diagnostics from our own provider.
+    return diagnostic.source === "angular-auto-import";
   }
 
   private async createQuickFixesForDiagnostic(
@@ -170,66 +125,21 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     const actions: vscode.CodeAction[] = [];
 
     try {
-      const extractedTerm = document.getText(diagnostic.range).trim();
-      // console.error("XXX diagnostic", diagnostic);
-      const message = diagnostic.message;
-      let termFromMessage: string | null = null;
-
-      // Extract term from various message patterns
-      const patterns = [
-        // Combines checks for unknown elements, attributes, components, etc.
-        /['"]([^'"]+)['"]\s+is\s+(?:not\s+)?a\s+known\s+(?:element|attribute|component|directive|pipe)/i,
-        /(?:pipe|The pipe)\s+['"]([^'"]+)['"]\s+(?:could not be found|is not found)/i,
-        /No pipe found with name\s+['"]([^'"]+)['"]/i,
-        /structural directive\s+[`'"]([^`'"]+)[`'"]\s+was used/i,
-        /[`'"](\*[a-zA-Z][a-zA-Z0-9]*)[`'"]/i,
-        /Can't bind to\s+['"]([^'"]+)['"]\s+since it isn't a known property/i,
-      ];
-
-      for (const pattern of patterns) {
-        const match = pattern.exec(message);
-        if (match?.[1]) {
-          termFromMessage = match[1];
-          break;
-        }
+      // The diagnostic code is expected to be in the format "type:selector"
+      if (typeof diagnostic.code !== "string" || !diagnostic.code.includes(":")) {
+        return [];
       }
 
-      const selectorToSearch = this.extractSelector(termFromMessage || extractedTerm);
+      const selectorToSearch = diagnostic.code.split(":")[1];
 
       if (selectorToSearch) {
         console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
 
-        let matchedSelector: string | undefined;
-        // Try to find exact match first
-        let elementData = getAngularElement(selectorToSearch, indexer);
-        matchedSelector = selectorToSearch;
+        const elementData = getAngularElement(selectorToSearch, indexer);
 
-        // If not found, try alternative selector formats for the same element
-        if (!elementData) {
-          const alternativeSelectors = this.generateAlternativeSelectors(selectorToSearch);
-
-          // If the message suggests a structural directive, also try adding a '*' prefix
-          const isStructuralMessage = /structural directive/i.test(message);
-          if (isStructuralMessage && !selectorToSearch.startsWith("*")) {
-            alternativeSelectors.unshift(`*${selectorToSearch}`);
-          }
-
-          console.log(`[QuickfixImportProvider] Trying alternative selectors:`, alternativeSelectors);
-
-          for (const altSelector of alternativeSelectors) {
-            const found = getAngularElement(altSelector, indexer);
-            if (found) {
-              elementData = found;
-              matchedSelector = altSelector;
-              console.log(`[QuickfixImportProvider] Found element with alternative selector: "${altSelector}"`);
-              break;
-            }
-          }
-        } else {
+        if (elementData) {
           console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
-        }
 
-        if (elementData && matchedSelector) {
           let isAliasPath = false;
           const projCtx = this.getProjectContextForDocument(document);
 
@@ -248,9 +158,8 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
             isAliasPath = !importPath.startsWith(".");
           }
 
-          // Normalize selector for import command (remove '*' prefix for structural directives)
-          const commandSelector = matchedSelector.startsWith("*") ? matchedSelector.slice(1) : matchedSelector;
-          const action = this.createCodeAction(elementData, diagnostic, isAliasPath, commandSelector);
+          // The selector passed to the command must be the one found in the index
+          const action = this.createCodeAction(elementData, diagnostic, isAliasPath, selectorToSearch);
           if (action) {
             actions.push(action);
           }
@@ -261,82 +170,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     }
 
     return actions;
-  }
-
-  private extractSelector(text: string): string {
-    if (!text || typeof text !== "string") {
-      return "";
-    }
-
-    let cleaned = text.trim();
-
-    // Remove HTML brackets if present
-    cleaned = cleaned.replace(/^<([a-zA-Z0-9-]+)[\s\S]*?>?$/, "$1");
-
-    // If the string contains '=' (e.g., "[foo] \u003D \"bar\"") take the part before '=' to drop value assignment
-    const eqIdx = cleaned.indexOf("=");
-    if (eqIdx !== -1) {
-      cleaned = cleaned.slice(0, eqIdx).trim();
-    }
-
-    // If we still have something like [foo] or *foo, keep it – we'll normalize further below
-
-    // Handle structural directives
-    if (cleaned.startsWith("*")) {
-      return cleaned;
-    }
-
-    // Handle attribute directives like [foo]
-    if (cleaned.startsWith("[") && cleaned.includes("]")) {
-      const nameInside = cleaned.slice(1, cleaned.indexOf("]"));
-      return nameInside;
-    }
-
-    // For pipes (e.g., "| foo") – capture after '|'
-    const pipeMatch = cleaned.match(/\|\s*([a-zA-Z0-9_-]+)/);
-    if (pipeMatch?.[1]) {
-      return pipeMatch[1];
-    }
-
-    // Fallback – split on non-identifier characters and return the first meaningful chunk
-    const parts = cleaned.split(/[^a-zA-Z0-9_-]+/).filter(Boolean);
-    return parts[0] ?? "";
-  }
-
-  private generateAlternativeSelectors(selector: string): string[] {
-    const alternatives: string[] = [];
-
-    if (!selector || typeof selector !== "string") {
-      return alternatives;
-    }
-
-    // Try different case variations
-    alternatives.push(selector.toLowerCase());
-    alternatives.push(selector.toUpperCase());
-
-    // Try camelCase to kebab-case conversion and vice versa
-    if (selector.includes("-")) {
-      // Convert kebab-case to camelCase
-      const camelCase = selector.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-      alternatives.push(camelCase);
-    } else if (/[A-Z]/.test(selector)) {
-      // Convert camelCase to kebab-case
-      const kebabCase = selector.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
-      alternatives.push(kebabCase);
-    }
-
-    // Try with app- prefix if not present
-    if (!selector.startsWith("app-")) {
-      alternatives.push(`app-${selector}`);
-    }
-
-    // Try without app- prefix if present
-    if (selector.startsWith("app-")) {
-      alternatives.push(selector.substring(4));
-    }
-
-    // Remove duplicates and the original selector
-    return [...new Set(alternatives)].filter((alt) => alt !== selector);
   }
 
   private createCodeAction(
