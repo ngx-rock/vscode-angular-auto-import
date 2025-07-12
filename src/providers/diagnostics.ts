@@ -653,36 +653,7 @@ export class DiagnosticProvider {
       }
     }
 
-    const allCurrentDiagnostics = vscode.languages.getDiagnostics(uri);
-    const angularDiagnostics = allCurrentDiagnostics.filter(
-      (d) =>
-        d.source === "angular" ||
-        d.source === "Angular Language Service" ||
-        d.message.includes("is not a known element") ||
-        d.message.includes("is not a known property")
-    );
-
-    const filteredDiags = candidateDiags.filter((myDiag) => {
-      const isDuplicate = angularDiagnostics.some((angularDiag) => {
-        const doRangesOverlap = !!angularDiag.range.intersection(myDiag.range);
-
-        const myDiagMessage = myDiag.message;
-        const elementMatch = myDiagMessage.match(/'([^']*)'/);
-        if (!elementMatch) {
-          return doRangesOverlap;
-        }
-
-        const elementName = elementMatch[1];
-        const angularDiagMessage = angularDiag.message;
-        const messageIncludesElementName =
-          angularDiagMessage.includes(`'${elementName}'`) || angularDiagMessage.includes(`"${elementName}"`);
-
-        return doRangesOverlap && messageIncludesElementName;
-      });
-      return !isDuplicate;
-    });
-
-    this.diagnosticCollection.set(uri, filteredDiags);
+    this.diagnosticCollection.set(uri, candidateDiags);
   }
 }
 
