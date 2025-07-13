@@ -4,6 +4,18 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.3.0] - 2025-01-27
+
+### Improved
+- Enhanced selector matching logic for better diagnostic accuracy
+- Improved CSS selector specificity handling - now captures all matched selectors and uses the most specific one
+- Better pipe handling in template diagnostics
+- Simplified quickfix provider logic for cleaner code maintenance
+
+### Changed
+- Quickfix provider now only handles diagnostics from "angular-auto-import" source for better separation of concerns
+- Streamlined diagnostic handling workflow
+
 ## [1.2.0] - 2025-07-11
 
 ### Changed
