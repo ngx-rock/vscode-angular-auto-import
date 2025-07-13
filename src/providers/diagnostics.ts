@@ -642,7 +642,7 @@ export class DiagnosticProvider {
     }
   }
 
-  private publishFilteredDiagnostics(uri: vscode.Uri): void {
+   private publishFilteredDiagnostics(uri: vscode.Uri): void {
     const rawCandidateDiags = this.candidateDiagnostics.get(uri.toString()) || [];
 
     const candidateDiags: vscode.Diagnostic[] = [];
@@ -651,8 +651,7 @@ export class DiagnosticProvider {
       if (!alreadyExists) {
         candidateDiags.push(diag);
       }
-    }
-
+    } 
     this.diagnosticCollection.set(uri, candidateDiags);
   }
 }
