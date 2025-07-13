@@ -113,17 +113,8 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   }
 
   private isFixableDiagnostic(diagnostic: vscode.Diagnostic): boolean {
-    // Handle our own diagnostics
-    if (diagnostic.source === "angular-auto-import") {
-      return true;
-    }
-
-    // Handle any diagnostic that suggests missing imports - universal pattern matching
-    const message = diagnostic.message;
-    return message.includes("Can't bind to") || 
-           message.includes("is not a known element") ||
-           message.includes("is not a known property") ||
-           message.includes("isn't a known property");
+    // Only handle diagnostics from our own provider.
+    return diagnostic.source === "angular-auto-import";
   }
 
   private async createQuickFixesForDiagnostic(
@@ -134,28 +125,12 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     const actions: vscode.CodeAction[] = [];
 
     try {
-      let selectorToSearch: string | null = null;
-
-      if (diagnostic.source === "angular-auto-import") {
-        // The diagnostic code is expected to be in the format "type:selector"
-        if (typeof diagnostic.code === "string" && diagnostic.code.includes(":")) {
-          selectorToSearch = diagnostic.code.split(":")[1];
-        }
-      } else {
-        // Universal pattern matching for any diagnostic source
-        const message = diagnostic.message;
-        const cantBindMatch = message.match(/Can't bind to '([^']+)'/);
-        const notKnownElementMatch = message.match(/'([^']+)' is not a known element/);
-        const notKnownPropertyMatch = message.match(/'([^']+)' (?:is not a known property|isn't a known property)/);
-        
-        if (cantBindMatch) {
-          selectorToSearch = cantBindMatch[1];
-        } else if (notKnownElementMatch) {
-          selectorToSearch = notKnownElementMatch[1];
-        } else if (notKnownPropertyMatch) {
-          selectorToSearch = notKnownPropertyMatch[1];
-        }
+      // The diagnostic code is expected to be in the format "type:selector"
+      if (typeof diagnostic.code !== "string" || !diagnostic.code.includes(":")) {
+        return [];
       }
+
+      const selectorToSearch = diagnostic.code.split(":")[1];
 
       if (selectorToSearch) {
         console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
@@ -225,7 +200,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       };
 
       action.diagnostics = [diagnostic];
-      action.isPreferred = isStandardAngular || isAliasPath;
+      action.isPreferred = true;
 
       return action;
     } catch (error) {
