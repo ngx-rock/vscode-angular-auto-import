@@ -986,9 +986,17 @@ export class AngularIndexer {
             if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
               selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
             }
-            // Standalone is the last argument
-            const lastArg = typeArgs[typeArgs.length - 1];
-            isStandalone = lastArg?.isKind(SyntaxKind.TrueKeyword) ?? false;
+            // Standalone: try 9th argument, then fallback to last argument
+            if (typeArgs.length > 8) {
+              isStandalone = typeArgs[8].isKind(SyntaxKind.TrueKeyword);
+            } else if (typeArgs.length > 0) {
+              const lastArg = typeArgs[typeArgs.length - 1];
+              isStandalone = lastArg.isKind(SyntaxKind.TrueKeyword);
+            }
+            // Treat all external (node_modules) components as standalone
+            if (filePath.includes(`${path.sep}node_modules${path.sep}`)) {
+              isStandalone = true;
+            }
           }
         } else if (dirDef && dirDef.isKind(SyntaxKind.PropertyDeclaration)) {
           elementType = "directive";
@@ -999,8 +1007,17 @@ export class AngularIndexer {
             if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
               selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
             }
-            const lastArg = typeArgs[typeArgs.length - 1];
-            isStandalone = lastArg?.isKind(SyntaxKind.TrueKeyword) ?? false;
+            // Standalone: try 8th argument, then fallback to last argument
+            if (typeArgs.length > 7) {
+              isStandalone = typeArgs[7].isKind(SyntaxKind.TrueKeyword);
+            } else if (typeArgs.length > 0) {
+              const lastArg = typeArgs[typeArgs.length - 1];
+              isStandalone = lastArg.isKind(SyntaxKind.TrueKeyword);
+            }
+            // Treat all external (node_modules) directives as standalone
+            if (filePath.includes(`${path.sep}node_modules${path.sep}`)) {
+              isStandalone = true;
+            }
           }
         } else if (pipeDef && pipeDef.isKind(SyntaxKind.PropertyDeclaration)) {
           elementType = "pipe";
@@ -1023,8 +1040,9 @@ export class AngularIndexer {
           const exportingModule = componentToModuleMap.get(className);
           const individualSelectors = parseAngularSelector(selector);
           const elementData = new AngularElementData(
-            // If part of a module, the import path should point to the module's entry point
-            exportingModule?.importPath || importPath,
+            // For standalone components, we must use the direct import path.
+            // For non-standalone, we use the module's path if available.
+            isStandalone ? importPath : exportingModule?.importPath || importPath,
             // If part of a module, we will need to import the module, not the component itself
             isStandalone ? className : exportingModule?.moduleName || className,
             elementType,
