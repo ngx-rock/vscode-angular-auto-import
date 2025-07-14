@@ -8,7 +8,7 @@ import * as path from "node:path";
 /**
  * Информация о зависимостях Angular, найденных в `node_modules`.
  */
-interface AngularDependency {
+export interface AngularDependency {
   name: string;
   path: string; // Реальный путь к папке библиотеки
 }

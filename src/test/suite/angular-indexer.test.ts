@@ -281,7 +281,7 @@ describe("AngularIndexer", function () {
         "test-component",
         new AngularElementData("src/app/test.component.ts", "TestComponent", "component", "test-component", [
           "test-component",
-        ])
+        ], false)
       );
 
       mockContext.workspaceState.get = (key: string) => {

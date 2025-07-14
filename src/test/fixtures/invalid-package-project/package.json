@@ -1,0 +1,9 @@
+{
+  "name": "invalid-project",
+  "version": "1.0.0",
+  "dependencies": {
+    "@angular/core": "^17.0.0"
+  },
+  // This is invalid JSON with comments
+  "invalid": "json"
+}

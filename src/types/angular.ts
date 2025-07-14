@@ -2,6 +2,7 @@
  * Основные типы данных для Angular элементов
  */
 
+import * as vscode from "vscode";
 import type { ProcessedTsConfig } from "./tsconfig";
 
 export interface ComponentInfo {
@@ -46,4 +47,14 @@ export interface ProjectContext {
   projectRootPath: string;
   indexer: import("../services").AngularIndexer;
   tsConfig: ProcessedTsConfig | null;
+}
+
+/**
+ * Базовый интерфейс для элементов HTML, найденных в шаблоне
+ */
+export interface ParsedHtmlElement {
+  type: "component" | "pipe" | "attribute" | "structural-directive" | "property-binding" | "template-reference";
+  name: string;
+  range: vscode.Range;
+  tagName: string;
 }

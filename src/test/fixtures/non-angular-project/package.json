@@ -1,0 +1,13 @@
+{
+  "name": "non-angular-project",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.0.0",
+    "lodash": "^4.0.0",
+    "axios": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0"
+  }
+}

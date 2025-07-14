@@ -34,26 +34,26 @@ describe("QuickfixImportProvider", function () {
             "test-component",
             new AngularElementData("src/app/test.component.ts", "TestComponent", "component", "test-component", [
               "test-component",
-            ]),
+            ], false),
           ],
-          ["testPipe", new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"])],
+          ["testPipe", new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false)],
           [
             "[testDirective]",
             new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
               "testDirective",
               "[testDirective]",
-            ]),
+            ], false),
           ],
           [
             "testDirective",
             new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
               "testDirective",
               "[testDirective]",
-            ]),
+            ], false),
           ],
           [
             "*ngIf",
-            new AngularElementData("@angular/common", "NgIf", "directive", "[ngIf]", ["ngIf", "*ngIf", "[ngIf]"]),
+            new AngularElementData("@angular/common", "NgIf", "directive", "[ngIf]", ["ngIf", "*ngIf", "[ngIf]"], false),
           ],
         ]);
         return elements.get(selector);
