@@ -909,11 +909,36 @@ export class AngularIndexer {
       const sourceFile = this.project.addSourceFileAtPath(filePath);
       if (!sourceFile) return;
 
-      const classDeclarations = sourceFile.getClasses();
+      const classDeclarations = new Map<string, ClassDeclaration>();
+
+      // First, get all declarations exported from this file.
+      // This will resolve re-exports and give us the actual class declarations from other files.
+      const exportedDeclarations = sourceFile.getExportedDeclarations();
+      for (const declarations of exportedDeclarations.values()) {
+        for (const declaration of declarations) {
+          if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
+            const classDecl = declaration as ClassDeclaration;
+            const name = classDecl.getName();
+            if (name && !classDeclarations.has(name)) {
+              classDeclarations.set(name, classDecl);
+            }
+          }
+        }
+      }
+
+      // Also, include classes declared directly in this file, as they might be part of an NgModule
+      // but not explicitly exported from the package's main entry point.
+      for (const classDecl of sourceFile.getClasses()) {
+        const name = classDecl.getName();
+        if (name && !classDeclarations.has(name)) {
+          classDeclarations.set(name, classDecl);
+        }
+      }
+
       const componentToModuleMap = new Map<string, { moduleName: string; importPath: string }>();
 
       // --- Pass 1: Find all NgModules and map their exports ---
-      for (const classDecl of classDeclarations) {
+      for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
         if (!className) continue;
 
@@ -939,7 +964,7 @@ export class AngularIndexer {
       }
 
       // --- Pass 2: Find all Components, Directives, and Pipes ---
-      for (const classDecl of classDeclarations) {
+      for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
         if (!className) continue;
 
