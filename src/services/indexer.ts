@@ -8,15 +8,17 @@ import * as path from "node:path";
 import {
   type ClassDeclaration,
   type Decorator,
+  type LiteralTypeNode,
   type ObjectLiteralExpression,
   Project,
   type PropertyAssignment,
   type StringLiteral,
   SyntaxKind,
+  type TypeReferenceNode,
 } from "ts-morph";
 import * as vscode from "vscode";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
-import { parseAngularSelector } from "../utils";
+import { findAngularDependencies, getLibraryEntryPoints, parseAngularSelector } from "../utils";
 
 class TrieNode {
   public children: Map<string, TrieNode> = new Map();
@@ -347,20 +349,30 @@ export class AngularIndexer {
       const decoratorName = decorator.getName();
       let elementType: "component" | "directive" | "pipe" | null = null;
       let selector: string | undefined;
+      let isStandalone = false;
 
       switch (decoratorName) {
-        case "Component":
+        case "Component": {
           elementType = "component";
-          selector = this.extractSelectorFromDecorator(decorator);
+          const componentData = this.extractComponentDecoratorData(decorator);
+          selector = componentData.selector;
+          isStandalone = componentData.standalone;
           break;
-        case "Directive":
+        }
+        case "Directive": {
           elementType = "directive";
-          selector = this.extractSelectorFromDecorator(decorator);
+          const directiveData = this.extractDirectiveDecoratorData(decorator);
+          selector = directiveData.selector;
+          isStandalone = directiveData.standalone;
           break;
-        case "Pipe":
+        }
+        case "Pipe": {
           elementType = "pipe";
-          selector = this.extractPipeNameFromDecorator(decorator);
+          const pipeData = this.extractPipeDecoratorData(decorator);
+          selector = pipeData.name;
+          isStandalone = pipeData.standalone;
           break;
+        }
       }
 
       if (elementType && selector) {
@@ -371,6 +383,7 @@ export class AngularIndexer {
           lastModified: fs.statSync(filePath).mtime.getTime(), // Ok, but content hash is better
           hash: this.generateHash(fileContent), // Use content for hash
           type: elementType,
+          isStandalone: isStandalone,
         };
       }
     }
@@ -404,6 +417,100 @@ export class AngularIndexer {
       console.error("Error extracting selector from decorator:", error);
     }
     return undefined;
+  }
+
+  private extractComponentDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
+    let selector: string | undefined;
+    let standalone = false;
+
+    try {
+      const args = decorator.getArguments();
+      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+        const objectLiteral = args[0] as ObjectLiteralExpression;
+
+        // Extract selector
+        const selectorProperty = objectLiteral.getProperty("selector");
+        if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+          const initializer = selectorProperty.getInitializer();
+          if (initializer?.isKind(SyntaxKind.StringLiteral)) {
+            selector = initializer.getLiteralText();
+          }
+        }
+
+        // Extract standalone flag
+        const standaloneProperty = objectLiteral.getProperty("standalone");
+        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+          const initializer = standaloneProperty.getInitializer();
+          if (initializer?.isKind(SyntaxKind.TrueKeyword) || initializer?.isKind(SyntaxKind.FalseKeyword)) {
+            standalone = initializer.isKind(SyntaxKind.TrueKeyword);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error extracting component data from decorator:", error);
+    }
+
+    return { selector, standalone };
+  }
+
+  private extractDirectiveDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
+    let selector: string | undefined;
+    let standalone = false;
+
+    try {
+      const args = decorator.getArguments();
+      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+        const objectLiteral = args[0] as ObjectLiteralExpression;
+
+        const selectorProperty = objectLiteral.getProperty("selector");
+        if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+          const initializer = selectorProperty.getInitializer();
+          if (initializer?.isKind(SyntaxKind.StringLiteral)) {
+            selector = initializer.getLiteralText();
+          }
+        }
+
+        const standaloneProperty = objectLiteral.getProperty("standalone");
+        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+          const initializer = standaloneProperty.getInitializer();
+          standalone = initializer?.isKind(SyntaxKind.TrueKeyword) ?? false;
+        }
+      }
+    } catch (error) {
+      console.error("Error extracting directive data from decorator:", error);
+    }
+
+    return { selector, standalone };
+  }
+
+  private extractPipeDecoratorData(decorator: Decorator): { name?: string; standalone: boolean } {
+    let name: string | undefined;
+    let standalone = false;
+
+    try {
+      const args = decorator.getArguments();
+      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+        const objectLiteral = args[0] as ObjectLiteralExpression;
+
+        const nameProperty = objectLiteral.getProperty("name");
+        if (nameProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+          const initializer = nameProperty.getInitializer();
+          if (initializer?.isKind(SyntaxKind.StringLiteral)) {
+            name = initializer.getLiteralText();
+          }
+        }
+
+        const standaloneProperty = objectLiteral.getProperty("standalone");
+        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+          const initializer = standaloneProperty.getInitializer();
+          standalone = initializer?.isKind(SyntaxKind.TrueKeyword) ?? false;
+        }
+      }
+    } catch (error) {
+      console.error("Error extracting pipe data from decorator:", error);
+    }
+
+    return { name, standalone };
   }
 
   private extractPipeNameFromDecorator(decorator: Decorator): string | undefined {
@@ -482,6 +589,7 @@ export class AngularIndexer {
         lastModified: fs.statSync(filePath).mtime.getTime(),
         hash: this.generateHash(content),
         type: elementType,
+        isStandalone: false, // Fallback parser cannot determine this, default to false.
       };
     }
     return null;
@@ -556,7 +664,8 @@ export class AngularIndexer {
             parsed.name,
             parsed.type,
             parsed.selector, // original selector
-            individualSelectors
+            individualSelectors,
+            parsed.isStandalone
           );
 
           // Index the element under each individual selector
@@ -648,7 +757,9 @@ export class AngularIndexer {
       console.log(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${this.selectorTrie.size} elements.`
       );
- 
+
+      await this.indexNodeModules(context);
+
       await this.saveIndexToWorkspace(context);
       return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
     } finally {
@@ -695,7 +806,8 @@ export class AngularIndexer {
             value.name,
             value.type,
             value.originalSelector || key,
-            value.selectors || parseAngularSelector(value.originalSelector || key)
+            value.selectors || parseAngularSelector(value.originalSelector || key),
+            value.isStandalone
           );
           // Index under all its selectors
           for (const selector of elementData.selectors) {
@@ -745,6 +857,175 @@ export class AngularIndexer {
       return undefined;
     }
     return this.selectorTrie.find(selector);
+  }
+
+  public async indexNodeModules(context: vscode.ExtensionContext): Promise<void> {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `Angular Auto-Import: Indexing libraries from node_modules...`,
+        cancellable: false,
+      },
+      async (progress) => {
+        try {
+          if (!this.projectRootPath) {
+            console.error("AngularIndexer.indexNodeModules: projectRootPath not set.");
+            return;
+          }
+          progress.report({ message: "Finding Angular libraries..." });
+          const angularDeps = await findAngularDependencies(this.projectRootPath);
+          console.log(`[indexNodeModules] Found ${angularDeps.length} Angular dependencies.`);
+
+          const totalDeps = angularDeps.length;
+          let processedCount = 0;
+
+          for (const dep of angularDeps) {
+            processedCount++;
+            progress.report({
+              message: `Processing ${dep.name}... (${processedCount}/${totalDeps})`,
+              increment: (1 / totalDeps) * 100,
+            });
+
+            const entryPoints = await getLibraryEntryPoints(dep);
+            if (entryPoints.size === 0) continue;
+
+            console.log(`[indexNodeModules] Found ${entryPoints.size} entry points for ${dep.name}`);
+
+            for (const [importPath, filePath] of entryPoints.entries()) {
+              await this.parseAndIndexDeclarationFile(importPath, filePath);
+            }
+          }
+          await this.saveIndexToWorkspace(context);
+          console.log(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
+        } catch (error) {
+          console.error("[indexNodeModules] Error during node_modules indexing:", error);
+        }
+      }
+    );
+  }
+
+  private async parseAndIndexDeclarationFile(importPath: string, filePath: string): Promise<void> {
+    try {
+      const sourceFile = this.project.addSourceFileAtPath(filePath);
+      if (!sourceFile) return;
+
+      const classDeclarations = sourceFile.getClasses();
+      const componentToModuleMap = new Map<string, { moduleName: string; importPath: string }>();
+
+      // --- Pass 1: Find all NgModules and map their exports ---
+      for (const classDecl of classDeclarations) {
+        const className = classDecl.getName();
+        if (!className) continue;
+
+        const modDef = classDecl.getStaticProperty("ɵmod");
+        if (modDef && modDef.isKind(SyntaxKind.PropertyDeclaration)) {
+          const typeNode = modDef.getTypeNode();
+          if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+            const typeRef = typeNode as TypeReferenceNode;
+            const typeArgs = typeRef.getTypeArguments();
+
+            // The 'exports' array is the 4th type argument in ɵɵNgModuleDeclaration
+            if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
+              const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+              for (const element of exportsTuple.getElements()) {
+                if (element.isKind(SyntaxKind.TypeQuery)) {
+                  const exportedClassName = element.asKindOrThrow(SyntaxKind.TypeQuery).getExprName().getText();
+                  componentToModuleMap.set(exportedClassName, { moduleName: className, importPath });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // --- Pass 2: Find all Components, Directives, and Pipes ---
+      for (const classDecl of classDeclarations) {
+        const className = classDecl.getName();
+        if (!className) continue;
+
+        let elementType: "component" | "directive" | "pipe" | null = null;
+        let selector: string | undefined;
+        let isStandalone = false;
+
+        const cmpDef = classDecl.getStaticProperty("ɵcmp");
+        const dirDef = classDecl.getStaticProperty("ɵdir");
+        const pipeDef = classDecl.getStaticProperty("ɵpipe");
+
+        if (cmpDef && cmpDef.isKind(SyntaxKind.PropertyDeclaration)) {
+          elementType = "component";
+          const typeNode = cmpDef.getTypeNode();
+          if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+            const typeRef = typeNode as TypeReferenceNode;
+            const typeArgs = typeRef.getTypeArguments();
+            // Selector is 2nd argument
+            if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
+              selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
+            }
+            // Standalone is the last argument
+            const lastArg = typeArgs[typeArgs.length - 1];
+            isStandalone = lastArg?.isKind(SyntaxKind.TrueKeyword) ?? false;
+          }
+        } else if (dirDef && dirDef.isKind(SyntaxKind.PropertyDeclaration)) {
+          elementType = "directive";
+          const typeNode = dirDef.getTypeNode();
+          if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+            const typeRef = typeNode as TypeReferenceNode;
+            const typeArgs = typeRef.getTypeArguments();
+            if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
+              selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
+            }
+            const lastArg = typeArgs[typeArgs.length - 1];
+            isStandalone = lastArg?.isKind(SyntaxKind.TrueKeyword) ?? false;
+          }
+        } else if (pipeDef && pipeDef.isKind(SyntaxKind.PropertyDeclaration)) {
+          elementType = "pipe";
+          const typeNode = pipeDef.getTypeNode();
+          if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+            const typeRef = typeNode as TypeReferenceNode;
+            const typeArgs = typeRef.getTypeArguments();
+            // Pipe name is 2nd argument
+            if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
+              selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
+            }
+            // Standalone is 3rd argument
+            if (typeArgs.length > 2) {
+              isStandalone = typeArgs[2].isKind(SyntaxKind.TrueKeyword);
+            }
+          }
+        }
+
+        if (elementType && selector) {
+          const exportingModule = componentToModuleMap.get(className);
+          const individualSelectors = parseAngularSelector(selector);
+          const elementData = new AngularElementData(
+            // If part of a module, the import path should point to the module's entry point
+            exportingModule?.importPath || importPath,
+            // If part of a module, we will need to import the module, not the component itself
+            isStandalone ? className : exportingModule?.moduleName || className,
+            elementType,
+            selector,
+            individualSelectors,
+            isStandalone,
+            isStandalone ? undefined : exportingModule?.moduleName
+          );
+
+          for (const sel of individualSelectors) {
+            this.selectorTrie.insert(sel, elementData);
+          }
+          if (isStandalone) {
+            console.log(
+              `[NodeModulesIndexer] Indexed standalone ${elementType}: ${className} (${selector}) from ${importPath}`
+            );
+          } else if (exportingModule) {
+            console.log(
+              `[NodeModulesIndexer] Indexed non-standalone ${elementType}: ${className} (${selector}) via ${exportingModule.moduleName} from ${exportingModule.importPath}`
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error parsing declaration file ${filePath} from import ${importPath}:`, error);
+    }
   }
 
   getAllSelectors(): string[] {

@@ -1,16 +1,37 @@
 /**
- * Angular-специфичные типы и интерфейсы
+ * Основные типы данных для Angular элементов
  */
 
+import type { ProcessedTsConfig } from "./tsconfig";
+
 export interface ComponentInfo {
-  path: string; // Relative to project root
+  path: string;
   name: string;
   selector: string;
+  type: "component" | "directive" | "pipe";
   lastModified: number;
   hash: string;
-  type: "component" | "directive" | "pipe";
+  isStandalone: boolean;
 }
 
+/**
+ * Представляет данные об элементе Angular для индексации
+ */
+export class AngularElementData {
+  constructor(
+    public readonly path: string,
+    public readonly name: string,
+    public readonly type: "component" | "directive" | "pipe",
+    public readonly originalSelector: string,
+    public readonly selectors: string[],
+    public readonly isStandalone: boolean,
+    public readonly exportingModuleName?: string
+  ) {}
+}
+
+/**
+ * Информация об элементах, найденных в одном файле
+ */
 export interface FileElementsInfo {
   filePath: string;
   lastModified: number;
@@ -18,39 +39,11 @@ export interface FileElementsInfo {
   elements: ComponentInfo[];
 }
 
-export class AngularElementData {
-  path: string; // Relative to project root
-  name: string;
-  type: "component" | "directive" | "pipe";
-  /** Все селекторы, под которыми данный элемент может быть найден */
-  selectors: string[];
-  /** Оригинальный селектор из кода */
-  originalSelector: string;
-
-  constructor(
-    path: string,
-    name: string,
-    type: "component" | "directive" | "pipe",
-    originalSelector: string,
-    selectors: string[]
-  ) {
-    this.path = path;
-    this.name = name;
-    this.type = type;
-    this.originalSelector = originalSelector;
-    this.selectors = selectors;
-  }
-}
-
-export interface ParsedHtmlElement {
-  type: "attribute" | "structural-directive" | "component" | "property-binding" | "pipe" | "template-reference";
-  name: string;
-  range: import("vscode").Range;
-  tagName: string;
-}
-
+/**
+ * Контекст проекта для передачи провайдерам
+ */
 export interface ProjectContext {
   projectRootPath: string;
   indexer: import("../services").AngularIndexer;
-  tsConfig: import("../types").ProcessedTsConfig | null;
+  tsConfig: ProcessedTsConfig | null;
 }

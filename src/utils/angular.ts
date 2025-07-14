@@ -253,7 +253,14 @@ export function getAngularElement(selector: string, indexer: AngularIndexer): An
     // 2. Then try standard Angular elements
     const std = STANDARD_ANGULAR_ELEMENTS[sel];
     if (std) {
-      return new AngularElementData(std.importPath, std.name, std.type, std.originalSelector, std.selectors);
+      return new AngularElementData(
+        std.importPath,
+        std.name,
+        std.type,
+        std.originalSelector,
+        std.selectors,
+        !std.name.endsWith("Module") // Heuristic for standard elements
+      );
     }
   }
 

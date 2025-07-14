@@ -180,16 +180,17 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     selector: string
   ): vscode.CodeAction | null {
     try {
-      const isStandardAngular = element.path.startsWith("@angular/");
       const isModule = element.name.endsWith("Module");
 
       let title: string;
       if (isModule) {
-        title = `★ Import ${element.name} module`;
-      } else if (isStandardAngular) {
-        title = `★ Import ${element.name} (Angular)`;
+        title = `★ Import ${element.name}`;
+      } else if (element.isStandalone) {
+        title = `★ Import ${element.name} (standalone)`;
+      } else if (element.exportingModuleName) {
+        title = `★ Import ${element.name} (via ${element.exportingModuleName})`;
       } else {
-        title = `★ Import ${element.name} (${element.type})`;
+        title = `★ Import ${element.name}`;
       }
 
       const action = new vscode.CodeAction(title, vscode.CodeActionKind.QuickFix);

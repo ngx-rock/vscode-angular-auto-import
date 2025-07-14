@@ -46,7 +46,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const pipeRegex = /\|\s*([a-zA-Z0-9_]*)$/;
     const pipeMatch = pipeRegex.exec(linePrefix);
     // Matches template reference variable value context, e.g., #myCtrl="ngForm" | supports both ' and " quotes
-    const referenceValueRegex = /#[a-zA-Z0-9_-]*\s*=\s*[\"']([a-zA-Z0-9_-]*)[\"']?$/;
+    const referenceValueRegex = /#[a-zA-Z0-9_-]*\s*=\s*["']([a-zA-Z0-9_-]*)["']?$/;
     const referenceValueMatch = referenceValueRegex.exec(linePrefix);
 
     if (pipeMatch) {
@@ -258,12 +258,24 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         if (replacementRange) {
           item.range = replacementRange;
         }
-        item.detail = `Angular Auto-Import: ${element.type} (${path.basename(projCtx.projectRootPath)})`;
-        item.documentation = new vscode.MarkdownString(
-          `Import \`${element.name}\` (${element.type}) from \`${
-            element.path
-          }\`.\n\nSelector/Pipe Name: \`${bestMatchingSelector}\`\n\nAll selectors: ${selectors.join(", ")}`
-        );
+
+        if (element.isStandalone) {
+          item.detail = `Angular Auto-Import: standalone ${element.type}`;
+          item.documentation = new vscode.MarkdownString(
+            `✅ Import standalone \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector: \`${bestMatchingSelector}\``
+          );
+        } else if (element.exportingModuleName) {
+          item.detail = `Angular Auto-Import: from ${element.exportingModuleName}`;
+          item.documentation = new vscode.MarkdownString(
+            `⚠️ Import \`${element.name}\` via \`${element.exportingModuleName}\` module from \`${element.path}\`.\n\nSelector: \`${bestMatchingSelector}\``
+          );
+        } else {
+          item.detail = `Angular Auto-Import: ${element.type}`;
+          item.documentation = new vscode.MarkdownString(
+            `Import \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector: \`${bestMatchingSelector}\``
+          );
+        }
+
         item.command = {
           title: `Import ${element.name}`,
           command: "angular-auto-import.importElement",
