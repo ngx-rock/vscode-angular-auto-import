@@ -953,9 +953,32 @@ export class AngularIndexer {
             if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
               const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
               for (const element of exportsTuple.getElements()) {
+                let exportedClassName: string | undefined;
+
                 if (element.isKind(SyntaxKind.TypeQuery)) {
-                  const exportedClassName = element.asKindOrThrow(SyntaxKind.TypeQuery).getExprName().getText();
-                  componentToModuleMap.set(exportedClassName, { moduleName: className, importPath });
+                  // Handles both `() => import(...)` and `typeof MyComponent`
+                  const typeQueryNode = element.asKindOrThrow(SyntaxKind.TypeQuery);
+                  const exprName = typeQueryNode.getExprName();
+
+                  if (exprName.isKind(SyntaxKind.Identifier)) {
+                    // This covers `typeof MyComponent` where `exprName` is `MyComponent`
+                    // and also direct references in some library formats.
+                    exportedClassName = exprName.getText();
+                  } else {
+                    // This handles `() => import(...)`
+                    exportedClassName = exprName.getText();
+                  }
+                } else if (element.isKind(SyntaxKind.TypeReference)) {
+                  // Handles direct type references like `MyComponent`
+                  exportedClassName = element.asKindOrThrow(SyntaxKind.TypeReference).getTypeName().getText();
+                }
+
+                if (exportedClassName) {
+                  // Do not overwrite. First module found that exports a component 'wins'.
+                  // This is a simple heuristic. A better approach might involve path analysis.
+                  if (!componentToModuleMap.has(exportedClassName)) {
+                    componentToModuleMap.set(exportedClassName, { moduleName: className, importPath });
+                  }
                 }
               }
             }
@@ -986,16 +1009,12 @@ export class AngularIndexer {
             if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
               selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
             }
-            // Standalone: try 9th argument, then fallback to last argument
-            if (typeArgs.length > 8) {
-              isStandalone = typeArgs[8].isKind(SyntaxKind.TrueKeyword);
-            } else if (typeArgs.length > 0) {
-              const lastArg = typeArgs[typeArgs.length - 1];
-              isStandalone = lastArg.isKind(SyntaxKind.TrueKeyword);
-            }
-            // Treat all external (node_modules) components as standalone
-            if (filePath.includes(`${path.sep}node_modules${path.sep}`)) {
-              isStandalone = true;
+            // Standalone is the 8th argument in ɵɵComponentDeclaration
+            if (typeArgs.length > 7) {
+              const standaloneArg = typeArgs[7];
+              if (standaloneArg.isKind(SyntaxKind.LiteralType)) {
+                isStandalone = standaloneArg.getLiteral().isKind(SyntaxKind.TrueKeyword);
+              }
             }
           }
         } else if (dirDef && dirDef.isKind(SyntaxKind.PropertyDeclaration)) {
@@ -1007,16 +1026,12 @@ export class AngularIndexer {
             if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
               selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
             }
-            // Standalone: try 8th argument, then fallback to last argument
+            // Standalone is the 8th argument in ɵɵDirectiveDeclaration
             if (typeArgs.length > 7) {
-              isStandalone = typeArgs[7].isKind(SyntaxKind.TrueKeyword);
-            } else if (typeArgs.length > 0) {
-              const lastArg = typeArgs[typeArgs.length - 1];
-              isStandalone = lastArg.isKind(SyntaxKind.TrueKeyword);
-            }
-            // Treat all external (node_modules) directives as standalone
-            if (filePath.includes(`${path.sep}node_modules${path.sep}`)) {
-              isStandalone = true;
+              const standaloneArg = typeArgs[7];
+              if (standaloneArg.isKind(SyntaxKind.LiteralType)) {
+                isStandalone = standaloneArg.getLiteral().isKind(SyntaxKind.TrueKeyword);
+              }
             }
           }
         } else if (pipeDef && pipeDef.isKind(SyntaxKind.PropertyDeclaration)) {
@@ -1031,7 +1046,10 @@ export class AngularIndexer {
             }
             // Standalone is 3rd argument
             if (typeArgs.length > 2) {
-              isStandalone = typeArgs[2].isKind(SyntaxKind.TrueKeyword);
+              const standaloneArg = typeArgs[2];
+              if (standaloneArg.isKind(SyntaxKind.LiteralType)) {
+                isStandalone = standaloneArg.getLiteral().isKind(SyntaxKind.TrueKeyword);
+              }
             }
           }
         }
