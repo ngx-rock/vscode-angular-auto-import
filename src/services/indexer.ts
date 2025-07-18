@@ -513,34 +513,6 @@ export class AngularIndexer {
     return { name, standalone };
   }
 
-  private extractPipeNameFromDecorator(decorator: Decorator): string | undefined {
-    try {
-      const args = decorator.getArguments();
-      if (args.length === 0) {
-        return undefined;
-      }
-
-      const firstArg = args[0];
-      if (!firstArg || !firstArg.isKind(SyntaxKind.ObjectLiteralExpression)) {
-        return undefined;
-      }
-
-      const objectLiteral = firstArg as ObjectLiteralExpression;
-      const nameProperty = objectLiteral.getProperty("name");
-
-      if (nameProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-        const propertyAssignment = nameProperty as PropertyAssignment;
-        const initializer = propertyAssignment.getInitializer();
-
-        if (initializer?.isKind(SyntaxKind.StringLiteral)) {
-          return (initializer as StringLiteral).getLiteralText();
-        }
-      }
-    } catch (error) {
-      console.error("Error extracting pipe name from decorator:", error);
-    }
-    return undefined;
-  }
 
   private parseAngularElementWithRegex(filePath: string, content: string): ComponentInfo | null {
     // This is a fallback, ensure it's robust enough or log clearly when it's used.
