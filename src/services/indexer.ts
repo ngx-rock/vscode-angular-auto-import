@@ -15,6 +15,7 @@ import {
   type StringLiteral,
   SyntaxKind,
   type TypeReferenceNode,
+  type SourceFile,
 } from "ts-morph";
 import * as vscode from "vscode";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
@@ -388,35 +389,6 @@ export class AngularIndexer {
       }
     }
     return null;
-  }
-
-  private extractSelectorFromDecorator(decorator: Decorator): string | undefined {
-    try {
-      const args = decorator.getArguments();
-      if (args.length === 0) {
-        return undefined;
-      }
-
-      const firstArg = args[0];
-      if (!firstArg || !firstArg.isKind(SyntaxKind.ObjectLiteralExpression)) {
-        return undefined;
-      }
-
-      const objectLiteral = firstArg as ObjectLiteralExpression;
-      const selectorProperty = objectLiteral.getProperty("selector");
-
-      if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-        const propertyAssignment = selectorProperty as PropertyAssignment;
-        const initializer = propertyAssignment.getInitializer();
-
-        if (initializer?.isKind(SyntaxKind.StringLiteral)) {
-          return (initializer as StringLiteral).getLiteralText();
-        }
-      }
-    } catch (error) {
-      console.error("Error extracting selector from decorator:", error);
-    }
-    return undefined;
   }
 
   private extractComponentDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
@@ -862,10 +834,7 @@ export class AngularIndexer {
             if (entryPoints.size === 0) continue;
 
             console.log(`[indexNodeModules] Found ${entryPoints.size} entry points for ${dep.name}`);
-
-            for (const [importPath, filePath] of entryPoints.entries()) {
-              await this.parseAndIndexDeclarationFile(importPath, filePath);
-            }
+            await this._indexLibrary(entryPoints);
           }
           await this.saveIndexToWorkspace(context);
           console.log(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
@@ -876,11 +845,42 @@ export class AngularIndexer {
     );
   }
 
-  private async parseAndIndexDeclarationFile(importPath: string, filePath: string): Promise<void> {
-    try {
-      const sourceFile = this.project.addSourceFileAtPath(filePath);
-      if (!sourceFile) return;
+  private async _indexLibrary(entryPoints: Map<string, string>): Promise<void> {
+    const libraryFiles: { importPath: string; sourceFile: SourceFile }[] = [];
+    for (const [importPath, filePath] of entryPoints.entries()) {
+      try {
+        const sourceFile = this.project.addSourceFileAtPathIfExists(filePath);
+        if (sourceFile) {
+          libraryFiles.push({ importPath, sourceFile });
+        }
+      } catch (error) {
+        console.warn(`[Indexer] Could not process library file ${filePath}:`, error);
+      }
+    }
 
+    if (libraryFiles.length === 0) {
+      return;
+    }
+
+    const componentToModuleMap = new Map<string, { moduleName: string; importPath: string }>();
+
+    // Pass 1: Build a complete map of all modules and their exports for the entire library
+    for (const { importPath, sourceFile } of libraryFiles) {
+      this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap);
+    }
+
+    // Pass 2: Index all components/directives/pipes using the complete map
+    for (const { importPath, sourceFile } of libraryFiles) {
+      this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap);
+    }
+  }
+
+  private _buildComponentToModuleMap(
+    sourceFile: SourceFile,
+    importPath: string,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
+  ) {
+    try {
       const classDeclarations = new Map<string, ClassDeclaration>();
 
       // First, get all declarations exported from this file.
@@ -898,8 +898,7 @@ export class AngularIndexer {
         }
       }
 
-      // Also, include classes declared directly in this file, as they might be part of an NgModule
-      // but not explicitly exported from the package's main entry point.
+      // Also, include classes declared directly in this file
       for (const classDecl of sourceFile.getClasses()) {
         const name = classDecl.getName();
         if (name && !classDeclarations.has(name)) {
@@ -907,9 +906,7 @@ export class AngularIndexer {
         }
       }
 
-      const componentToModuleMap = new Map<string, { moduleName: string; importPath: string }>();
-
-      // --- Pass 1: Find all NgModules and map their exports ---
+      // Find all NgModules and map their exports
       for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
         if (!className) continue;
@@ -921,35 +918,25 @@ export class AngularIndexer {
             const typeRef = typeNode as TypeReferenceNode;
             const typeArgs = typeRef.getTypeArguments();
 
-            // The 'exports' array is the 4th type argument in ɵɵNgModuleDeclaration
             if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
               const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
               for (const element of exportsTuple.getElements()) {
                 let exportedClassName: string | undefined;
 
                 if (element.isKind(SyntaxKind.TypeQuery)) {
-                  // Handles both `() => import(...)` and `typeof MyComponent`
                   const typeQueryNode = element.asKindOrThrow(SyntaxKind.TypeQuery);
-                  const exprName = typeQueryNode.getExprName();
-
-                  if (exprName.isKind(SyntaxKind.Identifier)) {
-                    // This covers `typeof MyComponent` where `exprName` is `MyComponent`
-                    // and also direct references in some library formats.
-                    exportedClassName = exprName.getText();
-                  } else {
-                    // This handles `() => import(...)`
-                    exportedClassName = exprName.getText();
-                  }
+                  exportedClassName = typeQueryNode.getExprName().getText();
                 } else if (element.isKind(SyntaxKind.TypeReference)) {
-                  // Handles direct type references like `MyComponent`
                   exportedClassName = element.asKindOrThrow(SyntaxKind.TypeReference).getTypeName().getText();
                 }
 
                 if (exportedClassName) {
                   // Do not overwrite. First module found that exports a component 'wins'.
-                  // This is a simple heuristic. A better approach might involve path analysis.
                   if (!componentToModuleMap.has(exportedClassName)) {
-                    componentToModuleMap.set(exportedClassName, { moduleName: className, importPath });
+                    componentToModuleMap.set(exportedClassName, {
+                      moduleName: className,
+                      importPath,
+                    });
                   }
                 }
               }
@@ -957,8 +944,41 @@ export class AngularIndexer {
           }
         }
       }
+    } catch (error) {
+      console.error(`Error building module map for file ${sourceFile.getFilePath()}:`, error);
+    }
+  }
 
-      // --- Pass 2: Find all Components, Directives, and Pipes ---
+  private _indexDeclarationsInFile(
+    sourceFile: SourceFile,
+    importPath: string,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
+  ) {
+    try {
+      const classDeclarations = new Map<string, ClassDeclaration>();
+
+      // This logic is duplicated from _buildComponentToModuleMap to ensure we have all class definitions.
+      // A more optimized approach could pass this data from the first pass, but this is safer.
+      const exportedDeclarations = sourceFile.getExportedDeclarations();
+      for (const declarations of exportedDeclarations.values()) {
+        for (const declaration of declarations) {
+          if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
+            const classDecl = declaration as ClassDeclaration;
+            const name = classDecl.getName();
+            if (name && !classDeclarations.has(name)) {
+              classDeclarations.set(name, classDecl);
+            }
+          }
+        }
+      }
+      for (const classDecl of sourceFile.getClasses()) {
+        const name = classDecl.getName();
+        if (name && !classDeclarations.has(name)) {
+          classDeclarations.set(name, classDecl);
+        }
+      }
+
+      // Find all Components, Directives, and Pipes
       for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
         if (!className) continue;
@@ -977,17 +997,10 @@ export class AngularIndexer {
           if (typeNode?.isKind(SyntaxKind.TypeReference)) {
             const typeRef = typeNode as TypeReferenceNode;
             const typeArgs = typeRef.getTypeArguments();
-            // Selector is 2nd argument
             if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
               selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
             }
-            // Standalone is the 8th argument in ɵɵComponentDeclaration
-            if (typeArgs.length > 7) {
-              const standaloneArg = typeArgs[7];
-              if (standaloneArg.isKind(SyntaxKind.LiteralType)) {
-                isStandalone = standaloneArg.getLiteral().isKind(SyntaxKind.TrueKeyword);
-              }
-            }
+            if (typeArgs.length > 7) isStandalone = typeArgs[7].getText() === "true";
           }
         } else if (dirDef && dirDef.isKind(SyntaxKind.PropertyDeclaration)) {
           elementType = "directive";
@@ -998,13 +1011,7 @@ export class AngularIndexer {
             if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
               selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
             }
-            // Standalone is the 8th argument in ɵɵDirectiveDeclaration
-            if (typeArgs.length > 7) {
-              const standaloneArg = typeArgs[7];
-              if (standaloneArg.isKind(SyntaxKind.LiteralType)) {
-                isStandalone = standaloneArg.getLiteral().isKind(SyntaxKind.TrueKeyword);
-              }
-            }
+            if (typeArgs.length > 7) isStandalone = typeArgs[7].getText() === "true";
           }
         } else if (pipeDef && pipeDef.isKind(SyntaxKind.PropertyDeclaration)) {
           elementType = "pipe";
@@ -1012,52 +1019,48 @@ export class AngularIndexer {
           if (typeNode?.isKind(SyntaxKind.TypeReference)) {
             const typeRef = typeNode as TypeReferenceNode;
             const typeArgs = typeRef.getTypeArguments();
-            // Pipe name is 2nd argument
             if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
               selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
             }
-            // Standalone is 3rd argument
-            if (typeArgs.length > 2) {
-              const standaloneArg = typeArgs[2];
-              if (standaloneArg.isKind(SyntaxKind.LiteralType)) {
-                isStandalone = standaloneArg.getLiteral().isKind(SyntaxKind.TrueKeyword);
-              }
-            }
+            if (typeArgs.length > 2) isStandalone = typeArgs[2].getText() === "true";
           }
         }
 
         if (elementType && selector) {
           const exportingModule = componentToModuleMap.get(className);
           const individualSelectors = parseAngularSelector(selector);
+
+          let finalImportPath = importPath;
+          let finalImportName = className;
+
+          if (exportingModule) {
+            finalImportPath = exportingModule.importPath;
+            finalImportName = isStandalone ? className : exportingModule.moduleName;
+          }
+
           const elementData = new AngularElementData(
-            // For standalone components, we must use the direct import path.
-            // For non-standalone, we use the module's path if available.
-            isStandalone ? importPath : exportingModule?.importPath || importPath,
-            // If part of a module, we will need to import the module, not the component itself
-            isStandalone ? className : exportingModule?.moduleName || className,
+            finalImportPath,
+            finalImportName,
             elementType,
             selector,
             individualSelectors,
             isStandalone,
-            isStandalone ? undefined : exportingModule?.moduleName
+            !isStandalone && exportingModule ? exportingModule.moduleName : undefined
           );
 
           for (const sel of individualSelectors) {
             this.selectorTrie.insert(sel, elementData);
           }
-          if (isStandalone) {
-            console.log(
-              `[NodeModulesIndexer] Indexed standalone ${elementType}: ${className} (${selector}) from ${importPath}`
-            );
-          } else if (exportingModule) {
-            console.log(
-              `[NodeModulesIndexer] Indexed non-standalone ${elementType}: ${className} (${selector}) via ${exportingModule.moduleName} from ${exportingModule.importPath}`
-            );
-          }
+
+          const via = exportingModule ? `via ${exportingModule.moduleName}` : "directly";
+          const standaloneTag = isStandalone ? "standalone" : "non-standalone";
+          console.log(
+            `[NodeModulesIndexer] Indexed ${standaloneTag} ${elementType}: ${className} (${selector}) ${via} from ${finalImportPath}. Import target: ${finalImportName}`
+          );
         }
       }
     } catch (error) {
-      console.error(`Error parsing declaration file ${filePath} from import ${importPath}:`, error);
+      console.error(`Error indexing declarations in file ${sourceFile.getFilePath()}:`, error);
     }
   }
 
