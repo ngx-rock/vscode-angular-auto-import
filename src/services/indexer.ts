@@ -11,8 +11,6 @@ import {
   type LiteralTypeNode,
   type ObjectLiteralExpression,
   Project,
-  type PropertyAssignment,
-  type StringLiteral,
   SyntaxKind,
   type TypeReferenceNode,
   type SourceFile,
@@ -978,51 +976,94 @@ export class AngularIndexer {
         }
       }
 
+      /**
+       * Recursively searches for a static property (e.g., ɵcmp) in the inheritance chain.
+       */
+      const findInheritedStaticProperty = (
+        cls: ClassDeclaration,
+        propName: "ɵcmp" | "ɵdir" | "ɵpipe"
+      ): { owner: ClassDeclaration; prop: import("ts-morph").PropertyDeclaration | undefined } => {
+        let current: ClassDeclaration | undefined = cls;
+        while (current) {
+          const prop = current.getStaticProperty(propName);
+          if (prop && prop.isKind(SyntaxKind.PropertyDeclaration)) {
+            return { owner: current, prop };
+          }
+          current = current.getBaseClass();
+        }
+        return { owner: cls, prop: undefined };
+      };
+
       // Find all Components, Directives, and Pipes
       for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
         if (!className) continue;
 
+        // Reset for each class
         let elementType: "component" | "directive" | "pipe" | null = null;
         let selector: string | undefined;
         let isStandalone = false;
 
-        const cmpDef = classDecl.getStaticProperty("ɵcmp");
-        const dirDef = classDecl.getStaticProperty("ɵdir");
-        const pipeDef = classDecl.getStaticProperty("ɵpipe");
-
-        if (cmpDef && cmpDef.isKind(SyntaxKind.PropertyDeclaration)) {
+        // Check for component, then directive, then pipe
+        const { prop: cmpDef } = findInheritedStaticProperty(classDecl, "ɵcmp");
+        if (cmpDef) {
           elementType = "component";
           const typeNode = cmpDef.getTypeNode();
           if (typeNode?.isKind(SyntaxKind.TypeReference)) {
             const typeRef = typeNode as TypeReferenceNode;
             const typeArgs = typeRef.getTypeArguments();
-            if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
-              selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
+            if (typeArgs.length > 1) {
+              const selectorNode = typeArgs[1];
+              if (selectorNode.isKind(SyntaxKind.LiteralType)) {
+                const literal = selectorNode.getLiteral();
+                if (literal.isKind(SyntaxKind.StringLiteral)) {
+                  selector = literal.getLiteralText();
+                }
+              } else if (selectorNode.isKind(SyntaxKind.TemplateLiteralType)) {
+                // Handle template literals like `button[mat-icon-button]`
+                selector = selectorNode.getText().slice(1, -1);
+              }
             }
             if (typeArgs.length > 7) isStandalone = typeArgs[7].getText() === "true";
           }
-        } else if (dirDef && dirDef.isKind(SyntaxKind.PropertyDeclaration)) {
-          elementType = "directive";
-          const typeNode = dirDef.getTypeNode();
-          if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-            const typeRef = typeNode as TypeReferenceNode;
-            const typeArgs = typeRef.getTypeArguments();
-            if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
-              selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
+        } else {
+          const { prop: dirDef } = findInheritedStaticProperty(classDecl, "ɵdir");
+          if (dirDef) {
+            elementType = "directive";
+            const typeNode = dirDef.getTypeNode();
+            if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+              const typeRef = typeNode as TypeReferenceNode;
+              const typeArgs = typeRef.getTypeArguments();
+              if (typeArgs.length > 1) {
+                const selectorNode = typeArgs[1];
+                if (selectorNode.isKind(SyntaxKind.LiteralType)) {
+                  const literal = selectorNode.getLiteral();
+                  if (literal.isKind(SyntaxKind.StringLiteral)) {
+                    selector = literal.getLiteralText();
+                  }
+                } else if (selectorNode.isKind(SyntaxKind.TemplateLiteralType)) {
+                  selector = selectorNode.getText().slice(1, -1);
+                }
+              }
+              if (typeArgs.length > 7) isStandalone = typeArgs[7].getText() === "true";
             }
-            if (typeArgs.length > 7) isStandalone = typeArgs[7].getText() === "true";
-          }
-        } else if (pipeDef && pipeDef.isKind(SyntaxKind.PropertyDeclaration)) {
-          elementType = "pipe";
-          const typeNode = pipeDef.getTypeNode();
-          if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-            const typeRef = typeNode as TypeReferenceNode;
-            const typeArgs = typeRef.getTypeArguments();
-            if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
-              selector = (typeArgs[1] as LiteralTypeNode).getLiteral().getText().slice(1, -1);
+          } else {
+            const { prop: pipeDef } = findInheritedStaticProperty(classDecl, "ɵpipe");
+            if (pipeDef) {
+              elementType = "pipe";
+              const typeNode = pipeDef.getTypeNode();
+              if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+                const typeRef = typeNode as TypeReferenceNode;
+                const typeArgs = typeRef.getTypeArguments();
+                if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
+                  const literal = (typeArgs[1] as LiteralTypeNode).getLiteral();
+                  if (literal.isKind(SyntaxKind.StringLiteral)) {
+                    selector = literal.getLiteralText();
+                  }
+                }
+                if (typeArgs.length > 2) isStandalone = typeArgs[2].getText() === "true";
+              }
             }
-            if (typeArgs.length > 2) isStandalone = typeArgs[2].getText() === "true";
           }
         }
 
