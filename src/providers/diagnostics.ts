@@ -450,6 +450,10 @@ export class DiagnosticProvider {
 
     if (element.isAttribute) {
       selectors.add(`[${name}]`);
+      if (element.tagName) {
+        selectors.add(`${element.tagName}[${name}]`);
+      }
+
       if (name.startsWith("*")) {
         selectors.add(name.substring(1));
       } else {
@@ -458,11 +462,17 @@ export class DiagnosticProvider {
       const kebab = name.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
       if (kebab !== name) {
         selectors.add(`[${kebab}]`);
+        if (element.tagName) {
+          selectors.add(`${element.tagName}[${kebab}]`);
+        }
       }
 
       const camel = name.replace(/-([a-z])/g, (_m, l) => l.toUpperCase());
       if (camel !== name) {
         selectors.add(`[${camel}]`);
+        if (element.tagName) {
+          selectors.add(`${element.tagName}[${camel}]`);
+        }
       }
     }
 
