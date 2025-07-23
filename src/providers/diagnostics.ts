@@ -445,38 +445,11 @@ export class DiagnosticProvider {
   }
 
   private generatePossibleSelectorsForElement(element: ParsedHtmlFullElement): string[] {
-    const name = element.name;
-    const selectors = new Set<string>([name]);
-
-    if (element.isAttribute) {
-      selectors.add(`[${name}]`);
-      if (element.tagName) {
-        selectors.add(`${element.tagName}[${name}]`);
-      }
-
-      if (name.startsWith("*")) {
-        selectors.add(name.substring(1));
-      } else {
-        selectors.add(`*${name}`);
-      }
-      const kebab = name.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
-      if (kebab !== name) {
-        selectors.add(`[${kebab}]`);
-        if (element.tagName) {
-          selectors.add(`${element.tagName}[${kebab}]`);
-        }
-      }
-
-      const camel = name.replace(/-([a-z])/g, (_m, l) => l.toUpperCase());
-      if (camel !== name) {
-        selectors.add(`[${camel}]`);
-        if (element.tagName) {
-          selectors.add(`${element.tagName}[${camel}]`);
-        }
-      }
-    }
-
-    return [...selectors];
+    // Now that the indexer is more robust and stores all variations,
+    // we only need to search for the element's tag name. The indexer
+    // will have already processed complex selectors like 'tui-tabs:not([vertical])'
+    // and stored 'tui-tabs' as a key.
+    return [element.name];
   }
 
   private getSourceFile(document: vscode.TextDocument): SourceFile | undefined {

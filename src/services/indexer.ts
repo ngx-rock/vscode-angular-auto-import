@@ -578,7 +578,7 @@ export class AngularIndexer {
       // Before parsing, remove all existing selectors from this file to ensure clean update
       if (cachedFile) {
         for (const oldElement of cachedFile.elements) {
-          const individualSelectors = parseAngularSelector(oldElement.selector);
+          const individualSelectors = await parseAngularSelector(oldElement.selector);
           for (const selector of individualSelectors) {
             this.selectorTrie.remove(selector, filePath);
           }
@@ -598,9 +598,9 @@ export class AngularIndexer {
         this.fileCache.set(filePath, fileElementsInfo);
 
         // Add all parsed elements to the selector index
-        parsedElements.forEach((parsed) => {
+        parsedElements.forEach(async (parsed) => {
           // Parse the selector to get all individual selectors
-          const individualSelectors = parseAngularSelector(parsed.selector);
+          const individualSelectors = await parseAngularSelector(parsed.selector);
           const elementData = new AngularElementData(
             parsed.path,
             parsed.name,
@@ -636,7 +636,7 @@ export class AngularIndexer {
     const fileInfo = this.fileCache.get(filePath);
     if (fileInfo) {
       for (const element of fileInfo.elements) {
-        const individualSelectors = parseAngularSelector(element.selector);
+        const individualSelectors = await parseAngularSelector(element.selector);
         for (const selector of individualSelectors) {
           this.selectorTrie.remove(selector, filePath);
           console.log(`Removed from index for ${this.projectRootPath}: ${selector} from ${filePath}`);
@@ -869,7 +869,7 @@ export class AngularIndexer {
 
     // Pass 2: Index all components/directives/pipes using the complete map
     for (const { importPath, sourceFile } of libraryFiles) {
-      this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap);
+      await this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap);
     }
   }
 
@@ -947,7 +947,7 @@ export class AngularIndexer {
     }
   }
 
-  private _indexDeclarationsInFile(
+  private async _indexDeclarationsInFile(
     sourceFile: SourceFile,
     importPath: string,
     componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
@@ -1069,7 +1069,7 @@ export class AngularIndexer {
 
         if (elementType && selector) {
           const exportingModule = componentToModuleMap.get(className);
-          const individualSelectors = parseAngularSelector(selector);
+          const individualSelectors = await parseAngularSelector(selector);
 
           let finalImportPath = importPath;
           let finalImportName = className;
