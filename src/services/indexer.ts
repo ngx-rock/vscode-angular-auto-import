@@ -927,7 +927,8 @@ export class AngularIndexer {
       // Find all NgModules and map their exports
       for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
-        if (!className) continue;
+        // Skip unnamed or internal Angular modules
+        if (!className || className.startsWith("ɵ")) continue;
 
         const modDef = classDecl.getStaticProperty("ɵmod");
         if (modDef && modDef.isKind(SyntaxKind.PropertyDeclaration)) {
@@ -1017,7 +1018,8 @@ export class AngularIndexer {
       // Find all Components, Directives, and Pipes
       for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
-        if (!className) continue;
+        // Skip unnamed or internal Angular classes
+        if (!className || className.startsWith("ɵ")) continue;
 
         // Check if the class is a ControlValueAccessor, and if so, skip it.
         // These are internal directives that should not be indexed for direct import.
