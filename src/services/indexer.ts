@@ -1019,6 +1019,16 @@ export class AngularIndexer {
         const className = classDecl.getName();
         if (!className) continue;
 
+        // Check if the class is a ControlValueAccessor, and if so, skip it.
+        // These are internal directives that should not be indexed for direct import.
+        const isControlValueAccessor = classDecl
+          .getImplements()
+          .some((impl) => impl.getExpression().getText() === "ControlValueAccessor");
+        if (isControlValueAccessor) {
+          console.log(`[NodeModulesIndexer] Skipping ControlValueAccessor: ${className}`);
+          continue;
+        }
+
         // Reset for each class
         let elementType: "component" | "directive" | "pipe" | null = null;
         let selector: string | undefined;
