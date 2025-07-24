@@ -32,28 +32,51 @@ describe("QuickfixImportProvider", function () {
         const elements = new Map([
           [
             "test-component",
-            new AngularElementData("src/app/test.component.ts", "TestComponent", "component", "test-component", [
+            new AngularElementData(
+              "src/app/test.component.ts",
+              "TestComponent",
+              "component",
               "test-component",
-            ], false),
+              ["test-component"],
+              false
+            ),
           ],
-          ["testPipe", new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false)],
+          [
+            "testPipe",
+            new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false),
+          ],
           [
             "[testDirective]",
-            new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
-              "testDirective",
+            new AngularElementData(
+              "src/app/test.directive.ts",
+              "TestDirective",
+              "directive",
               "[testDirective]",
-            ], false),
+              ["testDirective", "[testDirective]"],
+              false
+            ),
           ],
           [
             "testDirective",
-            new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
-              "testDirective",
+            new AngularElementData(
+              "src/app/test.directive.ts",
+              "TestDirective",
+              "directive",
               "[testDirective]",
-            ], false),
+              ["testDirective", "[testDirective]"],
+              false
+            ),
           ],
           [
             "*ngIf",
-            new AngularElementData("@angular/common", "NgIf", "directive", "[ngIf]", ["ngIf", "*ngIf", "[ngIf]"], false),
+            new AngularElementData(
+              "@angular/common",
+              "NgIf",
+              "directive",
+              "[ngIf]",
+              ["ngIf", "*ngIf", "[ngIf]"],
+              false
+            ),
           ],
         ]);
         return elements.get(selector);
@@ -62,28 +85,59 @@ describe("QuickfixImportProvider", function () {
         const elements = new Map([
           [
             "test-component",
-            [new AngularElementData("src/app/test.component.ts", "TestComponent", "component", "test-component", [
-              "test-component",
-            ], false)],
+            [
+              new AngularElementData(
+                "src/app/test.component.ts",
+                "TestComponent",
+                "component",
+                "test-component",
+                ["test-component"],
+                false
+              ),
+            ],
           ],
-          ["testPipe", [new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false)]],
+          [
+            "testPipe",
+            [new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false)],
+          ],
           [
             "[testDirective]",
-            [new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
-              "testDirective",
-              "[testDirective]",
-            ], false)],
+            [
+              new AngularElementData(
+                "src/app/test.directive.ts",
+                "TestDirective",
+                "directive",
+                "[testDirective]",
+                ["testDirective", "[testDirective]"],
+                false
+              ),
+            ],
           ],
           [
             "testDirective",
-            [new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
-              "testDirective",
-              "[testDirective]",
-            ], false)],
+            [
+              new AngularElementData(
+                "src/app/test.directive.ts",
+                "TestDirective",
+                "directive",
+                "[testDirective]",
+                ["testDirective", "[testDirective]"],
+                false
+              ),
+            ],
           ],
           [
             "*ngIf",
-            [new AngularElementData("@angular/common", "NgIf", "directive", "[ngIf]", ["ngIf", "*ngIf", "[ngIf]"], false)],
+            [
+              new AngularElementData(
+                "@angular/common",
+                "NgIf",
+                "directive",
+                "[ngIf]",
+                ["ngIf", "*ngIf", "[ngIf]"],
+                false
+              ),
+            ],
           ],
         ]);
         return elements.get(selector) || [];
@@ -200,8 +254,6 @@ describe("QuickfixImportProvider", function () {
         "Should provide QuickFix code actions"
       );
     });
-
- 
   });
 
   describe("#provideCodeActions", () => {

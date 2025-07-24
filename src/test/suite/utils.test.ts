@@ -8,11 +8,7 @@
 
 import * as assert from "node:assert";
 import * as path from "node:path";
-import {
-  generateImportStatement,
-  isAngularFile, 
-  resolveRelativePath,
-} from "../../utils";
+import { generateImportStatement, isAngularFile, resolveRelativePath } from "../../utils";
 
 describe("Utility Functions", function () {
   // Set timeout for all tests in this suite
@@ -107,7 +103,6 @@ describe("Utility Functions", function () {
       assert.strictEqual(isAngularFile(undefined as any), false, "Should handle undefined file path");
     });
   });
- 
 
   describe("generateImportStatement", () => {
     const testCases = [
@@ -252,7 +247,5 @@ describe("Utility Functions", function () {
         resolveRelativePath(123 as any, {} as any);
       }, "resolveRelativePath should not throw for invalid type inputs");
     });
- 
- 
   });
 });

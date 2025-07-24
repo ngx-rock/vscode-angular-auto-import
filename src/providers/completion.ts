@@ -62,13 +62,8 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     } else {
       // 2. AST-based context detection for tags and attributes
       try {
-        const {
-          parseTemplate,
-          TmplAstTextAttribute,
-          TmplAstBoundAttribute,
-          TmplAstElement,
-          TmplAstTemplate,
-        } = await import("@angular/compiler");
+        const { parseTemplate, TmplAstTextAttribute, TmplAstBoundAttribute, TmplAstElement, TmplAstTemplate } =
+          await import("@angular/compiler");
 
         // Infer the type of TmplAstNode from the return type of the parseTemplate function
         type TmplAstNode = ReturnType<typeof parseTemplate>["nodes"][number];
@@ -155,7 +150,8 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         if (replacementRange) {
           filterText = document.getText(replacementRange);
           // Adjust for structural directives where `*` is not part of the word
-          const charBefore = replacementRange.start.character > 0 ? linePrefix[replacementRange.start.character - 1] : "";
+          const charBefore =
+            replacementRange.start.character > 0 ? linePrefix[replacementRange.start.character - 1] : "";
           if (charBefore === "*") {
             replacementRange = new vscode.Range(replacementRange.start.translate(0, -1), replacementRange.end);
           }
@@ -167,7 +163,8 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       }
     }
 
-    const hasAttributeContext = context === "attribute" || context === "reference-value" || context === "structural-directive";
+    const hasAttributeContext =
+      context === "attribute" || context === "reference-value" || context === "structural-directive";
     const hasTagContext = context === "tag";
     const hasPipeContext = context === "pipe";
     const hasStructuralDirectiveContext = context === "structural-directive";
@@ -440,4 +437,3 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     return undefined;
   }
 }
- 

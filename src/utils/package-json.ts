@@ -125,4 +125,4 @@ export async function getLibraryEntryPoints(library: AngularDependency): Promise
     console.error(`[PackageJson] Error getting entry points for ${library.name}`, error);
   }
   return entryPoints;
-} 
+}

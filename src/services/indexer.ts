@@ -498,7 +498,6 @@ export class AngularIndexer {
     return { name, standalone };
   }
 
-
   private parseAngularElementWithRegex(filePath: string, content: string): ComponentInfo | null {
     // This is a fallback, ensure it's robust enough or log clearly when it's used.
     // Note: This regex approach only finds the first element, unlike the ts-morph approach
@@ -712,9 +711,7 @@ export class AngularIndexer {
       }
 
       const totalElements = this.selectorTrie.getAllElements().length;
-      console.log(
-        `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${totalElements} elements.`
-      );
+      console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${totalElements} elements.`);
 
       await this.indexNodeModules(context);
 

@@ -3,10 +3,10 @@
  * Angular Auto-Import QuickFix Provider
  * =================================================================================================
  */
- 
+
 import * as vscode from "vscode";
 import type { AngularIndexer } from "../services";
- 
+
 import type { AngularElementData } from "../types";
 import { getAngularElement } from "../utils";
 
@@ -32,9 +32,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     }
 
     // Correctly filter diagnostics: an intersection is enough to offer a fix.
-    const diagnosticsToFix = context.diagnostics.filter(
-      (diagnostic) => diagnostic.range.intersection(range)
-    );
+    const diagnosticsToFix = context.diagnostics.filter((diagnostic) => diagnostic.range.intersection(range));
 
     if (diagnosticsToFix.length === 0) {
       return [];
@@ -149,19 +147,17 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
             // const absoluteTargetModulePath = path.join(projCtx.projectRootPath, elementData.path);
             // ts-morph uses sources files without extension
             // const absoluteTargetModulePathNoExt = absoluteTargetModulePath.replace(/\.ts$/, "");
-
             // const importPath = await TsConfigHelper.resolveImportPath(
             //   absoluteTargetModulePathNoExt,
             //   document.uri.fsPath,
             //   projCtx.projectRootPath
             // );
-
             // An alias path will not start with '.', whereas a relative path will.
             // isAliasPath = !importPath.startsWith(".");
           }
 
           // The selector passed to the command must be the one found in the index
-          const action = this.createCodeAction(elementData, diagnostic,  selectorToSearch);
+          const action = this.createCodeAction(elementData, diagnostic, selectorToSearch);
           if (action) {
             actions.push(action);
           }

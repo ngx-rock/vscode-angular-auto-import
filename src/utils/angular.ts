@@ -44,11 +44,11 @@ async function parseAngularSelectorSync(selectorString: string): Promise<string[
  * Определяет интерфейс для объекта CssSelector для типобезопасности.
  */
 interface CssSelectorForParsing {
-    element: string | null;
-    classNames: string[];
-    attrs: string[];
-    notSelectors: CssSelectorForParsing[];
-    toString(): string;
+  element: string | null;
+  classNames: string[];
+  attrs: string[];
+  notSelectors: CssSelectorForParsing[];
+  toString(): string;
 }
 
 /**
@@ -60,7 +60,7 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
   if (fullSelector) {
     collection.push(fullSelector);
   }
-  
+
   // Добавляем базовый тег только если нет обязательных атрибутов
   // Это предотвращает индексацию input[tuiInputPin] под ключом "input"
   if (cssSelector.element) {
@@ -69,7 +69,7 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
       collection.push(cssSelector.element);
     }
   }
-  
+
   // Добавляем селекторы-атрибуты в квадратных скобках и без
   for (let i = 0; i < cssSelector.attrs.length; i += 2) {
     const attrName = cssSelector.attrs[i];
@@ -80,8 +80,8 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
   }
 
   // Для селекторов с :not() дополнительно добавляем версию без :not()
-  if (fullSelector && fullSelector.includes(':not')) {
-    const simplified = fullSelector.replace(/:not\([^)]+\)/g, '').trim();
+  if (fullSelector && fullSelector.includes(":not")) {
+    const simplified = fullSelector.replace(/:not\([^)]+\)/g, "").trim();
     if (simplified && simplified !== fullSelector) {
       collection.push(simplified);
     }

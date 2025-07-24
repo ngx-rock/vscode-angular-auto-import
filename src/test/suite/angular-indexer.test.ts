@@ -279,9 +279,14 @@ describe("AngularIndexer", function () {
       const cachedData = new Map();
       cachedData.set(
         "test-component",
-        new AngularElementData("src/app/test.component.ts", "TestComponent", "component", "test-component", [
+        new AngularElementData(
+          "src/app/test.component.ts",
+          "TestComponent",
+          "component",
           "test-component",
-        ], false)
+          ["test-component"],
+          false
+        )
       );
 
       mockContext.workspaceState.get = (key: string) => {

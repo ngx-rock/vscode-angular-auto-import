@@ -191,10 +191,7 @@ export async function importElementToFile(
 
     // Add to @Component imports array
     console.log(`[importElementToFile] Adding ${element.type} '${element.name}' to @Component imports array...`);
-    annotationModified = addImportToAnnotationTsMorph(
-      element.exportingModuleName || element.name,
-      sourceFile
-    );
+    annotationModified = addImportToAnnotationTsMorph(element.exportingModuleName || element.name, sourceFile);
 
     if (importStatementModified || annotationModified) {
       const newContent = sourceFile.getFullText();
