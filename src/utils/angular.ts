@@ -128,22 +128,7 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
   const seenElements = new Set<string>(); // path:name to avoid duplicates
 
   for (const sel of uniqueSelectors) {
-    // 1. Try project index first
-    try {
-      const foundInIndex = indexer.getElements(sel);
-      for (const element of foundInIndex) {
-        const key = `${element.path}:${element.name}`;
-        if (!seenElements.has(key)) {
-          foundElements.push(element);
-          seenElements.add(key);
-        }
-      }
-    } catch (error) {
-      console.warn(`Error getting element from indexer for selector '${sel}':`, error);
-      continue;
-    }
-
-    // 2. Then try standard Angular elements
+    // 1. Standard Angular elements first
     const std = STANDARD_ANGULAR_ELEMENTS[sel];
     if (std) {
       const key = `${std.importPath}:${std.name}`;
@@ -159,6 +144,23 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
         foundElements.push(element);
         seenElements.add(key);
       }
+      // Skip indexed elements for this selector since standard takes precedence
+      continue;
+    }
+
+    // 2. Then try project index
+    try {
+      const foundInIndex = indexer.getElements(sel);
+      for (const element of foundInIndex) {
+        const key = `${element.path}:${element.name}`;
+        if (!seenElements.has(key)) {
+          foundElements.push(element);
+          seenElements.add(key);
+        }
+      }
+    } catch (error) {
+      console.warn(`Error getting element from indexer for selector '${sel}':`, error);
+      continue;
     }
   }
 
