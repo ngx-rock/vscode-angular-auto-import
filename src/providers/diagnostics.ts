@@ -378,7 +378,7 @@ export class DiagnosticProvider {
     severity: vscode.DiagnosticSeverity
   ): Promise<vscode.Diagnostic[]> {
     const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
-    const possibleSelectors = this.generatePossibleSelectorsForElement(element);
+    const possibleSelectors = element.name;
     const diagnostics: vscode.Diagnostic[] = [];
     const processedCandidatesThisCall = new Set<string>();
 
@@ -442,14 +442,6 @@ export class DiagnosticProvider {
     }
 
     return diagnostics;
-  }
-
-  private generatePossibleSelectorsForElement(element: ParsedHtmlFullElement): string[] {
-    // Now that the indexer is more robust and stores all variations,
-    // we only need to search for the element's tag name. The indexer
-    // will have already processed complex selectors like 'tui-tabs:not([vertical])'
-    // and stored 'tui-tabs' as a key.
-    return [element.name];
   }
 
   private getSourceFile(document: vscode.TextDocument): SourceFile | undefined {
