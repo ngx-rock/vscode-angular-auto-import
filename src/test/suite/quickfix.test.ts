@@ -58,6 +58,36 @@ describe("QuickfixImportProvider", function () {
         ]);
         return elements.get(selector);
       },
+      getElements: (selector: string) => {
+        const elements = new Map([
+          [
+            "test-component",
+            [new AngularElementData("src/app/test.component.ts", "TestComponent", "component", "test-component", [
+              "test-component",
+            ], false)],
+          ],
+          ["testPipe", [new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false)]],
+          [
+            "[testDirective]",
+            [new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
+              "testDirective",
+              "[testDirective]",
+            ], false)],
+          ],
+          [
+            "testDirective",
+            [new AngularElementData("src/app/test.directive.ts", "TestDirective", "directive", "[testDirective]", [
+              "testDirective",
+              "[testDirective]",
+            ], false)],
+          ],
+          [
+            "*ngIf",
+            [new AngularElementData("@angular/common", "NgIf", "directive", "[ngIf]", ["ngIf", "*ngIf", "[ngIf]"], false)],
+          ],
+        ]);
+        return elements.get(selector) || [];
+      },
       // Add the missing searchWithSelectors method
       searchWithSelectors: (prefix: string): { selector: string; element: AngularElementData }[] => {
         const results: { selector: string; element: AngularElementData }[] = [];

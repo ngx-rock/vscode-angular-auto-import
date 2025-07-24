@@ -16,7 +16,7 @@ import {
 import * as vscode from "vscode";
 import type { AngularIndexer } from "../services";
 import type { AngularElementData, ParsedHtmlElement } from "../types";
-import { getAngularElement, switchFileType } from "../utils";
+import { getAngularElements, switchFileType } from "../utils";
 import type { ProviderContext } from "./index";
 
 /**
@@ -378,65 +378,71 @@ export class DiagnosticProvider {
     severity: vscode.DiagnosticSeverity
   ): Promise<vscode.Diagnostic[]> {
     const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
-    const possibleSelectors = element.name;
+    const possibleSelectors = [element.name];
     const diagnostics: vscode.Diagnostic[] = [];
     const processedCandidatesThisCall = new Set<string>();
 
     for (const selector of possibleSelectors) {
-      const candidate = getAngularElement(selector, indexer);
+      const candidates = getAngularElements(selector, indexer);
 
-      if (!candidate || processedCandidatesThisCall.has(candidate.name)) {
-        continue;
-      }
 
-      // Skip selector matching for pipes
-      if (candidate.type !== "pipe") {
-        const matcher = new SelectorMatcher();
-        const individualSelectors = CssSelector.parse(candidate.originalSelector);
 
-        // We add each individual selector to the matcher.
-        // This is crucial for complex selectors like `ng-template[myDirective]`.
-        matcher.addSelectables(individualSelectors);
-
-        const templateCssSelector = new CssSelector();
-        templateCssSelector.setElement(element.tagName);
-        for (const attr of element.attributes) {
-          templateCssSelector.addAttribute(attr.name, attr.value ?? "");
-        }
-
-        const matchedSelectors: string[] = [];
-        // The callback will be invoked for each selector that matches.
-        // We capture them all and will use the most specific one.
-        matcher.match(templateCssSelector, (selector) => {
-          matchedSelectors.push(selector.toString());
-        });
-
-        if (matchedSelectors.length === 0) {
+      for (const candidate of candidates) {
+        if (!candidate || processedCandidatesThisCall.has(candidate.name)) {
           continue;
         }
 
-        // The last matched selector is considered the most specific one by Angular's engine.
-        const specificSelector = matchedSelectors[matchedSelectors.length - 1];
 
-        // Only add to processed after a successful match.
-        processedCandidatesThisCall.add(candidate.name);
 
-        if (!this.isElementImported(tsDocument, candidate)) {
-          const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
-          const diagnostic = new vscode.Diagnostic(element.range, message, severity);
-          diagnostic.code = `missing-${candidate.type}-import:${specificSelector}`;
-          diagnostic.source = "angular-auto-import";
-          diagnostics.push(diagnostic);
-        }
-      } else {
-        // For pipes, the candidate name is the selector
-        processedCandidatesThisCall.add(candidate.name);
-        if (!this.isElementImported(tsDocument, candidate)) {
-          const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
-          const diagnostic = new vscode.Diagnostic(element.range, message, severity);
-          diagnostic.code = `missing-${candidate.type}-import:${element.name}`;
-          diagnostic.source = "angular-auto-import";
-          diagnostics.push(diagnostic);
+        // Skip selector matching for pipes
+        if (candidate.type !== "pipe") {
+          const matcher = new SelectorMatcher();
+          const individualSelectors = CssSelector.parse(candidate.originalSelector);
+
+          // We add each individual selector to the matcher.
+          // This is crucial for complex selectors like `ng-template[myDirective]`.
+          matcher.addSelectables(individualSelectors);
+
+          const templateCssSelector = new CssSelector();
+          templateCssSelector.setElement(element.tagName);
+          for (const attr of element.attributes) {
+            templateCssSelector.addAttribute(attr.name, attr.value ?? "");
+          }
+
+          const matchedSelectors: string[] = [];
+          // The callback will be invoked for each selector that matches.
+          // We capture them all and will use the most specific one.
+          matcher.match(templateCssSelector, (selector) => {
+            matchedSelectors.push(selector.toString());
+          });
+
+          if (matchedSelectors.length === 0) {
+            continue;
+          }
+
+          // The last matched selector is considered the most specific one by Angular's engine.
+          const specificSelector = matchedSelectors[matchedSelectors.length - 1];
+
+          // Only add to processed after a successful match.
+          processedCandidatesThisCall.add(candidate.name);
+
+          if (!this.isElementImported(tsDocument, candidate)) {
+            const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
+            const diagnostic = new vscode.Diagnostic(element.range, message, severity);
+            diagnostic.code = `missing-${candidate.type}-import:${specificSelector}`;
+            diagnostic.source = "angular-auto-import";
+            diagnostics.push(diagnostic);
+          }
+        } else {
+          // For pipes, the candidate name is the selector
+          processedCandidatesThisCall.add(candidate.name);
+          if (!this.isElementImported(tsDocument, candidate)) {
+            const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
+            const diagnostic = new vscode.Diagnostic(element.range, message, severity);
+            diagnostic.code = `missing-${candidate.type}-import:${element.name}`;
+            diagnostic.source = "angular-auto-import";
+            diagnostics.push(diagnostic);
+          }
         }
       }
     }

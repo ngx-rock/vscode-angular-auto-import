@@ -61,9 +61,13 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
     collection.push(fullSelector);
   }
   
-  // Добавляем базовый тег, если он есть
+  // Добавляем базовый тег только если нет обязательных атрибутов
+  // Это предотвращает индексацию input[tuiInputPin] под ключом "input"
   if (cssSelector.element) {
-    collection.push(cssSelector.element);
+    const hasRequiredAttributes = cssSelector.attrs.length > 0;
+    if (!hasRequiredAttributes) {
+      collection.push(cssSelector.element);
+    }
   }
   
   // Добавляем селекторы-атрибуты в квадратных скобках и без
@@ -85,20 +89,20 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
 }
 
 /**
- * Получает Angular элемент по селектору
+ * Получает Angular элементы по селектору
  */
-export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
+export function getAngularElements(selector: string, indexer: AngularIndexer): AngularElementData[] {
   if (!selector || typeof selector !== "string") {
-    return undefined;
+    return [];
   }
 
   if (!indexer) {
-    return undefined;
+    return [];
   }
 
   const originalSelector = selector.trim();
   if (!originalSelector) {
-    return undefined;
+    return [];
   }
 
   const selectorsToTry: string[] = [originalSelector];
@@ -120,13 +124,19 @@ export function getAngularElement(selector: string, indexer: AngularIndexer): An
   }
 
   const uniqueSelectors = [...new Set(selectorsToTry)];
+  const foundElements: AngularElementData[] = [];
+  const seenElements = new Set<string>(); // path:name to avoid duplicates
 
   for (const sel of uniqueSelectors) {
     // 1. Try project index first
     try {
-      const foundInIndex = indexer.getElement(sel);
-      if (foundInIndex) {
-        return foundInIndex;
+      const foundInIndex = indexer.getElements(sel);
+      for (const element of foundInIndex) {
+        const key = `${element.path}:${element.name}`;
+        if (!seenElements.has(key)) {
+          foundElements.push(element);
+          seenElements.add(key);
+        }
       }
     } catch (error) {
       console.warn(`Error getting element from indexer for selector '${sel}':`, error);
@@ -136,18 +146,31 @@ export function getAngularElement(selector: string, indexer: AngularIndexer): An
     // 2. Then try standard Angular elements
     const std = STANDARD_ANGULAR_ELEMENTS[sel];
     if (std) {
-      return new AngularElementData(
-        std.importPath,
-        std.name,
-        std.type,
-        std.originalSelector,
-        std.selectors,
-        !std.name.endsWith("Module") // Heuristic for standard elements
-      );
+      const key = `${std.importPath}:${std.name}`;
+      if (!seenElements.has(key)) {
+        const element = new AngularElementData(
+          std.importPath,
+          std.name,
+          std.type,
+          std.originalSelector,
+          std.selectors,
+          !std.name.endsWith("Module") // Heuristic for standard elements
+        );
+        foundElements.push(element);
+        seenElements.add(key);
+      }
     }
   }
 
-  return undefined;
+  return foundElements;
+}
+
+/**
+ * Получает Angular элемент по селектору (совместимость с существующим кодом)
+ */
+export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
+  const elements = getAngularElements(selector, indexer);
+  return elements.length > 0 ? elements[0] : undefined;
 }
 
 /**

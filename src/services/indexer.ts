@@ -130,6 +130,21 @@ class SelectorTrie {
     return candidatePool[0];
   }
 
+  public findAll(selector: string): AngularElementData[] {
+    let currentNode = this.root;
+    for (const char of selector) {
+      if (!currentNode.children.has(char)) {
+        return [];
+      }
+      const nextNode = currentNode.children.get(char);
+      if (!nextNode) {
+        return [];
+      }
+      currentNode = nextNode;
+    }
+    return currentNode.elements;
+  }
+
   public getAllSelectors(): string[] {
     const selectors: string[] = [];
     this.collectSelectors(this.root, "", selectors);
@@ -598,7 +613,7 @@ export class AngularIndexer {
         this.fileCache.set(filePath, fileElementsInfo);
 
         // Add all parsed elements to the selector index
-        parsedElements.forEach(async (parsed) => {
+        for (const parsed of parsedElements) {
           // Parse the selector to get all individual selectors
           const individualSelectors = await parseAngularSelector(parsed.selector);
           const elementData = new AngularElementData(
@@ -615,7 +630,7 @@ export class AngularIndexer {
             this.selectorTrie.insert(selector, elementData);
             console.log(`Updated index for ${this.projectRootPath}: ${selector} (${parsed.type}) -> ${parsed.path}`);
           }
-        });
+        }
       } else {
         // Parsing failed or not an Angular element - remove from file cache and trie
         this.fileCache.delete(filePath);
@@ -696,8 +711,9 @@ export class AngularIndexer {
         );
       }
 
+      const totalElements = this.selectorTrie.getAllElements().length;
       console.log(
-        `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${this.selectorTrie.size} elements.`
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${totalElements} elements.`
       );
 
       await this.indexNodeModules(context);
@@ -799,6 +815,13 @@ export class AngularIndexer {
       return undefined;
     }
     return this.selectorTrie.find(selector);
+  }
+
+  getElements(selector: string): AngularElementData[] {
+    if (typeof selector !== "string" || !selector) {
+      return [];
+    }
+    return this.selectorTrie.findAll(selector);
   }
 
   public async indexNodeModules(context: vscode.ExtensionContext): Promise<void> {

@@ -338,6 +338,25 @@ describe("AngularIndexer", function () {
         }, `Should handle ${description} selector gracefully`);
       });
     });
+
+    it("should handle getElements with invalid selectors", () => {
+      indexer.setProjectRoot(testProjectPath);
+
+      const testCases = [
+        { selector: "", description: "empty string" },
+        { selector: null, description: "null" },
+        { selector: undefined, description: "undefined" },
+        { selector: 123, description: "number" },
+      ];
+
+      testCases.forEach(({ selector, description }) => {
+        assert.doesNotThrow(() => {
+          const result = indexer.getElements(selector as any);
+          assert.strictEqual(Array.isArray(result), true, `Should return array for ${description}`);
+          assert.strictEqual(result.length, 0, `Should return empty array for ${description}`);
+        }, `Should handle ${description} selector gracefully`);
+      });
+    });
   });
 
   // Helper functions
