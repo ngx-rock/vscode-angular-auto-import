@@ -873,11 +873,34 @@ export class AngularIndexer {
       return;
     }
 
+    const allLibraryClasses = new Map<string, ClassDeclaration>();
+    // Pass 0: Collect all class declarations from all files in the library for easy lookup.
+    for (const { sourceFile } of libraryFiles) {
+      const exportedDeclarations = sourceFile.getExportedDeclarations();
+      for (const declarations of exportedDeclarations.values()) {
+        for (const declaration of declarations) {
+          if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
+            const classDecl = declaration as ClassDeclaration;
+            const name = classDecl.getName();
+            if (name && !allLibraryClasses.has(name)) {
+              allLibraryClasses.set(name, classDecl);
+            }
+          }
+        }
+      }
+      for (const classDecl of sourceFile.getClasses()) {
+        const name = classDecl.getName();
+        if (name && !allLibraryClasses.has(name)) {
+          allLibraryClasses.set(name, classDecl);
+        }
+      }
+    }
+
     const componentToModuleMap = new Map<string, { moduleName: string; importPath: string }>();
 
     // Pass 1: Build a complete map of all modules and their exports for the entire library
     for (const { importPath, sourceFile } of libraryFiles) {
-      this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap);
+      this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap, allLibraryClasses);
     }
 
     // Pass 2: Index all components/directives/pipes using the complete map
@@ -889,36 +912,12 @@ export class AngularIndexer {
   private _buildComponentToModuleMap(
     sourceFile: SourceFile,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    allLibraryClasses: Map<string, ClassDeclaration>
   ) {
     try {
-      const classDeclarations = new Map<string, ClassDeclaration>();
-
-      // First, get all declarations exported from this file.
-      // This will resolve re-exports and give us the actual class declarations from other files.
-      const exportedDeclarations = sourceFile.getExportedDeclarations();
-      for (const declarations of exportedDeclarations.values()) {
-        for (const declaration of declarations) {
-          if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
-            const classDecl = declaration as ClassDeclaration;
-            const name = classDecl.getName();
-            if (name && !classDeclarations.has(name)) {
-              classDeclarations.set(name, classDecl);
-            }
-          }
-        }
-      }
-
-      // Also, include classes declared directly in this file
+      // Find all NgModules in the current file and map their exports
       for (const classDecl of sourceFile.getClasses()) {
-        const name = classDecl.getName();
-        if (name && !classDeclarations.has(name)) {
-          classDeclarations.set(name, classDecl);
-        }
-      }
-
-      // Find all NgModules and map their exports
-      for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
         // Skip unnamed or internal Angular modules
         if (!className || className.startsWith("ɵ")) continue;
@@ -932,32 +931,77 @@ export class AngularIndexer {
 
             if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
               const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
-              for (const element of exportsTuple.getElements()) {
-                let exportedClassName: string | undefined;
-
-                if (element.isKind(SyntaxKind.TypeQuery)) {
-                  const typeQueryNode = element.asKindOrThrow(SyntaxKind.TypeQuery);
-                  exportedClassName = typeQueryNode.getExprName().getText();
-                } else if (element.isKind(SyntaxKind.TypeReference)) {
-                  exportedClassName = element.asKindOrThrow(SyntaxKind.TypeReference).getTypeName().getText();
-                }
-
-                if (exportedClassName) {
-                  // Do not overwrite. First module found that exports a component 'wins'.
-                  if (!componentToModuleMap.has(exportedClassName)) {
-                    componentToModuleMap.set(exportedClassName, {
-                      moduleName: className,
-                      importPath,
-                    });
-                  }
-                }
-              }
+              this._processModuleExports(
+                exportsTuple,
+                className,
+                importPath,
+                componentToModuleMap,
+                allLibraryClasses
+              );
             }
           }
         }
       }
     } catch (error) {
       console.error(`Error building module map for file ${sourceFile.getFilePath()}:`, error);
+    }
+  }
+
+  private _processModuleExports(
+    exportsTuple: import("ts-morph").TupleTypeNode,
+    moduleName: string,
+    importPath: string,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    allLibraryClasses: Map<string, ClassDeclaration>
+  ) {
+    for (const element of exportsTuple.getElements()) {
+      let exportedClassName: string | undefined;
+
+      if (element.isKind(SyntaxKind.TypeQuery)) {
+        const typeQueryNode = element.asKindOrThrow(SyntaxKind.TypeQuery);
+        exportedClassName = typeQueryNode.getExprName().getText();
+      } else if (element.isKind(SyntaxKind.TypeReference)) {
+        exportedClassName = element.asKindOrThrow(SyntaxKind.TypeReference).getTypeName().getText();
+      }
+
+      if (exportedClassName) {
+        const exportedClassDecl = allLibraryClasses.get(exportedClassName);
+
+        // Check if the exported item is another NgModule
+        if (exportedClassDecl && exportedClassDecl.getStaticProperty("ɵmod")) {
+          // It's a re-exported module. Recursively process its exports.
+          const modDef = exportedClassDecl.getStaticProperty("ɵmod");
+          if (modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
+            const typeNode = modDef.getTypeNode();
+            if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+              const typeRef = typeNode as TypeReferenceNode;
+              const typeArgs = typeRef.getTypeArguments();
+
+              if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
+                const innerExportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+                // RECURSION: Process the inner module's exports, but attribute them
+                // to the *current* moduleName that is doing the re-exporting.
+                this._processModuleExports(
+                  innerExportsTuple,
+                  moduleName,
+                  importPath,
+                  componentToModuleMap,
+                  allLibraryClasses
+                );
+              }
+            }
+          }
+        } else {
+          // It's a component/directive/pipe. Map it to the current module.
+          // Do not overwrite. First module found that exports a component 'wins'.
+          if (!componentToModuleMap.has(exportedClassName)) {
+            componentToModuleMap.set(exportedClassName, {
+              moduleName: moduleName,
+              importPath,
+            });
+          }
+        }
+      }
     }
   }
 

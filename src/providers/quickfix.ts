@@ -160,13 +160,13 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
       let title: string;
       if (isModule) {
-        title = `◆ Import ${element.name}`;
+        title = `⟐ Import ${element.name}`;
       } else if (element.isStandalone) {
-        title = `◆ Import ${element.name} (standalone)`;
+        title = `⟐ Import ${element.name} (standalone)`;
       } else if (element.exportingModuleName) {
-        title = `◆ Import ${element.name} (via ${element.exportingModuleName})`;
+        title = `⟐ Import ${element.name} (via ${element.exportingModuleName})`;
       } else {
-        title = `◆ Import ${element.name}`;
+        title = `⟐ Import ${element.name}`;
       }
 
       const action = new vscode.CodeAction(title, vscode.CodeActionKind.QuickFix);
