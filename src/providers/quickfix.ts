@@ -8,7 +8,7 @@ import * as vscode from "vscode";
 import type { AngularIndexer } from "../services";
 
 import type { AngularElementData } from "../types";
-import { getAngularElement } from "../utils";
+import { getAngularElementAsync } from "../utils";
 
 import type { ProviderContext } from "./index";
 
@@ -134,7 +134,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       if (selectorToSearch) {
         console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
 
-        const elementData = getAngularElement(selectorToSearch, indexer);
+        const elementData = await getAngularElementAsync(selectorToSearch, indexer);
 
         if (elementData) {
           console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
