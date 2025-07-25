@@ -814,7 +814,7 @@ export class AngularIndexer {
     return this.selectorTrie.find(selector);
   }
 
-  getElements(selector: string): AngularElementData[] { 
+  getElements(selector: string): AngularElementData[] {
     if (typeof selector !== "string" || !selector) {
       return [];
     }

@@ -66,7 +66,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
         try {
           if (this.isFixableDiagnostic(diagnostic)) {
-            const quickFixes = await this.createQuickFixesForDiagnostic(  diagnostic, indexer);
+            const quickFixes = await this.createQuickFixesForDiagnostic(diagnostic, indexer);
 
             actions.push(...quickFixes);
           }
@@ -139,7 +139,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         if (elementData) {
           console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
 
-      
           // The selector passed to the command must be the one found in the index
           const action = this.createCodeAction(elementData, diagnostic, selectorToSearch);
           if (action) {

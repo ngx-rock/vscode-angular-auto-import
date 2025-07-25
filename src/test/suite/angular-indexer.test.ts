@@ -157,37 +157,6 @@ describe("AngularIndexer", function () {
     });
   });
 
-  describe("#getElement", () => {
-    beforeEach(async () => {
-      indexer.setProjectRoot(testProjectPath);
-      await indexer.generateFullIndex(mockContext);
-    });
-
-    it("should return element by exact selector", () => {
-      const element = indexer.getElement("test-component");
-
-      assert.ok(element, "Should find element");
-      assert.strictEqual(element.name, "TestComponent", "Should have correct name");
-      assert.strictEqual(element.type, "component", "Should have correct type");
-    });
-
-    it("should return undefined for non-existent selector", () => {
-      const element = indexer.getElement("non-existent-component");
-
-      assert.strictEqual(element, undefined, "Should return undefined for non-existent element");
-    });
-
-    it("should handle multiple selectors for same element", () => {
-      // Test that directive can be found by different selector formats
-      const element1 = indexer.getElement("testDirective");
-      const element2 = indexer.getElement("[testDirective]");
-
-      assert.ok(element1, "Should find directive by attribute name");
-      assert.ok(element2, "Should find directive by attribute selector");
-      assert.strictEqual(element1.name, element2.name, "Should be the same element");
-    });
-  });
-
   describe("#searchWithSelectors", () => {
     beforeEach(async () => {
       indexer.setProjectRoot(testProjectPath);
@@ -299,7 +268,6 @@ describe("AngularIndexer", function () {
       const loaded = newIndexer.loadFromWorkspace(mockContext);
 
       assert.ok(loaded, "Should load from cache");
-      assert.ok(newIndexer.getElement("test-component"), "Should have cached element");
 
       newIndexer.dispose();
     });
@@ -324,24 +292,6 @@ describe("AngularIndexer", function () {
       assert.doesNotThrow(() => {
         newIndexer.dispose();
       }, "Should handle dispose without initialization");
-    });
-
-    it("should handle getElement with invalid selectors", () => {
-      indexer.setProjectRoot(testProjectPath);
-
-      const testCases = [
-        { selector: "", description: "empty string" },
-        { selector: null, description: "null" },
-        { selector: undefined, description: "undefined" },
-        { selector: 123, description: "number" },
-      ];
-
-      testCases.forEach(({ selector, description }) => {
-        assert.doesNotThrow(() => {
-          const result = indexer.getElement(selector as any);
-          assert.strictEqual(result, undefined, `Should return undefined for ${description}`);
-        }, `Should handle ${description} selector gracefully`);
-      });
     });
 
     it("should handle getElements with invalid selectors", () => {

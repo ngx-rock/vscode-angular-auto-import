@@ -280,22 +280,28 @@ export class DiagnosticProvider {
               value: "value" in attr && attr.value ? String(attr.value) : "",
             }));
 
-            const foundElement = indexer.getElement(isTemplate ? "ng-template" : node.name);
-            const isKnownComponent = foundElement?.type === "component";
+            const nodeName = isTemplate ? "ng-template" : node.name;
+            const foundElements = indexer.getElements(nodeName);
 
-            // One entry for the element tag itself, only if it could be a component
-            if (isKnownComponent || !isKnownHtmlTag(isTemplate ? "ng-template" : node.name)) {
-              elements.push({
-                name: isTemplate ? "ng-template" : node.name,
-                type: "component",
-                isAttribute: false,
-                range: new vscode.Range(
-                  document.positionAt(offset + node.startSourceSpan.start.offset),
-                  document.positionAt(offset + node.startSourceSpan.end.offset)
-                ),
-                tagName: isTemplate ? "ng-template" : node.name,
-                attributes,
-              });
+            if (!isKnownHtmlTag(nodeName)) {
+              for (const candidate of foundElements) {
+                const isKnownAngularElement = candidate.type === "component" || candidate.type === "directive";
+
+                // One entry for the element tag itself, only if it could be a component
+                if (isKnownAngularElement) {
+                  elements.push({
+                    name: nodeName,
+                    type: candidate.type as ParsedHtmlFullElement["type"],
+                    isAttribute: false,
+                    range: new vscode.Range(
+                      document.positionAt(offset + node.startSourceSpan.start.offset),
+                      document.positionAt(offset + node.startSourceSpan.end.offset)
+                    ),
+                    tagName: nodeName,
+                    attributes,
+                  });
+                }
+              }
             }
 
             // One entry for each attribute or reference
@@ -327,7 +333,7 @@ export class DiagnosticProvider {
                   document.positionAt(offset + keySpan.start.offset),
                   document.positionAt(offset + keySpan.end.offset)
                 ),
-                tagName: isTemplate ? "ng-template" : node.name,
+                tagName: nodeName,
                 attributes,
               });
             };
