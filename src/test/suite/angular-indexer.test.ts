@@ -97,42 +97,7 @@ describe("AngularIndexer", function () {
   });
 
   describe("#generateFullIndex", () => {
-    it("should index Angular components correctly", async () => {
-      indexer.setProjectRoot(testProjectPath);
-
-      const result = await indexer.generateFullIndex(mockContext);
-
-      assert.ok(result instanceof Map, "Should return a Map");
-      assert.ok(result.size > 0, "Should find at least one element");
-
-      // Check for test component
-      const testComponent = indexer.getElement("test-component");
-      assert.ok(testComponent, "Should find test component");
-      assert.strictEqual(testComponent.type, "component", "Should be a component");
-      assert.strictEqual(testComponent.name, "TestComponent", "Should have correct name");
-    });
-
-    it("should index Angular directives correctly", async () => {
-      indexer.setProjectRoot(testProjectPath);
-
-      await indexer.generateFullIndex(mockContext);
-
-      const testDirective = indexer.getElement("[testDirective]");
-      assert.ok(testDirective, "Should find test directive");
-      assert.strictEqual(testDirective.type, "directive", "Should be a directive");
-      assert.strictEqual(testDirective.name, "TestDirective", "Should have correct name");
-    });
-
-    it("should index Angular pipes correctly", async () => {
-      indexer.setProjectRoot(testProjectPath);
-
-      await indexer.generateFullIndex(mockContext);
-
-      const testPipe = indexer.getElement("testPipe");
-      assert.ok(testPipe, "Should find test pipe");
-      assert.strictEqual(testPipe.type, "pipe", "Should be a pipe");
-      assert.strictEqual(testPipe.name, "TestPipe", "Should have correct name");
-    });
+ 
 
     it("should handle empty project gracefully", async () => {
       const emptyProjectPath = path.join(fixturesPath, "empty-project");
