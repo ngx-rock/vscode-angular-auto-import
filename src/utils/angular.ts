@@ -171,20 +171,20 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
  * Получает Angular элемент по селектору (совместимость с существующим кодом)
  * Использует Angular SelectorMatcher для точного сопоставления селекторов
  */
-export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
-  const elements = getAngularElements(selector, indexer);
+// export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
+//   const elements = getAngularElements(selector, indexer);
 
-  if (elements.length === 0) {
-    return undefined;
-  }
+//   if (elements.length === 0) {
+//     return undefined;
+//   }
 
-  if (elements.length === 1) {
-    return elements[0];
-  }
+//   if (elements.length === 1) {
+//     return elements[0];
+//   }
 
-  // Возвращаем первый элемент для синхронной совместимости
-  return elements[0];
-}
+//   // Возвращаем первый элемент для синхронной совместимости
+//   return elements[0];
+// }
 
 /**
  * Асинхронная версия для получения лучшего совпадения с использованием Angular SelectorMatcher

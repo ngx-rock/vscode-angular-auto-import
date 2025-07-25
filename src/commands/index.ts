@@ -11,7 +11,7 @@ import type { ExtensionConfig } from "../config";
 import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
-import { getAngularElement, importElementToFile, switchFileType } from "../utils";
+import { getAngularElementAsync, importElementToFile, switchFileType } from "../utils";
 
 /**
  * Context for the commands.
@@ -87,7 +87,7 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
       return;
     }
     const { indexer, projectRootPath, tsConfig } = projCtx;
-    const element = getAngularElement(selector, indexer);
+    const element = await getAngularElementAsync(selector, indexer);
     await importElementCommandLogic(element, projectRootPath, tsConfig, indexer);
   });
   context.subscriptions.push(importCmd);
