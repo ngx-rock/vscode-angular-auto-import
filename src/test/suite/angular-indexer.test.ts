@@ -13,6 +13,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { AngularIndexer } from "../../services";
 import { AngularElementData } from "../../types";
+import { getAngularElementAsync } from "../../utils/angular";
 
 describe("AngularIndexer", function () {
   // Set timeout for all tests in this suite
@@ -274,6 +275,121 @@ describe("AngularIndexer", function () {
           assert.strictEqual(result.length, 0, `Should return empty array for ${description}`);
         }, `Should handle ${description} selector gracefully`);
       });
+    });
+  });
+
+  describe("Complex Selector Matching", () => {
+    it("should correctly match complex attribute selectors like 'a[tuiButton],button[tuiButton]'", async () => {
+      // Setup test data with complex selectors similar to TUI components
+      const testElements: AngularElementData[] = [
+        new AngularElementData(
+          "/test/tui-button.directive.ts",
+          "TuiButtonDirective",
+          "directive",
+          "a[tuiButton],button[tuiButton],a[tuiIconButton],button[tuiIconButton]",
+          ["tuiButton", "tuiIconButton"],
+          true,
+          undefined
+        ),
+        new AngularElementData(
+          "/test/other.directive.ts",
+          "SomeOtherDirective",
+          "directive",
+          "div[someOther]",
+          ["someOther"],
+          true,
+          undefined
+        )
+      ];
+
+      // Mock the indexer to return our test elements
+      indexer.getElements = (selector: string) => {
+        if (selector === "tuiButton") {
+          return testElements;
+        }
+        return [];
+      };
+
+      // Test case 1: button[tuiButton] should match TuiButtonDirective
+      const result1 = await getAngularElementAsync("button[tuiButton]", indexer);
+      assert.strictEqual(result1?.name, "TuiButtonDirective", "Should match TuiButtonDirective for button[tuiButton]");
+
+      // Test case 2: a[tuiButton] should also match TuiButtonDirective  
+      const result2 = await getAngularElementAsync("a[tuiButton]", indexer);
+      assert.strictEqual(result2?.name, "TuiButtonDirective", "Should match TuiButtonDirective for a[tuiButton]");
+
+      // Test case 3: button[tuiIconButton] should also match TuiButtonDirective
+      const result3 = await getAngularElementAsync("button[tuiIconButton]", indexer);
+      assert.strictEqual(result3?.name, "TuiButtonDirective", "Should match TuiButtonDirective for button[tuiIconButton]");
+
+      // Test case 4: div[tuiButton] should not match (not in the selector)
+      const result4 = await getAngularElementAsync("div[tuiButton]", indexer);
+      assert.strictEqual(result4, undefined, "Should not match div[tuiButton] as it's not in the selector");
+    });
+
+    it("should handle multiple candidates and return the most specific match", async () => {
+      const testElements: AngularElementData[] = [
+        new AngularElementData(
+          "/test/generic.directive.ts",
+          "GenericDirective",
+          "directive",
+          "[generic]",
+          ["generic"],
+          true,
+          undefined
+        ),
+        new AngularElementData(
+          "/test/specific.directive.ts",
+          "SpecificButtonDirective",
+          "directive",
+          "button[specific]",
+          ["specific"],
+          true,
+          undefined
+        )
+      ];
+
+      indexer.getElements = (selector: string) => {
+        if (selector === "specific") {
+          return testElements;
+        }
+        return [];
+      };
+
+      // button[specific] should prefer the more specific selector
+      const result = await getAngularElementAsync("button[specific]", indexer);
+      assert.strictEqual(result?.name, "SpecificButtonDirective", "Should prefer more specific selector");
+    });
+
+    it("should prioritize components over directives", async () => {
+      const testElements: AngularElementData[] = [
+        new AngularElementData(
+          "/test/directive.ts",
+          "MyDirective",
+          "directive",
+          "[mySelector]",
+          ["mySelector"],
+          true,
+          undefined
+        ),
+        new AngularElementData(
+          "/test/component.ts",
+          "MyComponent",
+          "component",
+          "my-component",
+          ["my-component"],
+          true,
+          undefined
+        )
+      ];
+
+      indexer.getElements = (selector: string) => {
+        return testElements;
+      };
+
+      // When both match, component should be preferred
+      const result = await getAngularElementAsync("my-component", indexer);
+      assert.strictEqual(result?.name, "MyComponent", "Should prefer component over directive");
     });
   });
 

@@ -210,27 +210,32 @@ export async function getAngularElementAsync(
 
 /**
  * Uses Angular SelectorMatcher to select the most appropriate element
+ * Based on the logic from DiagnosticProvider.checkElement for proper selector matching
  */
 async function getBestMatchUsingAngularMatcher(
-  selector:string,
+  selector: string,
   candidates: AngularElementData[]
 ): Promise<AngularElementData | undefined> {
   try {
     const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
 
-    const cssSelectors = CssSelector.parse(selector);
-    if (cssSelectors.length === 0) {
+    // Parse the incoming selector using Angular compiler
+    const templateCssSelectors = CssSelector.parse(selector);
+    if (templateCssSelectors.length === 0) {
       console.warn(`[getBestMatchUsingAngularMatcher] Could not parse selector: "${selector}"`);
-      // Fallback to the first candidate if parsing fails.
       return candidates[0];
     }
-    // We are matching against a specific selector, so we take the first parsed result.
-    const templateCssSelector = cssSelectors[0];
 
+    // Use the first parsed selector as the template selector
+    const templateCssSelector = templateCssSelectors[0];
+    console.log(`[DEBUG] Parsed template selector: ${templateCssSelector.toString()}`);
+    console.log(`[DEBUG] Input selector: "${selector}"`);
+    console.log(`[DEBUG] Candidates: ${candidates.map(c => `${c.name}(${c.originalSelector})`).join(', ')}`);
+    
     const bestMatches: AngularElementData[] = [];
 
     for (const candidate of candidates) {
-      // Skip pipes, they are matched by name directly.
+      // Skip pipes, they are matched by name directly
       if (candidate.type === "pipe") {
         if (candidate.name.toLowerCase() === selector.toLowerCase()) {
           bestMatches.push(candidate);
@@ -238,22 +243,32 @@ async function getBestMatchUsingAngularMatcher(
         continue;
       }
 
+      // Create a SelectorMatcher for this candidate
       const matcher = new SelectorMatcher();
       const individualSelectors = CssSelector.parse(candidate.originalSelector);
+      console.log(`[DEBUG] Candidate ${candidate.name} parsed selectors: ${individualSelectors.map(s => s.toString()).join(', ')}`);
+      
+      // Add each individual selector to the matcher
+      // This is crucial for complex selectors like "a[tuiButton],button[tuiButton]"
       matcher.addSelectables(individualSelectors);
 
       const matchedSelectors: string[] = [];
+      
+      // Check if the template selector matches any of the candidate's selectors
       matcher.match(templateCssSelector, (matchedSelector) => {
         matchedSelectors.push(matchedSelector.toString());
       });
+
+      console.log(`[DEBUG] Candidate ${candidate.name} matched selectors: [${matchedSelectors.join(', ')}]`);
 
       if (matchedSelectors.length > 0) {
         bestMatches.push(candidate);
       }
     }
 
+    console.log(`[DEBUG] Best matches: ${bestMatches.map(m => m.name).join(', ')}`);
+
     if (bestMatches.length === 0) {
-      // If no match found, maybe the selector was too simple, return first candidate as a fallback.
       return candidates[0];
     }
 
@@ -261,7 +276,7 @@ async function getBestMatchUsingAngularMatcher(
       return bestMatches[0];
     }
 
-    // Sort by type, selector length, and name to find the best match.
+    // Sort by type, selector specificity, and name to find the best match
     bestMatches.sort((a, b) => {
       const scoreType = (el: AngularElementData): number => {
         switch (el.type) {
@@ -281,7 +296,7 @@ async function getBestMatchUsingAngularMatcher(
         return typeDiff;
       }
 
-      // Prefer more specific (longer) selectors.
+      // Prefer more specific (longer) selectors
       const lenDiff = b.originalSelector.length - a.originalSelector.length;
       if (lenDiff !== 0) {
         return lenDiff;
@@ -293,7 +308,6 @@ async function getBestMatchUsingAngularMatcher(
     return bestMatches[0];
   } catch (error) {
     console.error("Error using Angular SelectorMatcher:", error);
-    // On error, fall back to the first candidate.
     return candidates[0];
   }
 }
