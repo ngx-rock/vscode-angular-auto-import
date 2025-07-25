@@ -104,7 +104,6 @@ export async function importElementToFile(
       console.log(`[importElementToFile] Created new ts-morph SourceFile`);
     }
 
-
     // Determine if the element is from an external package or local project file.
     let importPathString: string;
     // If the path is not absolute and does not start with a dot, it's a module specifier.

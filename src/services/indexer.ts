@@ -806,7 +806,6 @@ export class AngularIndexer {
       console.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`, error);
     }
   }
- 
 
   getElements(selector: string): AngularElementData[] {
     if (typeof selector !== "string" || !selector) {

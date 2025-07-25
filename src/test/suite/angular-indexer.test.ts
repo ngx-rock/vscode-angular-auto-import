@@ -97,8 +97,6 @@ describe("AngularIndexer", function () {
   });
 
   describe("#generateFullIndex", () => {
- 
-
     it("should handle empty project gracefully", async () => {
       const emptyProjectPath = path.join(fixturesPath, "empty-project");
 

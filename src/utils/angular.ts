@@ -173,15 +173,15 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
  */
 export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
   const elements = getAngularElements(selector, indexer);
-  
+
   if (elements.length === 0) {
     return undefined;
   }
-  
+
   if (elements.length === 1) {
     return elements[0];
   }
-  
+
   // Возвращаем первый элемент для синхронной совместимости
   return elements[0];
 }
@@ -189,17 +189,20 @@ export function getAngularElement(selector: string, indexer: AngularIndexer): An
 /**
  * Асинхронная версия для получения лучшего совпадения с использованием Angular SelectorMatcher
  */
-export async function getAngularElementAsync(selector: string, indexer: AngularIndexer): Promise<AngularElementData | undefined> {
+export async function getAngularElementAsync(
+  selector: string,
+  indexer: AngularIndexer
+): Promise<AngularElementData | undefined> {
   const elements = getAngularElements(selector, indexer);
-  
+
   if (elements.length === 0) {
     return undefined;
   }
-  
+
   if (elements.length === 1) {
     return elements[0];
   }
-  
+
   // Используем Angular SelectorMatcher для точного сопоставления
   return await getBestMatchUsingAngularMatcher(selector, elements);
 }
@@ -208,107 +211,95 @@ export async function getAngularElementAsync(selector: string, indexer: AngularI
  * Использует Angular SelectorMatcher для выбора наиболее подходящего элемента
  */
 async function getBestMatchUsingAngularMatcher(
-  selector: string, 
+  selector: string,
   candidates: AngularElementData[]
 ): Promise<AngularElementData | undefined> {
   try {
     const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
-    
+
     // Создаем CSS селектор для поиска
     const templateCssSelector = new CssSelector();
-    
+
     // Обрабатываем различные форматы селекторов
-    if (selector.startsWith('[') && selector.endsWith(']')) {
+    if (selector.startsWith("[") && selector.endsWith("]")) {
       // Атрибутный селектор: [ngIf]
       const attrName = selector.slice(1, -1);
-      templateCssSelector.addAttribute(attrName, '');
-    } else if (selector.startsWith('*')) {
+      templateCssSelector.addAttribute(attrName, "");
+    } else if (selector.startsWith("*")) {
       // Структурная директива: *ngIf
       const attrName = selector.slice(1);
-      templateCssSelector.addAttribute(attrName, '');
+      templateCssSelector.addAttribute(attrName, "");
     } else {
       // Элемент или простой селектор
       templateCssSelector.setElement(selector);
     }
-    
-    const bestMatches: { candidate: AngularElementData; specificity: number }[] = [];
-    
+
+    const bestMatches: AngularElementData[] = [];
+
     for (const candidate of candidates) {
       // Пропускаем пайпы, для них используем простое сопоставление
       if (candidate.type === "pipe") {
         if (candidate.name.toLowerCase() === selector.toLowerCase()) {
-          return candidate;
+          bestMatches.push(candidate);
         }
         continue;
       }
-      
+
       const matcher = new SelectorMatcher();
       const individualSelectors = CssSelector.parse(candidate.originalSelector);
       matcher.addSelectables(individualSelectors);
-      
+
       const matchedSelectors: string[] = [];
       matcher.match(templateCssSelector, (matchedSelector) => {
         matchedSelectors.push(matchedSelector.toString());
       });
-      
+
       if (matchedSelectors.length > 0) {
-        // Последний совпавший селектор считается наиболее специфичным
-        const specificSelector = matchedSelectors[matchedSelectors.length - 1];
-        const specificity = calculateSelectorSpecificity(specificSelector);
-        
-        bestMatches.push({ candidate, specificity });
+        bestMatches.push(candidate);
       }
     }
-    
+
     if (bestMatches.length === 0) {
       return undefined;
     }
-    
-    // Сортируем по специфичности (выше лучше) и типу элемента
+
+    if (bestMatches.length === 1) {
+      return bestMatches[0];
+    }
+
+    // Сортируем по типу, длине селектора и имени
     bestMatches.sort((a, b) => {
-      const specificityDiff = b.specificity - a.specificity;
-      if (specificityDiff !== 0) {
-        return specificityDiff;
-      }
-      
-      // При равной специфичности предпочитаем компоненты > директивы > пайпы
       const scoreType = (el: AngularElementData): number => {
         switch (el.type) {
-          case "component": return 0;
-          case "directive": return 1;
-          case "pipe": return 2;
-          default: return 3;
+          case "component":
+            return 0;
+          case "directive":
+            return 1;
+          case "pipe":
+            return 2;
+          default:
+            return 3;
         }
       };
-      
-      return scoreType(a.candidate) - scoreType(b.candidate);
+
+      const typeDiff = scoreType(a) - scoreType(b);
+      if (typeDiff !== 0) {
+        return typeDiff;
+      }
+
+      const lenDiff = a.originalSelector.length - b.originalSelector.length;
+      if (lenDiff !== 0) {
+        return lenDiff;
+      }
+
+      return a.name.localeCompare(b.name);
     });
-    
-    return bestMatches[0].candidate;
-    
+
+    return bestMatches[0];
   } catch (error) {
-    console.error('Error using Angular SelectorMatcher:', error);
+    console.error("Error using Angular SelectorMatcher:", error);
     return undefined;
   }
-}
-
-/**
- * Вычисляет специфичность CSS селектора (упрощенная версия)
- */
-function calculateSelectorSpecificity(selector: string): number {
-  let specificity = 0;
-  
-  // Подсчитываем различные компоненты селектора
-  // ID селекторы (хотя в Angular их обычно нет)
-  specificity += (selector.match(/#/g) || []).length * 100;
-  
-  // Классы и атрибуты
-  specificity += (selector.match(/\[|\./g) || []).length * 10;
-  
-  // Элементы
-  specificity += (selector.match(/^[a-zA-Z]|[^#\.\[\]]+/g) || []).length * 1;
-  
-  return specificity;
 }
 
 /**
