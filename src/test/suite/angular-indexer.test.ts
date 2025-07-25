@@ -304,7 +304,7 @@ describe("AngularIndexer", function () {
 
       // Mock the indexer to return our test elements
       indexer.getElements = (selector: string) => {
-        if (selector === "tuiButton") {
+        if (selector === "tuiButton" || selector === "tuiIconButton") {
           return testElements;
         }
         return [];

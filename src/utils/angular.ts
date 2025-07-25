@@ -113,6 +113,12 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
     base = base.slice(1);
   } else if (base.startsWith("[") && base.endsWith("]")) {
     base = base.slice(1, -1);
+  } else {
+    // Handle complex selectors like "button[tuiButton]", "a[routerLink]", etc.
+    const complexMatch = base.match(/^[a-zA-Z-]+\[([^\]]+)\]$/);
+    if (complexMatch) {
+      base = complexMatch[1]; // Extract the attribute name
+    }
   }
 
   // Add variants for the base
@@ -228,10 +234,6 @@ async function getBestMatchUsingAngularMatcher(
 
     // Use the first parsed selector as the template selector
     const templateCssSelector = templateCssSelectors[0];
-    console.log(`[DEBUG] Parsed template selector: ${templateCssSelector.toString()}`);
-    console.log(`[DEBUG] Input selector: "${selector}"`);
-    console.log(`[DEBUG] Candidates: ${candidates.map(c => `${c.name}(${c.originalSelector})`).join(', ')}`);
-    
     const bestMatches: AngularElementData[] = [];
 
     for (const candidate of candidates) {
@@ -246,7 +248,6 @@ async function getBestMatchUsingAngularMatcher(
       // Create a SelectorMatcher for this candidate
       const matcher = new SelectorMatcher();
       const individualSelectors = CssSelector.parse(candidate.originalSelector);
-      console.log(`[DEBUG] Candidate ${candidate.name} parsed selectors: ${individualSelectors.map(s => s.toString()).join(', ')}`);
       
       // Add each individual selector to the matcher
       // This is crucial for complex selectors like "a[tuiButton],button[tuiButton]"
@@ -259,17 +260,13 @@ async function getBestMatchUsingAngularMatcher(
         matchedSelectors.push(matchedSelector.toString());
       });
 
-      console.log(`[DEBUG] Candidate ${candidate.name} matched selectors: [${matchedSelectors.join(', ')}]`);
-
       if (matchedSelectors.length > 0) {
         bestMatches.push(candidate);
       }
     }
 
-    console.log(`[DEBUG] Best matches: ${bestMatches.map(m => m.name).join(', ')}`);
-
     if (bestMatches.length === 0) {
-      return candidates[0];
+      return undefined;
     }
 
     if (bestMatches.length === 1) {
