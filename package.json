@@ -54,11 +54,6 @@
         "command": "angular-auto-import.reindex",
         "title": "Angular Auto Import: Reindex Project(s)",
         "category": "Angular Auto Import"
-      },
-      {
-        "command": "angular-auto-import.manual.importElement",
-        "title": "Angular Auto Import: Manually Import Element by Selector",
-        "category": "Angular Auto Import"
       }
     ],
     "configuration": {

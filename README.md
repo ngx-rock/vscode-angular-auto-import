@@ -40,14 +40,6 @@ The extension will automatically add the necessary import statement to your Type
 
 Start typing an Angular element selector (e.g., `<my-component`, `[myDirective]`, `| myPipe`) in your HTML or inline TypeScript template. The extension will provide completion suggestions.
 
-### Manual Import Command
-
-If you prefer to manually import an element by its selector or pipe name:
-
-1.  Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
-2.  Search for `Angular Auto Import: Manually Import Element by Selector`.
-3.  Enter the selector (e.g., `my-component`, `testDirective`, `myPipe`).
-
 ## Configuration
 
 You can customize the extension's behavior via VS Code settings (`settings.json`):
