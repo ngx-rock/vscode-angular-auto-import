@@ -93,6 +93,7 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
   context.subscriptions.push(importCmd);
 
   // Manual import command
+  // todo: delete
   const manualImportCmd = vscode.commands.registerCommand("angular-auto-import.manual.importElement", async () => {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {

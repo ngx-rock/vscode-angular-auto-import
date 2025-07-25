@@ -169,10 +169,63 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
 
 /**
  * Получает Angular элемент по селектору (совместимость с существующим кодом)
+ * Использует улучшенную логику выбора лучшего кандидата из нескольких элементов
  */
 export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
   const elements = getAngularElements(selector, indexer);
-  return elements.length > 0 ? elements[0] : undefined;
+  
+  if (elements.length === 0) {
+    return undefined;
+  }
+  
+  if (elements.length === 1) {
+    return elements[0];
+  }
+ 
+  // Применяем эвристики для выбора лучшего кандидата из нескольких элементов
+  
+  // 1. Предпочитаем элементы, чей оригинальный селектор точно содержит искомый селектор
+  const exactMatches = elements.filter((el) => {
+    return el.originalSelector
+      .split(",")
+      .map((s) => s.trim())
+      .some((part) => part === selector);
+  });
+  
+  const candidatePool = exactMatches.length > 0 ? exactMatches : elements;
+  
+  // 2. Сортируем кандидатов по приоритету:
+  //    a) Предпочитаем компоненты > директивы > пайпы
+  //    b) Предпочитаем более короткие оригинальные селекторы (менее специфичные)
+  //    c) Детерминированный fallback - по алфавиту имени класса
+  const scoreType = (el: AngularElementData): number => {
+    switch (el.type) {
+      case "component":
+        return 0;
+      case "directive":
+        return 1;
+      case "pipe":
+        return 2;
+      default:
+        return 3;
+    }
+  };
+  
+  candidatePool.sort((a, b) => {
+    const typeDiff = scoreType(a) - scoreType(b);
+    if (typeDiff !== 0) {
+      return typeDiff;
+    }
+    
+    const lenDiff = a.originalSelector.length - b.originalSelector.length;
+    if (lenDiff !== 0) {
+      return lenDiff;
+    }
+    
+    return a.name.localeCompare(b.name);
+  });
+  
+  return candidatePool[0];
 }
 
 /**

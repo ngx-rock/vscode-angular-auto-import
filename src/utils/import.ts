@@ -104,10 +104,6 @@ export async function importElementToFile(
       console.log(`[importElementToFile] Created new ts-morph SourceFile`);
     }
 
-    console.log(`[importElementToFile] === IMPORTING ${element.type.toUpperCase()} ===`);
-    console.log(`[importElementToFile] Element name: ${element.name}`);
-    console.log(`[importElementToFile] Element type: ${element.type}`);
-    console.log(`[importElementToFile] Element relative path: ${element.path}`);
 
     // Determine if the element is from an external package or local project file.
     let importPathString: string;
