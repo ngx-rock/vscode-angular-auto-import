@@ -129,20 +129,17 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         return [];
       }
 
-      const selectorToSearch = diagnostic.code.split(":")[1];
+      const diagnosticCode = diagnostic.code as string;
+      const selectorToSearch = diagnosticCode.split(":")[1];
 
       if (selectorToSearch) {
-        console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
-
         const elementData = await getAngularElementAsync(selectorToSearch, indexer);
 
         if (elementData) {
-          console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
-
           // The selector passed to the command must be the one found in the index
           const action = this.createCodeAction(elementData, diagnostic, selectorToSearch);
           if (action) {
-            actions.push(action);
+            return [action];
           }
         }
       }

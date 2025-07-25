@@ -1,5 +1,5 @@
 /**
- * Утилиты для работы с Angular элементами и селекторами
+ * Utilities for working with Angular elements and selectors
  */
 
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
@@ -7,8 +7,8 @@ import type { AngularIndexer } from "../services";
 import { AngularElementData } from "../types";
 
 /**
- * Парсит сложный селектор Angular и возвращает массив индивидуальных селекторов.
- * Использует CssSelector.parse из @angular/compiler для надежного парсинга.
+ * Parses a complex Angular selector and returns an array of individual selectors.
+ * Uses CssSelector.parse from @angular/compiler for reliable parsing.
  */
 export async function parseAngularSelector(selectorString: string): Promise<string[]> {
   if (!selectorString) {
@@ -22,11 +22,11 @@ export async function parseAngularSelector(selectorString: string): Promise<stri
 }
 
 async function parseAngularSelectorSync(selectorString: string): Promise<string[]> {
-  // Используем динамический import(), который лучше работает с ES-модулями
+  // Using dynamic import() which works better with ES modules
   const compiler = await import("@angular/compiler");
   const { CssSelector } = compiler;
 
-  // Используем CssSelector.parse для надежного парсинга селекторов
+  // Using CssSelector.parse for reliable selector parsing
   const cssSelectors = CssSelector.parse(selectorString);
   const parsedSelectors: string[] = [];
 
@@ -41,7 +41,7 @@ async function parseAngularSelectorSync(selectorString: string): Promise<string[
 }
 
 /**
- * Определяет интерфейс для объекта CssSelector для типобезопасности.
+ * Defines an interface for the CssSelector object for type safety.
  */
 interface CssSelectorForParsing {
   element: string | null;
@@ -52,17 +52,17 @@ interface CssSelectorForParsing {
 }
 
 /**
- * Рекурсивно обрабатывает CssSelector и его notSelectors.
+ * Recursively processes a CssSelector and its notSelectors.
  */
 function processCssSelector(cssSelector: CssSelectorForParsing, collection: string[]): void {
-  // Добавляем полный оригинальный селектор
+  // Add the full original selector
   const fullSelector = cssSelector.toString();
   if (fullSelector) {
     collection.push(fullSelector);
   }
 
-  // Добавляем базовый тег только если нет обязательных атрибутов
-  // Это предотвращает индексацию input[tuiInputPin] под ключом "input"
+  // Add the base tag only if there are no required attributes.
+  // This prevents indexing input[tuiInputPin] under the key "input"
   if (cssSelector.element) {
     const hasRequiredAttributes = cssSelector.attrs.length > 0;
     if (!hasRequiredAttributes) {
@@ -70,7 +70,7 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
     }
   }
 
-  // Добавляем селекторы-атрибуты в квадратных скобках и без
+  // Add attribute selectors with and without square brackets
   for (let i = 0; i < cssSelector.attrs.length; i += 2) {
     const attrName = cssSelector.attrs[i];
     if (attrName) {
@@ -79,7 +79,7 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
     }
   }
 
-  // Для селекторов с :not() дополнительно добавляем версию без :not()
+  // For selectors with :not(), also add a version without :not()
   if (fullSelector && fullSelector.includes(":not")) {
     const simplified = fullSelector.replace(/:not\([^)]+\)/g, "").trim();
     if (simplified && simplified !== fullSelector) {
@@ -89,7 +89,7 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
 }
 
 /**
- * Получает Angular элементы по селектору
+ * Gets Angular elements by selector
  */
 export function getAngularElements(selector: string, indexer: AngularIndexer): AngularElementData[] {
   if (!selector || typeof selector !== "string") {
@@ -168,8 +168,9 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
 }
 
 /**
- * Получает Angular элемент по селектору (совместимость с существующим кодом)
- * Использует Angular SelectorMatcher для точного сопоставления селекторов
+ * Gets Angular element by selector (compatibility with existing code)
+ *
+ * Uses Angular SelectorMatcher for precise selector matching.
  */
 // export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
 //   const elements = getAngularElements(selector, indexer);
@@ -182,12 +183,12 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
 //     return elements[0];
 //   }
 
-//   // Возвращаем первый элемент для синхронной совместимости
+//   // Return the first element for synchronous compatibility
 //   return elements[0];
 // }
 
 /**
- * Асинхронная версия для получения лучшего совпадения с использованием Angular SelectorMatcher
+ * Asynchronous version to get the best match using Angular SelectorMatcher
  */
 export async function getAngularElementAsync(
   selector: string,
@@ -203,41 +204,33 @@ export async function getAngularElementAsync(
     return elements[0];
   }
 
-  // Используем Angular SelectorMatcher для точного сопоставления
+  // Uses Angular SelectorMatcher for precise matching
   return await getBestMatchUsingAngularMatcher(selector, elements);
 }
 
 /**
- * Использует Angular SelectorMatcher для выбора наиболее подходящего элемента
+ * Uses Angular SelectorMatcher to select the most appropriate element
  */
 async function getBestMatchUsingAngularMatcher(
-  selector: string,
+  selector:string,
   candidates: AngularElementData[]
 ): Promise<AngularElementData | undefined> {
   try {
     const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
 
-    // Создаем CSS селектор для поиска
-    const templateCssSelector = new CssSelector();
-
-    // Обрабатываем различные форматы селекторов
-    if (selector.startsWith("[") && selector.endsWith("]")) {
-      // Атрибутный селектор: [ngIf]
-      const attrName = selector.slice(1, -1);
-      templateCssSelector.addAttribute(attrName, "");
-    } else if (selector.startsWith("*")) {
-      // Структурная директива: *ngIf
-      const attrName = selector.slice(1);
-      templateCssSelector.addAttribute(attrName, "");
-    } else {
-      // Элемент или простой селектор
-      templateCssSelector.setElement(selector);
+    const cssSelectors = CssSelector.parse(selector);
+    if (cssSelectors.length === 0) {
+      console.warn(`[getBestMatchUsingAngularMatcher] Could not parse selector: "${selector}"`);
+      // Fallback to the first candidate if parsing fails.
+      return candidates[0];
     }
+    // We are matching against a specific selector, so we take the first parsed result.
+    const templateCssSelector = cssSelectors[0];
 
     const bestMatches: AngularElementData[] = [];
 
     for (const candidate of candidates) {
-      // Пропускаем пайпы, для них используем простое сопоставление
+      // Skip pipes, they are matched by name directly.
       if (candidate.type === "pipe") {
         if (candidate.name.toLowerCase() === selector.toLowerCase()) {
           bestMatches.push(candidate);
@@ -260,14 +253,15 @@ async function getBestMatchUsingAngularMatcher(
     }
 
     if (bestMatches.length === 0) {
-      return undefined;
+      // If no match found, maybe the selector was too simple, return first candidate as a fallback.
+      return candidates[0];
     }
 
     if (bestMatches.length === 1) {
       return bestMatches[0];
     }
 
-    // Сортируем по типу, длине селектора и имени
+    // Sort by type, selector length, and name to find the best match.
     bestMatches.sort((a, b) => {
       const scoreType = (el: AngularElementData): number => {
         switch (el.type) {
@@ -287,7 +281,8 @@ async function getBestMatchUsingAngularMatcher(
         return typeDiff;
       }
 
-      const lenDiff = a.originalSelector.length - b.originalSelector.length;
+      // Prefer more specific (longer) selectors.
+      const lenDiff = b.originalSelector.length - a.originalSelector.length;
       if (lenDiff !== 0) {
         return lenDiff;
       }
@@ -298,12 +293,13 @@ async function getBestMatchUsingAngularMatcher(
     return bestMatches[0];
   } catch (error) {
     console.error("Error using Angular SelectorMatcher:", error);
-    return undefined;
+    // On error, fall back to the first candidate.
+    return candidates[0];
   }
 }
 
 /**
- * Проверяет, является ли файл Angular файлом
+ * Checks if a file is an Angular file
  */
 export function isAngularFile(filePath: string): boolean {
   if (!filePath || typeof filePath !== "string") {
@@ -314,14 +310,14 @@ export function isAngularFile(filePath: string): boolean {
 }
 
 /**
- * Генерирует import statement
+ * Generates an import statement
  */
 export function generateImportStatement(name: string, path: string): string {
   return `import { ${name} } from '${path}';`;
 }
 
 /**
- * Разрешает относительный путь между файлами
+ * Resolves the relative path between files
  */
 export function resolveRelativePath(from: string, to: string): string {
   if (!from || !to) {
