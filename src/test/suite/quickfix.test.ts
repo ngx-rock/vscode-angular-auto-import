@@ -308,10 +308,11 @@ describe("QuickfixImportProvider", function () {
     it("should provide code actions for known Angular component", async () => {
       const diagnostic = new vscode.Diagnostic(
         new vscode.Range(0, 0, 0, 14),
-        "'test-component' is not a known element",
+        "'test-component' is part of a known component, but it is not imported.",
         vscode.DiagnosticSeverity.Error
       );
-      diagnostic.code = "NG8001";
+      diagnostic.code = "missing-component-import:test-component";
+      diagnostic.source = "angular-auto-import";
 
       const context = {
         diagnostics: [diagnostic],
