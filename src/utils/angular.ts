@@ -239,7 +239,7 @@ async function getBestMatchUsingAngularMatcher(
     for (const candidate of candidates) {
       // Skip pipes, they are matched by name directly
       if (candidate.type === "pipe") {
-        if (candidate.name.toLowerCase() === selector.toLowerCase()) {
+        if (candidate.originalSelector.toLowerCase() === selector.toLowerCase()) {
           bestMatches.push(candidate);
         }
         continue;
@@ -266,7 +266,7 @@ async function getBestMatchUsingAngularMatcher(
     }
 
     if (bestMatches.length === 0) {
-      return undefined;
+      return undefined; // candidates[0];
     }
 
     if (bestMatches.length === 1) {
