@@ -131,18 +131,32 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         // Fallback for when we're typing a new tag/attribute from scratch
         if (context === "none") {
           const structuralMatch = /\*([a-zA-Z0-9_-]*)$/.exec(linePrefix);
-          const tagMatch = /<([a-zA-Z0-9-]*)$/.exec(linePrefix);
-          const attributeMatch = /<[a-zA-Z0-9-]+[^>]*\s([a-zA-Z0-9-]*)$/.exec(linePrefix);
-
+          
+          // Enhanced tag/attribute detection with better context awareness
+          // Match opening tag with optional content after tag name
+          const tagWithContentMatch = /<([a-zA-Z0-9-]+)(.*)$/.exec(linePrefix);
+          
           if (structuralMatch) {
             context = "structural-directive";
             filterText = structuralMatch[1];
-          } else if (tagMatch) {
-            context = "tag";
-            filterText = tagMatch[1];
-          } else if (attributeMatch) {
-            context = "attribute";
-            filterText = attributeMatch[1];
+          } else if (tagWithContentMatch) {
+            const tagName = tagWithContentMatch[1];
+            const afterTagName = tagWithContentMatch[2];
+            
+            // Check if we have whitespace or newline after tag name
+            // If yes, we're in attribute context (directive suggestions)
+            // If no, we're still in tag name context (component suggestions)
+            if (/\s/.test(afterTagName)) {
+              // We're after a space/newline in the tag - suggest attributes/directives
+              context = "attribute";
+              // Extract the current word being typed after the space
+              const attributeMatch = /\s+([a-zA-Z0-9_-]*)$/.exec(afterTagName);
+              filterText = attributeMatch ? attributeMatch[1] : "";
+            } else {
+              // We're still typing the tag name - suggest components
+              context = "tag";
+              filterText = tagName + afterTagName; // Include any partial text after tag name
+            }
           }
         }
 
@@ -156,10 +170,10 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             replacementRange = new vscode.Range(replacementRange.start.translate(0, -1), replacementRange.end);
           }
         }
-      } catch (e) {
-        // Suppress parser errors during active typing
-        console.error("Angular Template Parser error:", e);
-        return [];
+      } catch (_e) {
+        // Suppress parser errors during active typing and continue with fallback logic
+        // console.log("Angular Template Parser error (continuing with fallback):", _e);
+        // Don't return early - let fallback logic handle context detection
       }
     }
 
@@ -168,6 +182,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const hasTagContext = context === "tag";
     const hasPipeContext = context === "pipe";
     const hasStructuralDirectiveContext = context === "structural-directive";
+
+    // Debug logging to understand context detection (uncomment for debugging)
+    // console.log(`CompletionProvider Debug: context="${context}", filterText="${filterText}", hasTagContext=${hasTagContext}, hasAttributeContext=${hasAttributeContext}, linePrefix="${linePrefix}"`);
 
     const seenElements = new Set<string>(); // To avoid duplicate elements
 
@@ -201,33 +218,42 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         let insertText = elementSelector;
         let relevance = 0; // For sorting suggestions
 
-        if (element.type === "component" && (hasTagContext || (!hasPipeContext && !hasAttributeContext))) {
-          if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-            itemKind = vscode.CompletionItemKind.Class; // Component as tag
-            relevance = 2;
+        // Enhanced filtering logic: 
+        // - In "tag" context (before first space): show only components
+        // - In "attribute" context (after space): show only directives
+        if (element.type === "component") {
+          // Components only in tag context (before first space)
+          if (hasTagContext && !hasAttributeContext && !hasPipeContext) {
+            if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
+              itemKind = vscode.CompletionItemKind.Class; // Component as tag
+              relevance = 2;
+            }
           }
-        } else if (element.type === "directive" && (hasTagContext || hasAttributeContext || !hasPipeContext)) {
-          // Directives can be selectors (like components), attribute selectors, or structural directives
-          if (elementSelector.startsWith("[") && elementSelector.endsWith("]")) {
-            // Attribute selector
-            const attrSelector = elementSelector.slice(1, -1);
-            if (attrSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-              insertText = attrSelector;
-              itemKind = vscode.CompletionItemKind.Property; // Directive as attribute
-              relevance = 1;
-            }
-          } else if (hasStructuralDirectiveContext) {
-            // Structural directive context - match directive name directly
-            if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-              insertText = elementSelector;
-              itemKind = vscode.CompletionItemKind.Keyword; // Structural directive
-              relevance = 2; // Higher relevance for structural directives in structural context
-            }
-          } else {
-            // Tag-like selector for directive or general directive matching
-            if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-              itemKind = vscode.CompletionItemKind.Class;
-              relevance = 1;
+        } else if (element.type === "directive") {
+          // Directives only in attribute context (after space) or structural directive context
+          if (hasAttributeContext || hasStructuralDirectiveContext) {
+            // Directives can be attribute selectors or structural directives
+            if (elementSelector.startsWith("[") && elementSelector.endsWith("]")) {
+              // Attribute selector
+              const attrSelector = elementSelector.slice(1, -1);
+              if (attrSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
+                insertText = attrSelector;
+                itemKind = vscode.CompletionItemKind.Property; // Directive as attribute
+                relevance = 2; // Higher relevance for directives in attribute context
+              }
+            } else if (hasStructuralDirectiveContext) {
+              // Structural directive context - match directive name directly
+              if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
+                insertText = elementSelector;
+                itemKind = vscode.CompletionItemKind.Keyword; // Structural directive
+                relevance = 2; // Higher relevance for structural directives in structural context
+              }
+            } else {
+              // General directive matching for attribute context
+              if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
+                itemKind = vscode.CompletionItemKind.Property;
+                relevance = 1;
+              }
             }
           }
         } else if (element.type === "pipe" && (hasPipeContext || (!hasTagContext && !hasAttributeContext))) {
@@ -298,29 +324,25 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       let relevance = 0;
 
       if (stdElement.type === "directive") {
-        if (hasStructuralDirectiveContext && stdSelector.startsWith("*")) {
-          // Structural directive context
-          if (stdSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-            shouldInclude = true;
-            insertText = stdSelector.substring(1); // Remove * for insertion
-            itemKind = vscode.CompletionItemKind.Keyword;
-            relevance = 3; // High relevance for structural directives
-          }
-        } else if (hasAttributeContext && (stdSelector.startsWith("[") || !stdSelector.startsWith("*"))) {
-          // Attribute directive context
-          const attrName = stdSelector.startsWith("[") ? stdSelector.slice(1, -1) : stdSelector;
-          if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
-            shouldInclude = true;
-            insertText = attrName;
-            itemKind = vscode.CompletionItemKind.Property;
-            relevance = 2;
-          }
-        } else if (hasTagContext && !stdSelector.startsWith("*") && !stdSelector.startsWith("[")) {
-          // Tag context for non-structural directives
-          if (stdSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-            shouldInclude = true;
-            itemKind = vscode.CompletionItemKind.Property;
-            relevance = 1;
+        // Directives only in attribute context (after space) or structural directive context
+        if (hasAttributeContext || hasStructuralDirectiveContext) {
+          if (hasStructuralDirectiveContext && stdSelector.startsWith("*")) {
+            // Structural directive context
+            if (stdSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
+              shouldInclude = true;
+              insertText = stdSelector.substring(1); // Remove * for insertion
+              itemKind = vscode.CompletionItemKind.Keyword;
+              relevance = 3; // High relevance for structural directives
+            }
+          } else if (hasAttributeContext && (stdSelector.startsWith("[") || !stdSelector.startsWith("*"))) {
+            // Attribute directive context
+            const attrName = stdSelector.startsWith("[") ? stdSelector.slice(1, -1) : stdSelector;
+            if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
+              shouldInclude = true;
+              insertText = attrName;
+              itemKind = vscode.CompletionItemKind.Property;
+              relevance = 2;
+            }
           }
         }
       } else if (stdElement.type === "pipe" && (hasPipeContext || (!hasTagContext && !hasAttributeContext))) {
