@@ -99,6 +99,10 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
     // Use the Trie-based search for indexed elements
     const searchResults = indexer.searchWithSelectors(filterText);
+    // console.log(`[CompletionProvider] Searching for "${filterText}", found ${searchResults.length} results.`);
+    // if (searchResults.length > 0) {
+    //   console.log('[CompletionProvider] Search results:', JSON.stringify(searchResults.slice(0, 10), null, 2)); // Log first 10 results
+    // }
     const elementsToProcess = new Map<string, { element: AngularElementData; selectors: string[] }>();
 
     // Group matching selectors by element to process each element only once
@@ -131,10 +135,16 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             itemKind = vscode.CompletionItemKind.Class;
             relevance = 2;
           }
-        } else if (element.type === "directive" && hasAttributeContext) {
+        } else if (
+          (element.type === "directive" || (element.type === "component" && element.originalSelector.includes("["))) &&
+          hasAttributeContext
+        ) {
           if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
             insertText = elementSelector;
-            itemKind = context === 'structural-directive' ? vscode.CompletionItemKind.Keyword : vscode.CompletionItemKind.Property;
+            itemKind =
+              context === "structural-directive"
+                ? vscode.CompletionItemKind.Keyword
+                : vscode.CompletionItemKind.Property;
             relevance = 2;
           }
         } else if (element.type === "pipe" && hasPipeContext) {
