@@ -41,6 +41,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     let filterText = "";
     let replacementRange: vscode.Range | undefined;
     let context: "tag" | "attribute" | "pipe" | "structural-directive" | "reference-value" | "none" = "none";
+    let parentElement: any | undefined;
 
     // 1. Pipe context (simple regex is sufficient and fast)
     const pipeRegex = /\|\s*([a-zA-Z0-9_]*)$/;
@@ -71,7 +72,11 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         /**
          * Traverses the Angular Template AST to find the most specific node at a given position.
          */
-        const findNodeAtPosition = (nodes: TmplAstNode[], pos: number): TmplAstNode | undefined => {
+        const findNodeAtPosition = (
+          nodes: TmplAstNode[],
+          pos: number,
+          parent: TmplAstNode | undefined = undefined
+        ): { node: TmplAstNode | undefined, parent: TmplAstNode | undefined } => {
           for (const node of nodes) {
             if (!node.sourceSpan || pos < node.sourceSpan.start.offset || pos > node.sourceSpan.end.offset) {
               continue;
@@ -90,16 +95,20 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
               potentialChildren = (node as { children: TmplAstNode[] }).children;
             }
 
-            const childNode = findNodeAtPosition(potentialChildren, pos);
-            return childNode || node;
+            const childResult = findNodeAtPosition(potentialChildren, pos, node);
+            if (childResult.node) {
+                return childResult;
+            }
+            return { node, parent };
           }
-          return undefined;
+          return { node: undefined, parent: undefined };
         };
 
         const documentText = document.getText();
         const offset = document.offsetAt(position);
         // Use offset - 1 to get the node we are "inside" of
-        const nodeAtCursor = findNodeAtPosition(parseTemplate(documentText, document.uri.fsPath).nodes, offset - 1);
+        const { node: nodeAtCursor, parent } = findNodeAtPosition(parseTemplate(documentText, document.uri.fsPath).nodes, offset - 1);
+        parentElement = parent;
 
         const wordRange = document.getWordRangeAtPosition(position, /[\w-]+/);
         const currentWord = wordRange ? document.getText(wordRange) : "";
@@ -162,12 +171,20 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
         replacementRange = document.getWordRangeAtPosition(position, /[a-zA-Z0-9_-]+/);
         if (replacementRange) {
-          filterText = document.getText(replacementRange);
+          // If we are in an attribute context, the filter text should be what we are currently typing.
+          // Otherwise, we might be completing a tag, so we use the whole word.
+          if (context === "attribute" || context === "structural-directive") {
+            filterText = document.getText(replacementRange);
+          }
+          
           // Adjust for structural directives where `*` is not part of the word
           const charBefore =
             replacementRange.start.character > 0 ? linePrefix[replacementRange.start.character - 1] : "";
           if (charBefore === "*") {
             replacementRange = new vscode.Range(replacementRange.start.translate(0, -1), replacementRange.end);
+            if (context === "structural-directive") {
+                filterText = document.getText(replacementRange).substring(1);
+            }
           }
         }
       } catch (_e) {
@@ -218,7 +235,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         let insertText = elementSelector;
         let relevance = 0; // For sorting suggestions
 
-        // Enhanced filtering logic: 
+        // Enhanced filtering logic:
         // - In "tag" context (before first space): show only components
         // - In "attribute" context (after space): show only directives
         if (element.type === "component") {
@@ -232,28 +249,41 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         } else if (element.type === "directive") {
           // Directives only in attribute context (after space) or structural directive context
           if (hasAttributeContext || hasStructuralDirectiveContext) {
-            // Directives can be attribute selectors or structural directives
-            if (elementSelector.startsWith("[") && elementSelector.endsWith("]")) {
-              // Attribute selector
-              const attrSelector = elementSelector.slice(1, -1);
-              if (attrSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-                insertText = attrSelector;
-                itemKind = vscode.CompletionItemKind.Property; // Directive as attribute
-                relevance = 2; // Higher relevance for directives in attribute context
-              }
-            } else if (hasStructuralDirectiveContext) {
-              // Structural directive context - match directive name directly
-              if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-                insertText = elementSelector;
-                itemKind = vscode.CompletionItemKind.Keyword; // Structural directive
-                relevance = 2; // Higher relevance for structural directives in structural context
-              }
-            } else {
-              // General directive matching for attribute context
-              if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-                itemKind = vscode.CompletionItemKind.Property;
-                relevance = 1;
-              }
+            const isAttributeSelector = element.originalSelector.includes("[");
+            const parentTagName = parentElement?.name;
+
+            // Check if the directive is applicable in the current context (e.g., on a specific tag)
+            let isApplicable = true;
+            if (parentTagName && isAttributeSelector) {
+                const selectorParts = element.originalSelector.split(',').map(s => s.trim());
+                
+                // Filter for parts that are tag-specific (e.g., `button[mat-menu-item]`)
+                const tagSpecificParts = selectorParts.filter(p => p.includes('[') && !p.startsWith('['));
+
+                if (tagSpecificParts.length > 0) {
+                    // If there are tag-specific selectors, at least one must match the parent tag.
+                    const matchesParent = tagSpecificParts.some(p => p.startsWith(parentTagName));
+                    if (!matchesParent) {
+                        isApplicable = false;
+                    }
+                }
+                // If no tag-specific parts exist (e.g., only `[mat-menu-item]`), it's considered universally applicable.
+            }
+
+            if (isApplicable) {
+                if (hasStructuralDirectiveContext) {
+                    if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
+                        insertText = elementSelector;
+                        itemKind = vscode.CompletionItemKind.Keyword;
+                        relevance = 2;
+                    }
+                } else if (hasAttributeContext) {
+                    if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
+                        insertText = elementSelector;
+                        itemKind = vscode.CompletionItemKind.Property;
+                        relevance = isAttributeSelector ? 2 : 1; // Prioritize attribute selectors
+                    }
+                }
             }
           }
         } else if (element.type === "pipe" && (hasPipeContext || (!hasTagContext && !hasAttributeContext))) {
