@@ -57,12 +57,20 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     } else if (openTagIndex > closeTagIndex) {
       // We are inside a tag definition
       const tagContent = linePrefix.substring(openTagIndex + 1);
-      const hasSpace = /\s/.test(tagContent);
+      const tagNameMatch = tagContent.match(/^([a-zA-Z0-9-]+)/);
+      const tagName = tagNameMatch ? tagNameMatch[0] : '';
+      const contentAfterTag = tagContent.substring(tagName.length);
 
-      if (!hasSpace) {
+      // If there's content right after the tag name without a space, we're not in a valid attribute context yet.
+      // e.g. <my-tag[
+      if (contentAfterTag.length > 0 && !/^\s/.test(contentAfterTag)) {
+        context = 'none'; // Neither tag nor attribute, do not show suggestions
+      } else if (!/\s/.test(tagContent)) {
+        // We are typing the tag name, no spaces yet
         context = "tag";
         filterText = tagContent;
       } else {
+        // We are in an attribute context (space exists)
         context = "attribute";
         const lastWordMatch = /\s([a-zA-Z0-9-]*)$/.exec(tagContent);
         filterText = lastWordMatch ? lastWordMatch[1] : "";
