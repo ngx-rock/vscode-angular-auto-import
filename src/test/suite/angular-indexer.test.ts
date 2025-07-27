@@ -12,7 +12,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { AngularIndexer } from "../../services";
-import { AngularElementData, type FileElementsInfo } from "../../types";
+import { type FileElementsInfo } from "../../types";
 
 describe("AngularIndexer", function () {
   // Set timeout for all tests in this suite
@@ -48,9 +48,13 @@ describe("AngularIndexer", function () {
       },
       globalState: {
         get: () => undefined,
-        update: async () => {},
+        update: async () => {
+          // Mock implementation
+        },
         keys: () => [],
-        setKeysForSync: () => {},
+        setKeysForSync: () => {
+          // Mock implementation
+        },
       },
       extensionPath: "",
       extensionUri: vscode.Uri.file(""),
