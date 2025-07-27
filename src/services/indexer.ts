@@ -916,8 +916,25 @@ export class AngularIndexer {
     allLibraryClasses: Map<string, ClassDeclaration>
   ) {
     try {
-      // Find all NgModules in the current file and map their exports
-      for (const classDecl of sourceFile.getClasses()) {
+      const classDeclarations = new Map<string, ClassDeclaration>();
+
+      // FIX: Use getExportedDeclarations() to correctly resolve re-exported modules.
+      // This was the logic before the faulty commit.
+      const exportedDeclarations = sourceFile.getExportedDeclarations();
+      for (const declarations of exportedDeclarations.values()) {
+        for (const declaration of declarations) {
+          if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
+            const classDecl = declaration as ClassDeclaration;
+            const name = classDecl.getName();
+            if (name && !classDeclarations.has(name)) {
+              classDeclarations.set(name, classDecl);
+            }
+          }
+        }
+      }
+
+      // Find all NgModules among the correctly found classes and map their exports
+      for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
         // Skip unnamed or internal Angular modules
         if (!className || className.startsWith("ɵ")) continue;
