@@ -99,10 +99,10 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
     // Use the Trie-based search for indexed elements
     const searchResults = indexer.searchWithSelectors(filterText);
-    // console.log(`[CompletionProvider] Searching for "${filterText}", found ${searchResults.length} results.`);
-    // if (searchResults.length > 0) {
-    //   console.log('[CompletionProvider] Search results:', JSON.stringify(searchResults.slice(0, 10), null, 2)); // Log first 10 results
-    // }
+     console.log(`[CompletionProvider] Searching for "${filterText}", found ${searchResults.length} results.`);
+      if (searchResults.length > 0) {
+     console.log('[CompletionProvider] Search results:', JSON.stringify(searchResults.slice(0, 10), null, 2)); // Log first 10 results
+     }
     const elementsToProcess = new Map<string, { element: AngularElementData; selectors: string[] }>();
 
     // Group matching selectors by element to process each element only once
@@ -139,8 +139,22 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           (element.type === "directive" || (element.type === "component" && element.originalSelector.includes("["))) &&
           hasAttributeContext
         ) {
-          if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
-            insertText = elementSelector;
+          
+          let attrName = elementSelector;
+          if (element.type === "component" || context === "structural-directive") {
+            attrName = elementSelector.startsWith("[")
+            ? elementSelector.slice(1, -1)
+            : elementSelector.startsWith("*")
+              ? elementSelector.slice(1)
+              : elementSelector;
+          }
+      
+
+          if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
+            // The insert text should be the clean name.
+            insertText = attrName;
+
+            // The label will still be the full selector (e.g., `[mat-menu-item]`), which is handled by `bestMatchingSelector`.
             itemKind =
               context === "structural-directive"
                 ? vscode.CompletionItemKind.Keyword
