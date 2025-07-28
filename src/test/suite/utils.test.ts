@@ -8,12 +8,7 @@
 
 import * as assert from "node:assert";
 import * as path from "node:path";
-import {
-  generateImportStatement,
-  isAngularFile,
-  normalizeSelector,
-  resolveRelativePath,
-} from "../../utils";
+import { generateImportStatement, isAngularFile, resolveRelativePath } from "../../utils";
 
 describe("Utility Functions", function () {
   // Set timeout for all tests in this suite
@@ -106,57 +101,6 @@ describe("Utility Functions", function () {
     it("should handle null and undefined inputs", () => {
       assert.strictEqual(isAngularFile(null as any), false, "Should handle null file path");
       assert.strictEqual(isAngularFile(undefined as any), false, "Should handle undefined file path");
-    });
-  });
-
-  describe("normalizeSelector", () => {
-    const testCases = [
-      {
-        input: "app-test",
-        description: "component selectors",
-        expectedToInclude: ["app-test"],
-      },
-      {
-        input: "[appHighlight]",
-        description: "directive selectors",
-        expectedToInclude: ["[appHighlight]", "appHighlight"],
-      },
-      {
-        input: "capitalize",
-        description: "pipe selectors",
-        expectedToInclude: ["capitalize"],
-      },
-      {
-        input: "  app-test  ",
-        description: "selectors with whitespace",
-        expectedToInclude: ["app-test"],
-      },
-    ];
-
-    testCases.forEach(({ input, description, expectedToInclude }) => {
-      it(`should normalize ${description}`, () => {
-        const result = normalizeSelector(input);
-
-        assert.ok(Array.isArray(result), "Should return an array");
-        expectedToInclude.forEach((expected) => {
-          assert.ok(result.includes(expected), `Should include ${expected} in result`);
-        });
-      });
-    });
-
-    it("should handle empty or invalid selectors", () => {
-      const testCases = [
-        { input: "", description: "empty string" },
-        { input: "   ", description: "whitespace only" },
-        { input: null, description: "null" },
-        { input: undefined, description: "undefined" },
-      ];
-
-      testCases.forEach(({ input, description }) => {
-        const result = normalizeSelector(input as any);
-        assert.ok(Array.isArray(result), `Should return an array for ${description}`);
-        assert.strictEqual(result.length, 0, `Should return empty array for ${description}`);
-      });
     });
   });
 
@@ -302,32 +246,6 @@ describe("Utility Functions", function () {
       assert.doesNotThrow(() => {
         resolveRelativePath(123 as any, {} as any);
       }, "resolveRelativePath should not throw for invalid type inputs");
-    });
-
-    it("should handle very long inputs", () => {
-      const longSelector = "a".repeat(1000);
-      const normalizedLong = normalizeSelector(longSelector);
-
-      assert.ok(Array.isArray(normalizedLong), "Should return array for long selectors");
-      assert.ok(normalizedLong.includes(longSelector), "Should handle long selectors");
-
-      const longPath = `/very/long/path/${"segment/".repeat(100)}file.ts`;
-      const isAngular = isAngularFile(longPath);
-
-      assert.strictEqual(typeof isAngular, "boolean", "Should handle long paths");
-    });
-
-    it("should handle special characters and unicode", () => {
-      const unicodeSelector = "app-тест-компонент";
-      const normalized = normalizeSelector(unicodeSelector);
-
-      assert.ok(Array.isArray(normalized), "Should return array for unicode selectors");
-      assert.ok(normalized.includes(unicodeSelector), "Should handle unicode selectors");
-
-      const specialPath = "/src/app/test-файл.component.ts";
-      const isAngular = isAngularFile(specialPath);
-
-      assert.strictEqual(typeof isAngular, "boolean", "Should handle unicode file paths");
     });
   });
 });

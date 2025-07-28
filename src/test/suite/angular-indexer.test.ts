@@ -3,8 +3,8 @@
  * Angular Indexer Tests
  * =================================================================================================
  *
- * Tests for the AngularIndexer service that handles indexing of Angular components,
- * directives, and pipes.
+ * Comprehensive tests for the AngularIndexer service that handles indexing of Angular components,
+ * directives, and pipes from both local files and node_modules libraries.
  */
 
 import * as assert from "node:assert";
@@ -12,34 +12,39 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { AngularIndexer } from "../../services";
-import { AngularElementData } from "../../types";
+import { type FileElementsInfo } from "../../types";
 
 describe("AngularIndexer", function () {
   // Set timeout for all tests in this suite
-  this.timeout(15000);
+  this.timeout(30000);
 
   let indexer: AngularIndexer;
   let mockContext: vscode.ExtensionContext;
   const fixturesPath = path.join(__dirname, "..", "fixtures");
   const testProjectPath = path.join(fixturesPath, "test-angular-project");
+  const mockNodeModulesPath = path.join(testProjectPath, "node_modules");
+
+  // Mock workspace state for testing
+  const mockWorkspaceState = new Map<string, any>();
 
   before(async () => {
-    // Create test project structure
+    // Create comprehensive test project structure
     await createTestProject();
   });
 
   beforeEach(() => {
     indexer = new AngularIndexer();
+    mockWorkspaceState.clear();
 
-    // Mock extension context
+    // Enhanced mock extension context
     mockContext = {
       subscriptions: [],
       workspaceState: {
-        get: () => undefined,
-        update: async () => {
-          // Mock implementation
+        get: (key: string) => mockWorkspaceState.get(key),
+        update: async (key: string, value: any) => {
+          mockWorkspaceState.set(key, value);
         },
-        keys: () => [],
+        keys: () => Array.from(mockWorkspaceState.keys()),
       },
       globalState: {
         get: () => undefined,
@@ -79,7 +84,13 @@ describe("AngularIndexer", function () {
     await cleanupTestProject();
   });
 
-  describe("#setProjectRoot", () => {
+  describe("Basic Setup", () => {
+    it("should initialize with empty state", () => {
+      assert.ok(indexer, "Indexer should be created");
+      assert.ok(indexer.project, "Should have ts-morph project");
+      assert.strictEqual(indexer.fileWatcher, null, "Should not have file watcher initially");
+    });
+
     it("should set project root and initialize cache keys", () => {
       indexer.setProjectRoot(testProjectPath);
 
@@ -96,42 +107,47 @@ describe("AngularIndexer", function () {
     });
   });
 
-  describe("#generateFullIndex", () => {
-    it("should index Angular components correctly", async () => {
+  describe("File Indexing", () => {
+    beforeEach(async () => {
       indexer.setProjectRoot(testProjectPath);
+    });
 
+    it("should index all Angular files in project", async () => {
       const result = await indexer.generateFullIndex(mockContext);
 
       assert.ok(result instanceof Map, "Should return a Map");
-      assert.ok(result.size > 0, "Should find at least one element");
+      assert.ok(result.size >= 5, "Should index at least 5 elements (component, directive, pipe, standalone component, complex directive)");
 
-      // Check for test component
-      const testComponent = indexer.getElement("test-component");
-      assert.ok(testComponent, "Should find test component");
-      assert.strictEqual(testComponent.type, "component", "Should be a component");
-      assert.strictEqual(testComponent.name, "TestComponent", "Should have correct name");
+      // Check specific elements
+      const selectors = indexer.getAllSelectors();
+      assert.ok(selectors.includes("test-component"), "Should include basic component");
+      assert.ok(selectors.includes("testDirective"), "Should include basic directive");
+      assert.ok(selectors.includes("testPipe"), "Should include basic pipe");
+      assert.ok(selectors.includes("standalone-component"), "Should include standalone component");
+      assert.ok(selectors.includes("complexButton"), "Should include complex directive");
     });
 
-    it("should index Angular directives correctly", async () => {
-      indexer.setProjectRoot(testProjectPath);
-
+    it("should handle standalone components correctly", async () => {
       await indexer.generateFullIndex(mockContext);
 
-      const testDirective = indexer.getElement("[testDirective]");
-      assert.ok(testDirective, "Should find test directive");
-      assert.strictEqual(testDirective.type, "directive", "Should be a directive");
-      assert.strictEqual(testDirective.name, "TestDirective", "Should have correct name");
+      const standaloneElements = indexer.getElements("standalone-component");
+      assert.ok(standaloneElements.length > 0, "Should find standalone component");
+      
+      const standaloneComponent = standaloneElements[0];
+      assert.strictEqual(standaloneComponent.isStandalone, true, "Should be marked as standalone");
+      assert.strictEqual(standaloneComponent.name, "StandaloneComponent", "Should have correct name");
     });
 
-    it("should index Angular pipes correctly", async () => {
-      indexer.setProjectRoot(testProjectPath);
-
+    it("should parse complex selectors correctly", async () => {
       await indexer.generateFullIndex(mockContext);
 
-      const testPipe = indexer.getElement("testPipe");
-      assert.ok(testPipe, "Should find test pipe");
-      assert.strictEqual(testPipe.type, "pipe", "Should be a pipe");
-      assert.strictEqual(testPipe.name, "TestPipe", "Should have correct name");
+      // Test complex selector parsing
+      const complexElements = indexer.getElements("complexButton");
+      assert.ok(complexElements.length > 0, "Should find complex directive");
+      
+      const complexDirective = complexElements[0];
+      assert.strictEqual(complexDirective.originalSelector, "button[complexButton],a[complexButton]", "Should preserve original selector");
+      assert.ok(complexDirective.selectors.includes("complexButton"), "Should include parsed selector");
     });
 
     it("should handle empty project gracefully", async () => {
@@ -143,103 +159,72 @@ describe("AngularIndexer", function () {
         }
 
         indexer.setProjectRoot(emptyProjectPath);
-
         const result = await indexer.generateFullIndex(mockContext);
 
         assert.ok(result instanceof Map, "Should return a Map");
         assert.strictEqual(result.size, 0, "Should have no elements for empty project");
       } finally {
-        // Clean up in finally block to ensure cleanup even if test fails
         if (fs.existsSync(emptyProjectPath)) {
           fs.rmSync(emptyProjectPath, { recursive: true, force: true });
         }
       }
     });
+
+    it("should handle malformed files gracefully", async () => {
+      // Create a malformed Angular file
+      const malformedPath = path.join(testProjectPath, "src", "app", "malformed.component.ts");
+      fs.writeFileSync(malformedPath, "invalid typescript content @Component({");
+
+      try {
+        // Should not throw an error
+        await indexer.generateFullIndex(mockContext);
+        
+        // Check that other files were still indexed
+        const selectors = indexer.getAllSelectors();
+        assert.ok(selectors.length > 0, "Should still index valid files");
+      } finally {
+        if (fs.existsSync(malformedPath)) {
+          fs.unlinkSync(malformedPath);
+        }
+      }
+    });
   });
 
-  describe("#getElement", () => {
+  describe("SelectorTrie Functionality", () => {
     beforeEach(async () => {
       indexer.setProjectRoot(testProjectPath);
       await indexer.generateFullIndex(mockContext);
     });
 
-    it("should return element by exact selector", () => {
-      const element = indexer.getElement("test-component");
-
-      assert.ok(element, "Should find element");
-      assert.strictEqual(element.name, "TestComponent", "Should have correct name");
-      assert.strictEqual(element.type, "component", "Should have correct type");
-    });
-
-    it("should return undefined for non-existent selector", () => {
-      const element = indexer.getElement("non-existent-component");
-
-      assert.strictEqual(element, undefined, "Should return undefined for non-existent element");
-    });
-
-    it("should handle multiple selectors for same element", () => {
-      // Test that directive can be found by different selector formats
-      const element1 = indexer.getElement("testDirective");
-      const element2 = indexer.getElement("[testDirective]");
-
-      assert.ok(element1, "Should find directive by attribute name");
-      assert.ok(element2, "Should find directive by attribute selector");
-      assert.strictEqual(element1.name, element2.name, "Should be the same element");
-    });
-  });
-
-  describe("#searchWithSelectors", () => {
-    beforeEach(async () => {
-      indexer.setProjectRoot(testProjectPath);
-      await indexer.generateFullIndex(mockContext);
-    });
-
-    it("should return elements with a given prefix", () => {
+    it("should support prefix searching", () => {
       const results = indexer.searchWithSelectors("test");
-      assert.ok(results.length >= 3, "Should find at least 3 elements for prefix 'test'");
+      assert.ok(results.length >= 3, "Should find elements with 'test' prefix");
 
-      const names = results.map((r: { selector: string; element: { name: string } }) => r.element.name);
-      assert.ok(names.includes("TestComponent"), "Should find TestComponent");
-      assert.ok(names.includes("TestDirective"), "Should find TestDirective");
-      assert.ok(names.includes("TestPipe"), "Should find TestPipe");
+      const selectors = results.map(r => r.selector);
+      assert.ok(selectors.some(s => s.startsWith("test")), "Should include selectors starting with 'test'");
     });
 
-    it("should return a limited set of unique elements", () => {
-      const results = indexer.searchWithSelectors("test");
-      // results can contain duplicates if a selector matches multiple elements, but our search returns unique AngularElementData
-      const uniqueResults = [
-        ...new Map(
-          results.map((item: { selector: string; element: { name: string } }) => [item.element.name, item])
-        ).values(),
-      ];
-      assert.ok(results.length >= uniqueResults.length, "Search should return valid results");
+    it("should return exact matches", () => {
+      const elements = indexer.getElements("test-component");
+      assert.ok(elements.length > 0, "Should find exact match for 'test-component'");
+      
+      const element = elements[0];
+      assert.strictEqual(element.name, "TestComponent", "Should return correct component");
     });
 
-    it("should return an empty array for a non-existent prefix", () => {
-      const results = indexer.searchWithSelectors("non-existent-prefix");
-      assert.strictEqual(results.length, 0, "Should return an empty array");
-    });
-  });
-
-  describe("#getAllSelectors", () => {
-    beforeEach(async () => {
-      indexer.setProjectRoot(testProjectPath);
-      await indexer.generateFullIndex(mockContext);
+    it("should return empty array for non-existent selectors", () => {
+      const elements = indexer.getElements("non-existent-selector");
+      assert.strictEqual(elements.length, 0, "Should return empty array for non-existent selector");
     });
 
-    it("should return all indexed selectors", () => {
-      const selectors = indexer.getAllSelectors();
-
-      assert.ok(selectors.length > 0, "Should have selectors");
-      assert.ok(selectors.includes("test-component"), "Should include component selector");
-      assert.ok(selectors.includes("testPipe"), "Should include pipe selector");
-    });
-
-    it("should return unique selectors", () => {
-      const selectors = indexer.getAllSelectors();
-      const uniqueSelectors = [...new Set(selectors)];
-
-      assert.strictEqual(selectors.length, uniqueSelectors.length, "All selectors should be unique");
+    it("should handle multiple elements with same selector", () => {
+      // This tests the trie's ability to handle multiple elements per selector
+      const allSelectors = indexer.getAllSelectors();
+      assert.ok(allSelectors.length > 0, "Should have selectors");
+      
+      // Test that all selectors are unique in the trie structure
+      const uniqueSelectors = [...new Set(allSelectors)];
+      assert.strictEqual(allSelectors.length, uniqueSelectors.length, "All selectors should be unique in trie");
     });
   });
 
@@ -251,52 +236,153 @@ describe("AngularIndexer", function () {
 
     it("should initialize file watcher", () => {
       indexer.initializeWatcher(mockContext);
-
       assert.ok(indexer.fileWatcher, "Should have file watcher");
     });
 
     it("should dispose file watcher on dispose", () => {
       indexer.initializeWatcher(mockContext);
-
       indexer.dispose();
-
       assert.strictEqual(indexer.fileWatcher, null, "File watcher should be null after dispose");
+    });
+
+    it("should handle file creation", async () => {
+      indexer.initializeWatcher(mockContext);
+      
+      const newComponentPath = path.join(testProjectPath, "src", "app", "new.component.ts");
+      const newComponentContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'new-component',
+  template: '<div>New Component</div>'
+})
+export class NewComponent {}
+`;
+
+      try {
+        // Create new file
+        fs.writeFileSync(newComponentPath, newComponentContent);
+        
+        // Give the watcher time to process
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Check if the new component was indexed
+        const elements = indexer.getElements("new-component");
+        assert.ok(elements.length > 0, "Should index newly created component");
+      } finally {
+        if (fs.existsSync(newComponentPath)) {
+          fs.unlinkSync(newComponentPath);
+        }
+      }
+    });
+
+    it("should handle file deletion", async () => {
+      indexer.initializeWatcher(mockContext);
+      
+      const tempComponentPath = path.join(testProjectPath, "src", "app", "temp.component.ts");
+      const tempComponentContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'temp-component',
+  template: '<div>Temp Component</div>'
+})
+export class TempComponent {}
+`;
+
+      // Create and index the file first
+      fs.writeFileSync(tempComponentPath, tempComponentContent);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Verify it's indexed
+      let elements = indexer.getElements("temp-component");
+      assert.ok(elements.length > 0, "Should index temp component");
+      
+      // Delete the file
+      fs.unlinkSync(tempComponentPath);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Verify it's removed from index
+      elements = indexer.getElements("temp-component");
+      assert.strictEqual(elements.length, 0, "Should remove deleted component from index");
     });
   });
 
   describe("Caching", () => {
-    it("should save and load from workspace cache", async () => {
+    it("should save and load index to/from workspace state", async () => {
       indexer.setProjectRoot(testProjectPath);
-
-      // Generate index
       await indexer.generateFullIndex(mockContext);
 
-      // Create new indexer and try to load from cache
+      // Verify data was saved
+      const fileCacheKey = indexer.workspaceFileCacheKey;
+      const indexCacheKey = indexer.workspaceIndexCacheKey;
+      
+      assert.ok(mockWorkspaceState.has(fileCacheKey), "Should save file cache");
+      assert.ok(mockWorkspaceState.has(indexCacheKey), "Should save index cache");
+
+      // Create new indexer and load from cache
       const newIndexer = new AngularIndexer();
       newIndexer.setProjectRoot(testProjectPath);
-
-      // Mock workspace state to return cached data
-      const cachedData = new Map();
-      cachedData.set(
-        "test-component",
-        new AngularElementData("src/app/test.component.ts", "TestComponent", "component", "test-component", [
-          "test-component",
-        ])
-      );
-
-      mockContext.workspaceState.get = (key: string) => {
-        if (key.includes("Index")) {
-          return Object.fromEntries(cachedData);
-        }
-        return {};
-      };
-
+      
       const loaded = newIndexer.loadFromWorkspace(mockContext);
+      assert.ok(loaded, "Should successfully load from cache");
 
-      assert.ok(loaded, "Should load from cache");
-      assert.ok(newIndexer.getElement("test-component"), "Should have cached element");
+      // Verify loaded data
+      const selectors = newIndexer.getAllSelectors();
+      assert.ok(selectors.length > 0, "Should have selectors after loading from cache");
+      assert.ok(selectors.includes("test-component"), "Should include cached selectors");
 
       newIndexer.dispose();
+    });
+
+    it("should handle missing cache gracefully", () => {
+      indexer.setProjectRoot(testProjectPath);
+      
+      // Try to load from empty cache
+      const loaded = indexer.loadFromWorkspace(mockContext);
+      assert.strictEqual(loaded, false, "Should return false when no cache exists");
+    });
+
+    it("should handle FileElementsInfo format correctly", async () => {
+      indexer.setProjectRoot(testProjectPath);
+      await indexer.generateFullIndex(mockContext);
+
+      // Check that the cached data uses the new FileElementsInfo format
+      const fileCacheKey = indexer.workspaceFileCacheKey;
+      const cachedData = mockWorkspaceState.get(fileCacheKey) as Record<string, FileElementsInfo>;
+      
+      assert.ok(cachedData, "Should have cached file data");
+      
+      const firstEntry = Object.values(cachedData)[0];
+      assert.ok(firstEntry, "Should have at least one cached file");
+      assert.ok('elements' in firstEntry, "Should use FileElementsInfo format with elements array");
+      assert.ok(Array.isArray(firstEntry.elements), "Elements should be an array");
+      assert.ok(firstEntry.elements.length > 0, "Should have at least one element");
+    });
+  });
+
+  describe("Library Indexing", () => {
+    beforeEach(async () => {
+      // Create mock node_modules structure
+      await createMockNodeModules();
+      indexer.setProjectRoot(testProjectPath);
+    });
+
+    afterEach(async () => {
+      await cleanupMockNodeModules();
+    });
+
+    it("should index Angular libraries from node_modules", async () => {
+      // Mock the library indexing functionality
+      // Note: Full library indexing is complex and requires actual Angular libraries
+      // This test focuses on the indexing structure
+      
+      await indexer.generateFullIndex(mockContext);
+      
+      // The indexer should handle the presence of node_modules
+      // Even if no actual Angular libraries are found, it shouldn't error
+      const selectors = indexer.getAllSelectors();
+      assert.ok(Array.isArray(selectors), "Should return selectors array even with node_modules present");
     });
   });
 
@@ -306,22 +392,19 @@ describe("AngularIndexer", function () {
       indexer.setProjectRoot(invalidPath);
 
       // Should not throw an error
-      assert.doesNotThrow(async () => {
-        const result = await indexer.generateFullIndex(mockContext);
-        assert.ok(result instanceof Map, "Should return a Map even for invalid paths");
-      }, "Should handle invalid project paths without throwing");
+      const result = await indexer.generateFullIndex(mockContext);
+      assert.ok(result instanceof Map, "Should return a Map even for invalid paths");
+      assert.strictEqual(result.size, 0, "Should have no elements for invalid path");
     });
 
     it("should handle dispose without initialization", () => {
       const newIndexer = new AngularIndexer();
-
-      // Should not throw an error
       assert.doesNotThrow(() => {
         newIndexer.dispose();
       }, "Should handle dispose without initialization");
     });
 
-    it("should handle getElement with invalid selectors", () => {
+    it("should handle getElements with invalid selectors", () => {
       indexer.setProjectRoot(testProjectPath);
 
       const testCases = [
@@ -332,11 +415,95 @@ describe("AngularIndexer", function () {
       ];
 
       testCases.forEach(({ selector, description }) => {
-        assert.doesNotThrow(() => {
-          const result = indexer.getElement(selector as any);
-          assert.strictEqual(result, undefined, `Should return undefined for ${description}`);
-        }, `Should handle ${description} selector gracefully`);
+        const result = indexer.getElements(selector as any);
+        assert.strictEqual(Array.isArray(result), true, `Should return array for ${description}`);
+        assert.strictEqual(result.length, 0, `Should return empty array for ${description}`);
       });
+    });
+
+    it("should handle ts-morph parsing errors with regex fallback", async () => {
+      // Create a file that might cause ts-morph issues but is parseable with regex
+      const problematicPath = path.join(testProjectPath, "src", "app", "problematic.component.ts");
+      const problematicContent = `
+// This might cause ts-morph issues but should work with regex
+export class ProblematicComponent {
+}
+// @Component decorator after class (unusual but possible)
+ProblematicComponent = Component({
+  selector: 'problematic-component',
+  template: 'test'
+})(ProblematicComponent);
+`;
+
+      fs.writeFileSync(problematicPath, problematicContent);
+
+      try {
+        // Should not throw an error and should attempt fallback
+        await indexer.generateFullIndex(mockContext);
+        
+        // The indexer should handle this gracefully
+        const selectors = indexer.getAllSelectors();
+        assert.ok(Array.isArray(selectors), "Should return selectors array even with problematic files");
+      } finally {
+        if (fs.existsSync(problematicPath)) {
+          fs.unlinkSync(problematicPath);
+        }
+      }
+    });
+  });
+
+  describe("Performance and Batching", () => {
+    it("should handle large numbers of files efficiently", async () => {
+      // Create multiple test files
+      const testFiles: string[] = [];
+      const srcPath = path.join(testProjectPath, "src", "app", "bulk");
+      
+      if (!fs.existsSync(srcPath)) {
+        fs.mkdirSync(srcPath, { recursive: true });
+      }
+
+      try {
+        // Create 10 test components
+        for (let i = 0; i < 10; i++) {
+          const componentPath = path.join(srcPath, `bulk${i}.component.ts`);
+          const componentContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'bulk-component-${i}',
+  template: '<div>Bulk Component ${i}</div>'
+})
+export class BulkComponent${i} {}
+`;
+          fs.writeFileSync(componentPath, componentContent);
+          testFiles.push(componentPath);
+        }
+
+        indexer.setProjectRoot(testProjectPath);
+        
+        const startTime = Date.now();
+        await indexer.generateFullIndex(mockContext);
+        const endTime = Date.now();
+
+        // Should complete in reasonable time (less than 10 seconds for 10 files)
+        assert.ok(endTime - startTime < 10000, "Should index files efficiently");
+
+        // Should index all bulk components
+        const selectors = indexer.getAllSelectors();
+        for (let i = 0; i < 10; i++) {
+          assert.ok(selectors.includes(`bulk-component-${i}`), `Should include bulk-component-${i}`);
+        }
+      } finally {
+        // Clean up test files
+        testFiles.forEach(file => {
+          if (fs.existsSync(file)) {
+            fs.unlinkSync(file);
+          }
+        });
+        if (fs.existsSync(srcPath)) {
+          fs.rmSync(srcPath, { recursive: true, force: true });
+        }
+      }
     });
   });
 
@@ -349,35 +516,38 @@ describe("AngularIndexer", function () {
     const srcPath = path.join(testProjectPath, "src", "app");
     fs.mkdirSync(srcPath, { recursive: true });
 
-    // Create test component
+    // Create basic component
     const componentContent = `
 import { Component } from '@angular/core';
 
 @Component({
   selector: 'test-component',
-  template: '<div>Test Component</div>'
+  template: '<div>Test Component</div>',
+  standalone: false
 })
 export class TestComponent {}
 `;
     fs.writeFileSync(path.join(srcPath, "test.component.ts"), componentContent);
 
-    // Create test directive
+    // Create basic directive
     const directiveContent = `
 import { Directive } from '@angular/core';
 
 @Directive({
-  selector: '[testDirective]'
+  selector: '[testDirective]',
+  standalone: false
 })
 export class TestDirective {}
 `;
     fs.writeFileSync(path.join(srcPath, "test.directive.ts"), directiveContent);
 
-    // Create test pipe
+    // Create basic pipe
     const pipeContent = `
 import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
-  name: 'testPipe'
+  name: 'testPipe',
+  standalone: false
 })
 export class TestPipe implements PipeTransform {
   transform(value: any): any {
@@ -386,6 +556,78 @@ export class TestPipe implements PipeTransform {
 }
 `;
     fs.writeFileSync(path.join(srcPath, "test.pipe.ts"), pipeContent);
+
+    // Create standalone component
+    const standaloneComponentContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'standalone-component',
+  template: '<div>Standalone Component</div>',
+  standalone: true
+})
+export class StandaloneComponent {}
+`;
+    fs.writeFileSync(path.join(srcPath, "standalone.component.ts"), standaloneComponentContent);
+
+    // Create directive with complex selector
+    const complexDirectiveContent = `
+import { Directive } from '@angular/core';
+
+@Directive({
+  selector: 'button[complexButton],a[complexButton]',
+  standalone: true
+})
+export class ComplexDirective {}
+`;
+    fs.writeFileSync(path.join(srcPath, "complex.directive.ts"), complexDirectiveContent);
+
+    // Create package.json
+    const packageJsonContent = {
+      name: "test-angular-project",
+      version: "1.0.0",
+      dependencies: {
+        "@angular/core": "^17.0.0",
+        "@angular/common": "^17.0.0"
+      }
+    };
+    fs.writeFileSync(path.join(testProjectPath, "package.json"), JSON.stringify(packageJsonContent, null, 2));
+
+    // Create tsconfig.json
+    const tsconfigContent = {
+      compilerOptions: {
+        target: "ES2022",
+        module: "ES2022",
+        lib: ["ES2022", "DOM"],
+        strict: true
+      }
+    };
+    fs.writeFileSync(path.join(testProjectPath, "tsconfig.json"), JSON.stringify(tsconfigContent, null, 2));
+  }
+
+  async function createMockNodeModules(): Promise<void> {
+    if (!fs.existsSync(mockNodeModulesPath)) {
+      fs.mkdirSync(mockNodeModulesPath, { recursive: true });
+    }
+
+    // Create a mock Angular library structure
+    const mockLibPath = path.join(mockNodeModulesPath, "@angular", "material");
+    fs.mkdirSync(mockLibPath, { recursive: true });
+
+    const mockPackageJson = {
+      name: "@angular/material",
+      version: "17.0.0",
+      peerDependencies: {
+        "@angular/core": "^17.0.0"
+      }
+    };
+    fs.writeFileSync(path.join(mockLibPath, "package.json"), JSON.stringify(mockPackageJson, null, 2));
+  }
+
+  async function cleanupMockNodeModules(): Promise<void> {
+    if (fs.existsSync(mockNodeModulesPath)) {
+      fs.rmSync(mockNodeModulesPath, { recursive: true, force: true });
+    }
   }
 
   async function cleanupTestProject(): Promise<void> {

@@ -16,7 +16,7 @@ import {
 import * as vscode from "vscode";
 import type { AngularIndexer } from "../services";
 import type { AngularElementData, ParsedHtmlElement } from "../types";
-import { getAngularElement, switchFileType } from "../utils";
+import { getAngularElements, switchFileType } from "../utils";
 import type { ProviderContext } from "./index";
 
 /**
@@ -197,12 +197,7 @@ export class DiagnosticProvider {
     } else if (document.languageId === "typescript") {
       const componentInfo = this.extractInlineTemplate(document);
       if (componentInfo) {
-        await this.runDiagnostics(
-          componentInfo.template,
-          document,
-          componentInfo.templateOffset,
-          document.fileName
-        );
+        await this.runDiagnostics(componentInfo.template, document, componentInfo.templateOffset, document.fileName);
       } else {
         // Clear both collections when there's no inline template
         this.candidateDiagnostics.delete(document.uri.toString());
@@ -268,7 +263,7 @@ export class DiagnosticProvider {
         for (const node of nodesList) {
           if (node instanceof compiler.TmplAstElement || node instanceof compiler.TmplAstTemplate) {
             const isTemplate = node instanceof compiler.TmplAstTemplate;
- 
+
             const regularAttrs: AttributeLikeNode[] = [
               ...node.attributes,
               ...node.inputs,
@@ -276,8 +271,7 @@ export class DiagnosticProvider {
               ...node.references,
             ];
 
-            const templateAttrs =
-              node instanceof compiler.TmplAstTemplate ? [...node.templateAttrs] : [];
+            const templateAttrs = node instanceof compiler.TmplAstTemplate ? [...node.templateAttrs] : [];
 
             const allAttrsList: AttributeLikeNode[] = [...regularAttrs, ...templateAttrs];
 
@@ -286,22 +280,28 @@ export class DiagnosticProvider {
               value: "value" in attr && attr.value ? String(attr.value) : "",
             }));
 
-            const foundElement = indexer.getElement(isTemplate ? "ng-template" : node.name);
-            const isKnownComponent = foundElement?.type === "component";
+            const nodeName = isTemplate ? "ng-template" : node.name;
+            const foundElements = indexer.getElements(nodeName);
 
-            // One entry for the element tag itself, only if it could be a component
-            if (isKnownComponent || !isKnownHtmlTag(isTemplate ? "ng-template" : node.name)) {
-              elements.push({
-                name: isTemplate ? "ng-template" : node.name,
-                type: "component",
-                isAttribute: false,
-                range: new vscode.Range(
-                  document.positionAt(offset + node.startSourceSpan.start.offset),
-                  document.positionAt(offset + node.startSourceSpan.end.offset)
-                ),
-                tagName: isTemplate ? "ng-template" : node.name,
-                attributes,
-              });
+            if (!isKnownHtmlTag(nodeName)) {
+              for (const candidate of foundElements) {
+                const isKnownAngularElement = candidate.type === "component" || candidate.type === "directive";
+
+                // One entry for the element tag itself, only if it could be a component
+                if (isKnownAngularElement) {
+                  elements.push({
+                    name: nodeName,
+                    type: candidate.type as ParsedHtmlFullElement["type"],
+                    isAttribute: false,
+                    range: new vscode.Range(
+                      document.positionAt(offset + node.startSourceSpan.start.offset),
+                      document.positionAt(offset + node.startSourceSpan.end.offset)
+                    ),
+                    tagName: nodeName,
+                    attributes,
+                  });
+                }
+              }
             }
 
             // One entry for each attribute or reference
@@ -333,7 +333,7 @@ export class DiagnosticProvider {
                   document.positionAt(offset + keySpan.start.offset),
                   document.positionAt(offset + keySpan.end.offset)
                 ),
-                tagName: isTemplate ? "ng-template" : node.name,
+                tagName: nodeName,
                 attributes,
               });
             };
@@ -367,7 +367,7 @@ export class DiagnosticProvider {
       visit(nodes);
     } catch (e) {
       console.error(`[DiagnosticProvider] Failed to parse template: ${document.uri.fsPath}`, e);
-    } 
+    }
     return elements;
   }
 
@@ -378,13 +378,12 @@ export class DiagnosticProvider {
     severity: vscode.DiagnosticSeverity
   ): Promise<vscode.Diagnostic[]> {
     const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
-    const possibleSelectors = this.generatePossibleSelectorsForElement(element);
     const diagnostics: vscode.Diagnostic[] = [];
     const processedCandidatesThisCall = new Set<string>();
 
-    for (const selector of possibleSelectors) {
-      const candidate = getAngularElement(selector, indexer);
+    const candidates = getAngularElements(element.name, indexer);
 
+    for (const candidate of candidates) {
       if (!candidate || processedCandidatesThisCall.has(candidate.name)) {
         continue;
       }
@@ -422,21 +421,13 @@ export class DiagnosticProvider {
         processedCandidatesThisCall.add(candidate.name);
 
         if (!this.isElementImported(tsDocument, candidate)) {
-          const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
-          const diagnostic = new vscode.Diagnostic(element.range, message, severity);
-          diagnostic.code = `missing-${candidate.type}-import:${specificSelector}`;
-          diagnostic.source = "angular-auto-import";
-          diagnostics.push(diagnostic);
+          diagnostics.push(this.createMissingImportDiagnostic(element, candidate, specificSelector, severity));
         }
       } else {
         // For pipes, the candidate name is the selector
         processedCandidatesThisCall.add(candidate.name);
         if (!this.isElementImported(tsDocument, candidate)) {
-          const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
-          const diagnostic = new vscode.Diagnostic(element.range, message, severity);
-          diagnostic.code = `missing-${candidate.type}-import:${element.name}`;
-          diagnostic.source = "angular-auto-import";
-          diagnostics.push(diagnostic);
+          diagnostics.push(this.createMissingImportDiagnostic(element, candidate, element.name, severity));
         }
       }
     }
@@ -444,29 +435,17 @@ export class DiagnosticProvider {
     return diagnostics;
   }
 
-  private generatePossibleSelectorsForElement(element: ParsedHtmlFullElement): string[] {
-    const name = element.name;
-    const selectors = new Set<string>([name]);
-
-    if (element.isAttribute) {
-      selectors.add(`[${name}]`);
-      if (name.startsWith("*")) {
-        selectors.add(name.substring(1));
-      } else {
-        selectors.add(`*${name}`);
-      }
-      const kebab = name.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, "$1-$2").toLowerCase();
-      if (kebab !== name) {
-        selectors.add(`[${kebab}]`);
-      }
-
-      const camel = name.replace(/-([a-z])/g, (_m, l) => l.toUpperCase());
-      if (camel !== name) {
-        selectors.add(`[${camel}]`);
-      }
-    }
-
-    return [...selectors];
+  private createMissingImportDiagnostic(
+    element: ParsedHtmlFullElement,
+    candidate: AngularElementData,
+    specificSelector: string,
+    severity: vscode.DiagnosticSeverity
+  ): vscode.Diagnostic {
+    const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
+    const diagnostic = new vscode.Diagnostic(element.range, message, severity);
+    diagnostic.code = `missing-${candidate.type}-import:${specificSelector}`;
+    diagnostic.source = "angular-auto-import";
+    return diagnostic;
   }
 
   private getSourceFile(document: vscode.TextDocument): SourceFile | undefined {
@@ -642,7 +621,7 @@ export class DiagnosticProvider {
     }
   }
 
-   private publishFilteredDiagnostics(uri: vscode.Uri): void {
+  private publishFilteredDiagnostics(uri: vscode.Uri): void {
     const rawCandidateDiags = this.candidateDiagnostics.get(uri.toString()) || [];
 
     const candidateDiags: vscode.Diagnostic[] = [];
@@ -651,7 +630,7 @@ export class DiagnosticProvider {
       if (!alreadyExists) {
         candidateDiags.push(diag);
       }
-    } 
+    }
     this.diagnosticCollection.set(uri, candidateDiags);
   }
 }

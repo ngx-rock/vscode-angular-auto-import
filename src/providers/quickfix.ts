@@ -3,12 +3,12 @@
  * Angular Auto-Import QuickFix Provider
  * =================================================================================================
  */
- 
+
 import * as vscode from "vscode";
 import type { AngularIndexer } from "../services";
- 
+
 import type { AngularElementData } from "../types";
-import { getAngularElement } from "../utils";
+import { getAngularElementAsync } from "../utils";
 
 import type { ProviderContext } from "./index";
 
@@ -32,9 +32,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     }
 
     // Correctly filter diagnostics: an intersection is enough to offer a fix.
-    const diagnosticsToFix = context.diagnostics.filter(
-      (diagnostic) => diagnostic.range.intersection(range)
-    );
+    const diagnosticsToFix = context.diagnostics.filter((diagnostic) => diagnostic.range.intersection(range));
 
     if (diagnosticsToFix.length === 0) {
       return [];
@@ -68,7 +66,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
         try {
           if (this.isFixableDiagnostic(diagnostic)) {
-            const quickFixes = await this.createQuickFixesForDiagnostic(document, diagnostic, indexer);
+            const quickFixes = await this.createQuickFixesForDiagnostic(diagnostic, indexer);
 
             actions.push(...quickFixes);
           }
@@ -120,7 +118,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   }
 
   private async createQuickFixesForDiagnostic(
-    document: vscode.TextDocument,
     diagnostic: vscode.Diagnostic,
     indexer: AngularIndexer
   ): Promise<vscode.CodeAction[]> {
@@ -132,38 +129,17 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         return [];
       }
 
-      const selectorToSearch = diagnostic.code.split(":")[1];
+      const diagnosticCode = diagnostic.code as string;
+      const selectorToSearch = diagnosticCode.split(":")[1];
 
       if (selectorToSearch) {
-        console.log(`[QuickfixImportProvider] Looking for selector: "${selectorToSearch}"`);
-
-        const elementData = getAngularElement(selectorToSearch, indexer);
+        const elementData = await getAngularElementAsync(selectorToSearch, indexer);
 
         if (elementData) {
-          console.log(`[QuickfixImportProvider] Found exact match for: "${selectorToSearch}"`);
-
-          // let isAliasPath = false;
-          const projCtx = this.getProjectContextForDocument(document);
-
-          if (projCtx && elementData.path) {
-            // const absoluteTargetModulePath = path.join(projCtx.projectRootPath, elementData.path);
-            // ts-morph uses sources files without extension
-            // const absoluteTargetModulePathNoExt = absoluteTargetModulePath.replace(/\.ts$/, "");
-
-            // const importPath = await TsConfigHelper.resolveImportPath(
-            //   absoluteTargetModulePathNoExt,
-            //   document.uri.fsPath,
-            //   projCtx.projectRootPath
-            // );
-
-            // An alias path will not start with '.', whereas a relative path will.
-            // isAliasPath = !importPath.startsWith(".");
-          }
-
           // The selector passed to the command must be the one found in the index
-          const action = this.createCodeAction(elementData, diagnostic,  selectorToSearch);
+          const action = this.createCodeAction(elementData, diagnostic, selectorToSearch);
           if (action) {
-            actions.push(action);
+            return [action];
           }
         }
       }
@@ -180,16 +156,17 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     selector: string
   ): vscode.CodeAction | null {
     try {
-      const isStandardAngular = element.path.startsWith("@angular/");
       const isModule = element.name.endsWith("Module");
 
       let title: string;
       if (isModule) {
-        title = `★ Import ${element.name} module`;
-      } else if (isStandardAngular) {
-        title = `★ Import ${element.name} (Angular)`;
+        title = `⟐ Import ${element.name}`;
+      } else if (element.isStandalone) {
+        title = `⟐ Import ${element.name} (standalone)`;
+      } else if (element.exportingModuleName) {
+        title = `⟐ Import ${element.name} (via ${element.exportingModuleName})`;
       } else {
-        title = `★ Import ${element.name} (${element.type})`;
+        title = `⟐ Import ${element.name}`;
       }
 
       const action = new vscode.CodeAction(title, vscode.CodeActionKind.QuickFix);

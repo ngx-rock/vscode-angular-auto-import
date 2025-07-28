@@ -104,17 +104,12 @@ export async function importElementToFile(
       console.log(`[importElementToFile] Created new ts-morph SourceFile`);
     }
 
-    console.log(`[importElementToFile] === IMPORTING ${element.type.toUpperCase()} ===`);
-    console.log(`[importElementToFile] Element name: ${element.name}`);
-    console.log(`[importElementToFile] Element type: ${element.type}`);
-    console.log(`[importElementToFile] Element relative path: ${element.path}`);
-
-    // Check if this is a standard Angular element (starts with @angular/)
+    // Determine if the element is from an external package or local project file.
     let importPathString: string;
-    if (element.path.startsWith("@angular/")) {
-      // For standard Angular elements, use the path directly as import path
+    // If the path is not absolute and does not start with a dot, it's a module specifier.
+    if (!path.isAbsolute(element.path) && !element.path.startsWith(".")) {
       importPathString = element.path;
-      console.log(`[importElementToFile] Using standard Angular import: ${importPathString}`);
+      console.log(`[importElementToFile] Using module import path: ${importPathString}`);
     } else {
       // For project elements, resolve import path using tsconfig
       const absoluteTargetModulePath = path.join(projectRootPath, element.path);
@@ -191,7 +186,7 @@ export async function importElementToFile(
 
     // Add to @Component imports array
     console.log(`[importElementToFile] Adding ${element.type} '${element.name}' to @Component imports array...`);
-    annotationModified = addImportToAnnotationTsMorph(element, sourceFile);
+    annotationModified = addImportToAnnotationTsMorph(element.exportingModuleName || element.name, sourceFile);
 
     if (importStatementModified || annotationModified) {
       const newContent = sourceFile.getFullText();
@@ -260,7 +255,7 @@ export async function importElementToFile(
 /**
  * Добавляет элемент в массив imports декоратора @Component
  */
-function addImportToAnnotationTsMorph(element: AngularElementData, sourceFile: SourceFile): boolean {
+function addImportToAnnotationTsMorph(importName: string, sourceFile: SourceFile): boolean {
   let modified = false;
   for (const classDeclaration of sourceFile.getClasses()) {
     const componentDecorator = classDeclaration.getDecorator("Component");
@@ -275,30 +270,28 @@ function addImportToAnnotationTsMorph(element: AngularElementData, sourceFile: S
           if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
             const importsArray = initializer as ArrayLiteralExpression;
             const existingImportNames = importsArray.getElements().map((el: Node) => el.getText().trim());
-            if (!existingImportNames.includes(element.name)) {
-              importsArray.addElement(element.name);
+            if (!existingImportNames.includes(importName)) {
+              importsArray.addElement(importName);
               modified = true;
-              console.log(`Added ${element.name} to @Component imports array.`);
+              console.log(`Added ${importName} to @Component imports array.`);
             } else {
-              console.log(`${element.name} already in @Component imports array.`);
+              console.log(`${importName} already in @Component imports array.`);
             }
           } else {
             console.warn(
-              `@Component 'imports' property in ${sourceFile.getBaseName()} is not an array. Manual update needed for ${
-                element.name
-              }.`
+              `@Component 'imports' property in ${sourceFile.getBaseName()} is not an array. Manual update needed for ${importName}.`
             );
           }
         } else {
           // 'imports' property doesn't exist, add it.
           const newPropertyAssignment = {
             name: "imports",
-            initializer: `[${element.name}]`,
+            initializer: `[${importName}]`,
           };
 
           objectLiteral.addPropertyAssignment(newPropertyAssignment);
           modified = true;
-          console.log(`Added 'imports: [${element.name}]' to @Component decorator.`);
+          console.log(`Added 'imports: [${importName}]' to @Component decorator.`);
         }
       }
       break; // Assuming one @Component decorator per file

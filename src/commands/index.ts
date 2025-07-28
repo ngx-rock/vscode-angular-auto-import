@@ -11,7 +11,7 @@ import type { ExtensionConfig } from "../config";
 import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
-import { getAngularElement, importElementToFile, switchFileType } from "../utils";
+import { getAngularElementAsync, importElementToFile, switchFileType } from "../utils";
 
 /**
  * Context for the commands.
@@ -87,43 +87,10 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
       return;
     }
     const { indexer, projectRootPath, tsConfig } = projCtx;
-    const element = getAngularElement(selector, indexer);
+    const element = await getAngularElementAsync(selector, indexer);
     await importElementCommandLogic(element, projectRootPath, tsConfig, indexer);
   });
   context.subscriptions.push(importCmd);
-
-  // Manual import command
-  const manualImportCmd = vscode.commands.registerCommand("angular-auto-import.manual.importElement", async () => {
-    const activeEditor = vscode.window.activeTextEditor;
-    if (!activeEditor) {
-      vscode.window.showErrorMessage("No active editor. Cannot determine project context for manual import.");
-      return;
-    }
-    const projCtx = getProjectContextForDocument(activeEditor.document, commandContext);
-    if (!projCtx) {
-      vscode.window.showErrorMessage("Could not determine project context for the active file.");
-      return;
-    }
-    const { indexer, projectRootPath, tsConfig } = projCtx;
-
-    const allSelectors = Array.from(indexer.getAllSelectors());
-    const userInput = await vscode.window.showInputBox({
-      prompt: `Enter Angular element selector or pipe name (for project ${path.basename(projectRootPath)})`,
-      placeHolder: `e.g., ${
-        allSelectors.length > 0 ? allSelectors.slice(0, Math.min(3, allSelectors.length)).join(", ") : "my-component"
-      }`,
-    });
-    if (userInput) {
-      const element = getAngularElement(userInput, indexer);
-      const success = await importElementCommandLogic(element, projectRootPath, tsConfig, indexer);
-      if (!success && !element) {
-        vscode.window.showErrorMessage(
-          `❌ Angular element "${userInput}" not found in index for ${path.basename(projectRootPath)}.`
-        );
-      }
-    }
-  });
-  context.subscriptions.push(manualImportCmd);
 }
 
 /**

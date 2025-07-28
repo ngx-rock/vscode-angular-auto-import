@@ -12,6 +12,7 @@ Streamline your Angular development with intelligent, automatic imports for comp
 - **⚡️ Automatic Imports**: Get quick fix suggestions to import Angular elements that are not yet included in your component's module.
 - **💡 Smart Completions**: Autocomplete for component tags, directives, and pipes in HTML templates (`.html`) and inline templates within TypeScript files.
 - **🔍 Diagnostics**: Identifies unknown Angular elements in your templates and provides quick fixes.
+- **📦 External Library Support**: Auto-import components, directives, and pipes from external packages (both standalone and module-based).
 - **Monorepo Support**: Works seamlessly with multi-project workspaces, like Nx.
 - **Path Alias Resolution**: Understands `tsconfig.json` path aliases (`@app/*`, `@shared/*`, etc.) for correct import path generation.
 - **Standalone Component Support**: Works with both module-based and standalone Angular components, directives, and pipes.
@@ -39,14 +40,6 @@ The extension will automatically add the necessary import statement to your Type
 ### Smart Completions
 
 Start typing an Angular element selector (e.g., `<my-component`, `[myDirective]`, `| myPipe`) in your HTML or inline TypeScript template. The extension will provide completion suggestions.
-
-### Manual Import Command
-
-If you prefer to manually import an element by its selector or pipe name:
-
-1.  Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
-2.  Search for `Angular Auto Import: Manually Import Element by Selector`.
-3.  Enter the selector (e.g., `my-component`, `testDirective`, `myPipe`).
 
 ## Configuration
 
@@ -79,13 +72,8 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
     * Pipes: filenames must include `.pipe.ts`
       Files that do not follow this naming convention will be ignored during indexing and auto-import suggestions.
 
-2. **Standalone-Only Project Support**
-   The extension currently supports:
-
-    * **Standalone components, directives, and pipes** only.
-    * **Built-in Angular modules, directives, and pipes** like `NgIf`, `NgFor`, and `DatePipe` are supported as well.
-
-   Traditional Angular modules (`@NgModule`) containing declared components are not yet supported. Projects mixing standalone and module-based declarations may experience incomplete import suggestions.
+2. **Module-based Project Support**
+   While the extension supports external libraries with both standalone and module-based components, **traditional Angular modules (`@NgModule`) containing declared components from your local project are not yet fully tested and may have limitations**. Projects mixing standalone and module-based declarations may experience incomplete import suggestions for local project entities.
 
 --- 
 

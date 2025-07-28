@@ -1,0 +1,14 @@
+{
+  "name": "simple-angular-project",
+  "version": "1.0.0",
+  "dependencies": {
+    "@angular/core": "^17.0.0",
+    "@angular/common": "^17.0.0",
+    "rxjs": "^7.0.0",
+    "angular-lib": "^1.0.0"
+  },
+  "devDependencies": {
+    "@angular/cli": "^17.0.0",
+    "dev-angular-lib": "^1.0.0"
+  }
+}
