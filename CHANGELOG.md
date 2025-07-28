@@ -4,7 +4,18 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [1.3.0] - 2025-01-27
+## [1.4.0] - 2025-07-28
+
+### Added
+- **External library support** for Angular components, directives, and pipes from npm packages  
+
+### Changed 
+- Autocompletion now uses regex-only context detection for better performance
+- Import path resolution prefers module paths over relative paths
+- Enhanced diagnostic provider with improved error handling
+ 
+
+## [1.3.0] - 2025-07-14
 
 ### Improved
 - Enhanced selector matching logic for better diagnostic accuracy
