@@ -6,14 +6,16 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
+  type ArrayLiteralExpression,
   type ClassDeclaration,
   type Decorator,
   type LiteralTypeNode,
   type ObjectLiteralExpression,
+  type PropertyAssignment,
   Project,
   SyntaxKind,
-  type TypeReferenceNode,
   type SourceFile,
+  type TypeReferenceNode,
 } from "ts-morph";
 import * as vscode from "vscode";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
@@ -220,12 +222,14 @@ export class AngularIndexer {
   project: Project; // Made public for access in importElementToFile
   private fileCache: Map<string, FileElementsInfo> = new Map();
   private selectorTrie: SelectorTrie = new SelectorTrie();
+  private projectModuleMap: Map<string, { moduleName: string; importPath: string }> = new Map();
   public fileWatcher: vscode.FileSystemWatcher | null = null;
   private projectRootPath: string = "";
   private isIndexing: boolean = false;
 
   public workspaceFileCacheKey: string = "";
   public workspaceIndexCacheKey: string = "";
+  public workspaceModulesCacheKey: string = "";
 
   constructor() {
     this.project = new Project({
@@ -249,8 +253,9 @@ export class AngularIndexer {
     const projectHash = this.generateHash(projectPath).replace(/[^a-zA-Z0-9_]/g, "");
     this.workspaceFileCacheKey = `angularFileCache_${projectHash}`;
     this.workspaceIndexCacheKey = `angularSelectorToDataIndex_${projectHash}`;
+    this.workspaceModulesCacheKey = `angularModulesCache_${projectHash}`;
     console.log(
-      `AngularIndexer: Project root set to ${projectPath}. Cache keys: ${this.workspaceFileCacheKey}, ${this.workspaceIndexCacheKey}`
+      `AngularIndexer: Project root set to ${projectPath}. Cache keys: ${this.workspaceFileCacheKey}, ${this.workspaceIndexCacheKey}, ${this.workspaceModulesCacheKey}`
     );
   }
 
@@ -264,7 +269,10 @@ export class AngularIndexer {
     }
 
     // Updated pattern to support uppercase letters in filenames
-    const pattern = new vscode.RelativePattern(this.projectRootPath, "**/*{[Cc]omponent,[Dd]irective,[Pp]ipe}.ts");
+    const pattern = new vscode.RelativePattern(
+      this.projectRootPath,
+      "**/*{[Cc]omponent,[Dd]irective,[Pp]ipe,[Mm]odule}.ts"
+    );
     this.fileWatcher = vscode.workspace.createFileSystemWatcher(pattern);
 
     this.fileWatcher.onDidCreate(async (uri) => {
@@ -589,6 +597,11 @@ export class AngularIndexer {
         return;
       }
 
+      // If the file is a module, re-index project modules.
+      if (filePath.endsWith(".module.ts")) {
+        await this.indexProjectModules();
+      }
+
       // Before parsing, remove all existing selectors from this file to ensure clean update
       if (cachedFile) {
         for (const oldElement of cachedFile.elements) {
@@ -615,13 +628,28 @@ export class AngularIndexer {
         for (const parsed of parsedElements) {
           // Parse the selector to get all individual selectors
           const individualSelectors = await parseAngularSelector(parsed.selector);
+
+          let importPath = parsed.path;
+          let importName = parsed.name;
+          let moduleToImport: string | undefined;
+
+          if (!parsed.isStandalone) {
+            const moduleInfo = this.projectModuleMap.get(parsed.name);
+            if (moduleInfo) {
+              importPath = moduleInfo.importPath;
+              importName = moduleInfo.moduleName;
+              moduleToImport = moduleInfo.moduleName;
+            }
+          }
+
           const elementData = new AngularElementData(
-            parsed.path,
-            parsed.name,
+            importPath,
+            importName,
             parsed.type,
             parsed.selector, // original selector
             individualSelectors,
-            parsed.isStandalone
+            parsed.isStandalone,
+            moduleToImport
           );
 
           // Index the element under each individual selector
@@ -688,6 +716,9 @@ export class AngularIndexer {
       this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
       this.fileCache.clear();
       this.selectorTrie.clear();
+      this.projectModuleMap.clear();
+
+      await this.indexProjectModules();
 
       const angularFiles = await this.getAngularFilesUsingVsCode();
       console.log(
@@ -722,7 +753,7 @@ export class AngularIndexer {
     }
   }
 
-  loadFromWorkspace(context: vscode.ExtensionContext): boolean {
+  async loadFromWorkspace(context: vscode.ExtensionContext): Promise<boolean> {
     if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey) {
       console.error("AngularIndexer.loadFromWorkspace: projectRootPath or cache keys not set. Cannot load.");
       return false;
@@ -732,6 +763,9 @@ export class AngularIndexer {
         this.workspaceFileCacheKey
       );
       const storedIndex = context.workspaceState.get<Record<string, AngularElementData>>(this.workspaceIndexCacheKey);
+      const storedModules = context.workspaceState.get<Record<string, { moduleName: string; importPath: string }>>(
+        this.workspaceModulesCacheKey
+      );
 
       if (storedCache && storedIndex) {
         // Convert old ComponentInfo format to new FileElementsInfo format if needed
@@ -761,8 +795,9 @@ export class AngularIndexer {
             value.name,
             value.type,
             value.originalSelector || key,
-            value.selectors || parseAngularSelector(value.originalSelector || key),
-            value.isStandalone
+            await parseAngularSelector(value.originalSelector || key),
+            value.isStandalone,
+            value.exportingModuleName
           );
           // Index under all its selectors
           for (const selector of elementData.selectors) {
@@ -772,6 +807,10 @@ export class AngularIndexer {
         // Note: This does not repopulate the ts-morph Project.
         // A full scan or lazy loading of files into ts-morph Project is still needed if AST is required later.
         // For now, the index is used for lookups, and files are added to ts-morph Project on demand (e.g. during updateFileIndex or importElementToFile).
+
+        if (storedModules) {
+          this.projectModuleMap = new Map(Object.entries(storedModules));
+        }
         console.log(
           `AngularIndexer (${path.basename(this.projectRootPath)}): Loaded ${
             this.selectorTrie.size
@@ -802,8 +841,35 @@ export class AngularIndexer {
       );
 
       await context.workspaceState.update(this.workspaceIndexCacheKey, serializableTrie);
+      await context.workspaceState.update(
+        this.workspaceModulesCacheKey,
+        Object.fromEntries(this.projectModuleMap)
+      );
     } catch (error) {
       console.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`, error);
+    }
+  }
+
+  public async clearCache(context: vscode.ExtensionContext): Promise<void> {
+    if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey || !this.workspaceModulesCacheKey) {
+      console.error("AngularIndexer.clearCache: projectRootPath or cache keys not set. Cannot clear cache.");
+      return;
+    }
+    try {
+      // Clear in-memory state
+      this.fileCache.clear();
+      this.selectorTrie.clear();
+      this.projectModuleMap.clear();
+      this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
+
+      // Clear persisted state
+      await context.workspaceState.update(this.workspaceFileCacheKey, undefined);
+      await context.workspaceState.update(this.workspaceIndexCacheKey, undefined);
+      await context.workspaceState.update(this.workspaceModulesCacheKey, undefined);
+
+      console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): All caches cleared.`);
+    } catch (error) {
+      console.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error clearing cache:`, error);
     }
   }
 
@@ -907,6 +973,80 @@ export class AngularIndexer {
     for (const { importPath, sourceFile } of libraryFiles) {
       await this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap);
     }
+  }
+
+  private async indexProjectModules(): Promise<void> {
+    if (!this.projectRootPath) {
+      return;
+    }
+    console.log(`[Indexer] Indexing project NgModules for ${this.projectRootPath}...`);
+    this.projectModuleMap.clear();
+
+    const moduleFiles = await vscode.workspace.findFiles(
+      new vscode.RelativePattern(this.projectRootPath, "**/*.module.ts"),
+      new vscode.RelativePattern(this.projectRootPath, "**/node_modules/**")
+    );
+
+    for (const file of moduleFiles) {
+      try {
+        const sourceFile = this.project.addSourceFileAtPath(file.fsPath);
+        this._processProjectModuleFile(sourceFile);
+      } catch (error) {
+        console.warn(`[Indexer] Could not process project module file ${file.fsPath}:`, error);
+      }
+    }
+
+    // Process already opened files that might be modules
+    for (const sourceFile of this.project.getSourceFiles()) {
+      if (
+        sourceFile.getFilePath().endsWith(".module.ts") &&
+        !moduleFiles.some((f) => f.fsPath === sourceFile.getFilePath())
+      ) {
+        this._processProjectModuleFile(sourceFile);
+      }
+    }
+    console.log(`[Indexer] Found ${this.projectModuleMap.size} component-to-module mappings in project.`);
+  }
+
+  private _processProjectModuleFile(sourceFile: SourceFile) {
+    const classDeclarations = sourceFile.getClasses();
+    for (const classDecl of classDeclarations) {
+      const ngModuleDecorator = classDecl.getDecorator("NgModule");
+      if (!ngModuleDecorator) continue;
+
+      const moduleName = classDecl.getName();
+      if (!moduleName) continue;
+
+      const decoratorArg = ngModuleDecorator.getArguments()[0];
+      if (!decoratorArg || !decoratorArg.isKind(SyntaxKind.ObjectLiteralExpression)) continue;
+
+      const objectLiteral = decoratorArg as ObjectLiteralExpression;
+      const exportsProp = objectLiteral.getProperty("exports");
+
+      if (!exportsProp) continue;
+
+      const exportedIdentifiers = this._getIdentifierNamesFromArrayProp(exportsProp as PropertyAssignment);
+
+      for (const componentName of exportedIdentifiers) {
+        // Simple mapping, assumes component is declared in the same module if exported.
+        // A more complex implementation would also check the `declarations` array.
+        if (!this.projectModuleMap.has(componentName)) {
+          this.projectModuleMap.set(componentName, {
+            moduleName,
+            importPath: path.relative(this.projectRootPath, sourceFile.getFilePath()).replace(/\\/g, "/"),
+          });
+        }
+      }
+    }
+  }
+
+  private _getIdentifierNamesFromArrayProp(prop: PropertyAssignment | undefined): string[] {
+    if (!prop) return [];
+    const initializer = prop.getInitializer();
+    if (!initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) return [];
+
+    const arr = initializer as ArrayLiteralExpression;
+    return arr.getElements().map((el) => el.getText());
   }
 
   private _buildComponentToModuleMap(
@@ -1234,7 +1374,7 @@ export class AngularIndexer {
             if (!excludedDirs.has(entry.name)) {
               traverseDirectory(fullPath);
             }
-          } else if (entry.isFile() && /\.([Cc]omponent|[Dd]irective|[Pp]ipe)\.ts$/.test(entry.name)) {
+          } else if (entry.isFile() && /\.([Cc]omponent|[Dd]irective|[Pp]ipe|[Mm]odule)\.ts$/.test(entry.name)) {
             angularFiles.push(path.relative(basePath, fullPath));
           }
         }

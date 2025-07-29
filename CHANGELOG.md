@@ -4,6 +4,14 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.5.0] - 2025-07-30
+
+### Added
+- Support for indexing components, directives, and pipes from local, non-standalone NgModules.
+
+### Fixed
+- A bug with the index cache that could cause stale data or incorrect suggestions.
+
 ## [1.4.0] - 2025-07-28
 
 ### Added

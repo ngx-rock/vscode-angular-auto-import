@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"
@@ -53,6 +53,11 @@
       {
         "command": "angular-auto-import.reindex",
         "title": "Angular Auto Import: Reindex Project(s)",
+        "category": "Angular Auto Import"
+      },
+      {
+        "command": "angular-auto-import.clearCache",
+        "title": "Angular Auto Import: Clear Cache",
         "category": "Angular Auto Import"
       }
     ],
@@ -119,7 +124,7 @@
     "@biomejs/biome": "^2.1.1",
     "@types/mocha": "^10.0.10",
     "@types/node": "~20.19.8",
-    "@types/vscode": "^1.102.0",
+    "@types/vscode": "^1.96.2",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.6.0",
