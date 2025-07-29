@@ -54,6 +54,11 @@
         "command": "angular-auto-import.reindex",
         "title": "Angular Auto Import: Reindex Project(s)",
         "category": "Angular Auto Import"
+      },
+      {
+        "command": "angular-auto-import.clearCache",
+        "title": "Angular Auto Import: Clear Cache",
+        "category": "Angular Auto Import"
       }
     ],
     "configuration": {

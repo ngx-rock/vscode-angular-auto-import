@@ -93,6 +93,24 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
     }
   );
   context.subscriptions.push(importCmd);
+
+    // Clear cache command
+  const clearCacheCommand = vscode.commands.registerCommand("angular-auto-import.clearCache", async () => {
+    console.log("CLEAR_CACHE_COMMAND: Invoked by user.");
+    if (commandContext.projectIndexers.size === 0) {
+      vscode.window.showInformationMessage("Angular Auto-Import: No active project to clear cache for.");
+      return;
+    }
+
+    for (const [projectRootPath, indexer] of commandContext.projectIndexers.entries()) {
+      await indexer.clearCache(context);
+      vscode.window.showInformationMessage(
+        `✅ Angular Auto-Import: Cache cleared for project ${path.basename(projectRootPath)}.`
+      );
+    }
+    vscode.window.showInformationMessage("✅ Angular Auto-Import: All project caches have been cleared.");
+  });
+  context.subscriptions.push(clearCacheCommand);
 }
 
 /**

@@ -850,6 +850,29 @@ export class AngularIndexer {
     }
   }
 
+  public async clearCache(context: vscode.ExtensionContext): Promise<void> {
+    if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey || !this.workspaceModulesCacheKey) {
+      console.error("AngularIndexer.clearCache: projectRootPath or cache keys not set. Cannot clear cache.");
+      return;
+    }
+    try {
+      // Clear in-memory state
+      this.fileCache.clear();
+      this.selectorTrie.clear();
+      this.projectModuleMap.clear();
+      this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
+
+      // Clear persisted state
+      await context.workspaceState.update(this.workspaceFileCacheKey, undefined);
+      await context.workspaceState.update(this.workspaceIndexCacheKey, undefined);
+      await context.workspaceState.update(this.workspaceModulesCacheKey, undefined);
+
+      console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): All caches cleared.`);
+    } catch (error) {
+      console.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error clearing cache:`, error);
+    }
+  }
+
   getElements(selector: string): AngularElementData[] {
     if (typeof selector !== "string" || !selector) {
       return [];
