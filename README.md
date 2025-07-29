@@ -54,7 +54,7 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 
 ## Troubleshooting
 
-- **Elements not found**: If elements are not being auto-imported, try running the `Angular Auto Import: Reindex Project(s)` command.
+- **Elements not found**: If elements are not being auto-imported, try running the `Angular Auto Import: Reindex Project(s)` command. If issues persist, use the `Angular Auto Import: Clear Cache` command to completely reset the cache.
 - **Performance issues**: For very large projects, consider increasing `angular-auto-import.index.refreshInterval` or setting `angular-auto-import.projectPath` to a specific sub-project root.
 - **Incorrect imports**: Ensure your `tsconfig.json` `baseUrl` and `paths` are correctly configured.
  
@@ -62,18 +62,9 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 
 ## Limitations
 
-> While Angular Auto Import aims to simplify your development experience, there are a few current limitations you should be aware of:
+> While Angular Auto Import aims to simplify your development experience, there is one main limitation to be aware of:
 
-1. **File Naming Convention**
-   The extension only detects and indexes Angular components, directives, and pipes whose filenames include a specific suffix:
-
-    * Components: filenames must include `.component.ts`
-    * Directives: filenames must include `.directive.ts`
-    * Pipes: filenames must include `.pipe.ts`
-      Files that do not follow this naming convention will be ignored during indexing and auto-import suggestions.
-
-2. **Module-based Project Support**
-   While the extension supports external libraries with both standalone and module-based components, **traditional Angular modules (`@NgModule`) containing declared components from your local project are not yet fully tested and may have limitations**. Projects mixing standalone and module-based declarations may experience incomplete import suggestions for local project entities.
+**File Naming Convention**: The extension only detects and indexes Angular components, directives, and pipes whose filenames include a specific suffix (`.component.ts`, `.directive.ts`, `.pipe.ts`). Files that do not follow this convention will be ignored during indexing.
 
 --- 
 
