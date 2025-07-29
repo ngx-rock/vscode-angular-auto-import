@@ -227,12 +227,11 @@ async function generateInitialIndexForProject(
   indexer.setProjectRoot(projectRootPath);
 
   // Load from workspace cache first, if available and valid
-  const loadedFromCache = indexer.loadFromWorkspace(context);
+  const loadedFromCache = await indexer.loadFromWorkspace(context);
 
   if (loadedFromCache) {
     console.log(`Initial index loaded from cache for ${projectRootPath}.`);
-    console.log(`Performing full index scan for ${projectRootPath} to ensure freshness...`);
-    await indexer.generateFullIndex(context);
+    // The watcher will pick up any changes from here.
   } else {
     console.log(`No cache found or cache invalid for ${projectRootPath}. Performing full initial index scan...`);
     await indexer.generateFullIndex(context);

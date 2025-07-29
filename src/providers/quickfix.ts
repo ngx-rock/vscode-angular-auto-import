@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 import type { AngularIndexer } from "../services";
 
-import type { AngularElementData } from "../types";
+import { AngularElementData } from "../types";
 import { getAngularElementAsync } from "../utils";
 
 import type { ProviderContext } from "./index";
@@ -124,20 +124,25 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     const actions: vscode.CodeAction[] = [];
 
     try {
-      // The diagnostic code is expected to be in the format "type:selector"
+      // The diagnostic code is expected to be in the format "type:selector:base64_data"
       if (typeof diagnostic.code !== "string" || !diagnostic.code.includes(":")) {
         return [];
       }
 
-      const diagnosticCode = diagnostic.code as string;
-      const selectorToSearch = diagnosticCode.split(":")[1];
+      const diagnosticCodeParts = (diagnostic.code as string).split(":");
+      const selectorToSearch = diagnosticCodeParts[1];
+      // const encodedData = diagnosticCodeParts[2];
 
       if (selectorToSearch) {
-        const elementData = await getAngularElementAsync(selectorToSearch, indexer);
+        let elementData: AngularElementData | null = null;
+
+   
+
+        elementData = (await getAngularElementAsync(selectorToSearch, indexer)) ?? null;
 
         if (elementData) {
           // The selector passed to the command must be the one found in the index
-          const action = this.createCodeAction(elementData, diagnostic, selectorToSearch);
+          const action = this.createCodeAction(elementData, diagnostic);
           if (action) {
             return [action];
           }
@@ -152,8 +157,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
   private createCodeAction(
     element: AngularElementData,
-    diagnostic: vscode.Diagnostic,
-    selector: string
+    diagnostic: vscode.Diagnostic
   ): vscode.CodeAction | null {
     try {
       const isModule = element.name.endsWith("Module");
@@ -174,7 +178,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
       action.command = {
         title: `Import ${element.name}`,
         command: "angular-auto-import.importElement",
-        arguments: [selector],
+        arguments: [element],
       };
 
       action.diagnostics = [diagnostic];

@@ -443,6 +443,7 @@ export class DiagnosticProvider {
   ): vscode.Diagnostic {
     const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
     const diagnostic = new vscode.Diagnostic(element.range, message, severity);
+ 
     diagnostic.code = `missing-${candidate.type}-import:${specificSelector}`;
     diagnostic.source = "angular-auto-import";
     return diagnostic;
