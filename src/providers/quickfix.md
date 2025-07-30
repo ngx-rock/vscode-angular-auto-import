@@ -1,24 +1,180 @@
-# Провайдер Быстрых Исправлений (`QuickfixImportProvider`)
+# QuickFix Import Provider (`QuickfixImportProvider`)
 
-Этот класс отвечает за появление "лампочки" (Quick Fix) в VS Code, которая предлагает импортировать отсутствующие компоненты, директивы или пайпы, когда Angular Language Service или другой линтер обнаруживает ошибку в HTML-шаблоне.
+The `QuickfixImportProvider` class implements VS Code's `CodeActionProvider` interface to provide "light bulb" quick fix actions for importing missing Angular components, directives, and pipes when diagnostics are detected in HTML templates.
 
-## Принцип работы
+## Overview
 
-`QuickfixImportProvider` реализует стандартный интерфейс VS Code `CodeActionProvider`.
+This provider integrates with VS Code's diagnostic system to offer automatic import suggestions for unresolved Angular elements. It works in conjunction with the extension's diagnostic provider to create a seamless import experience.
 
-1.  **Активация**: VS Code вызывает метод `provideCodeActions` этого класса, когда курсор пользователя оказывается на строке, для которой есть диагностическая ошибка (например, волнистое подчеркивание).
-2.  **Фильтрация ошибок**: Провайдер сначала проверяет, относится ли ошибка к тем, которые он умеет исправлять. Список кодов ошибок (например, `NG8001: 'my-component' is not a known element.`) и ключевых фраз хранится в `fixesDiagnosticCode`.
-3.  **Извлечение термина для поиска**: Если ошибка релевантна, провайдер пытается извлечь из ее текста или из самого подчеркнутого кода ключевой терм для поиска. Например, из ошибки `'my-component' is not a known element` он извлечет `my-component`.
-4.  **Запрос к `AngularIndexer`**:
-    -   С извлеченным термином (например, `my-component` или `bigRows`) он обращается к сервису `AngularIndexer`.
-    -   Он использует утилиту `getAngularElement`, которая пробует найти терм в индексе. Эта утилита также генерирует простые варианты (например, для `bigRows` она попробует найти `bigRows` и `[bigRows]`).
-5.  **Создание действия (`CodeAction`)**:
-    -   Если `AngularIndexer` успешно находит соответствующий элемент в своем индексе, `QuickfixImportProvider` создает объект `vscode.CodeAction`.
-    -   Это действие содержит заголовок (например, `Import TestComponent from ./test.component.ts`) и команду (`angular-auto-import.importElement`).
-    -   В команду передается найденный селектор в качестве аргумента.
-6.  **Возврат действий**: VS Code получает список таких действий и отображает их пользователю в виде выпадающего меню у "лампочки". При выборе одного из них выполняется соответствующая команда.
+## Architecture
 
-## Важный аспект логики
+### Core Components
 
--   **Провайдер не парсит HTML**. Он не анализирует структуру документа вокруг ошибки. Его работа гораздо проще: он доверяет диагностике от Angular Language Service и работает исключительно с текстом ошибки и небольшим фрагментом кода, который эта ошибка подсвечивает.
--   **Успех зависит от `AngularIndexer`**: Эффективность этого провайдера напрямую зависит от того, насколько хорошо `AngularIndexer` и утилита `parseAngularSelector` разобрали и проиндексировали исходный селектор директивы. Если `parseAngularSelector` успешно извлек `bigRows` из `table[jupiter-table][bigRows]`, то `QuickfixProvider` сможет его найти. 
+- **Provider Class**: `QuickfixImportProvider` implements `vscode.CodeActionProvider`
+- **Dependencies**: 
+  - `AngularIndexer` service for element lookup
+  - `getAngularElementAsync` utility for element resolution
+  - `ProviderContext` for multi-project support
+
+### Integration Points
+
+```typescript
+// Registration in extension.ts
+const quickfixProvider = vscode.languages.registerCodeActionsProvider(
+  { scheme: 'file', language: 'html' },
+  new QuickfixImportProvider(context),
+  { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+);
+```
+
+## Workflow
+
+### 1. Activation Trigger
+VS Code invokes `provideCodeActions()` when:
+- User cursor is positioned on a line with diagnostics
+- User explicitly requests code actions (Ctrl+. / Cmd+.)
+- Quick fix menu is opened
+
+### 2. Diagnostic Processing
+```typescript
+// Filter diagnostics that intersect with the current range
+const diagnosticsToFix = context.diagnostics.filter(
+  diagnostic => diagnostic.range.intersection(range)
+);
+```
+
+### 3. Diagnostic Validation
+The provider only processes diagnostics from its own source:
+```typescript
+private isFixableDiagnostic(diagnostic: vscode.Diagnostic): boolean {
+  return diagnostic.source === "angular-auto-import";
+}
+```
+
+### 4. Element Resolution
+For each valid diagnostic:
+1. Extract selector from diagnostic code (format: `"type:selector"`)
+2. Query `AngularIndexer` using `getAngularElementAsync()`
+3. Return matching `AngularElementData` if found
+
+### 5. Code Action Creation
+Generate `vscode.CodeAction` with:
+- **Title**: Descriptive text with appropriate icons
+- **Command**: `angular-auto-import.importElement`
+- **Arguments**: The resolved `AngularElementData`
+- **Diagnostics**: Associated diagnostic for fixing
+
+## Implementation Details
+
+### Diagnostic Code Format
+```typescript
+// Diagnostic code structure
+const diagnosticCode = `${type}:${selector}:${base64EncodedData}`;
+
+// Example
+"component:my-component:eyJ0eXBlIjoiY29tcG9uZW50In0="
+```
+
+### Action Title Generation
+```typescript
+private createCodeAction(element: AngularElementData): vscode.CodeAction {
+  const isModule = element.name.endsWith("Module");
+  
+  let title: string;
+  if (isModule) {
+    title = `⟐ Import ${element.name}`;
+  } else if (element.isStandalone) {
+    title = `⟐ Import ${element.name} (standalone)`;
+  } else if (element.exportingModuleName) {
+    title = `⟐ Import ${element.name} (via ${element.exportingModuleName})`;
+  } else {
+    title = `⟐ Import ${element.name}`;
+  }
+  
+  return action;
+}
+```
+
+### Deduplication Strategy
+Actions are deduplicated based on command and arguments:
+```typescript
+const key = `${cmd}:${JSON.stringify(args)}`;
+```
+
+Preferred actions take priority during deduplication.
+
+## Multi-Project Support
+
+The provider supports multiple Angular projects in a workspace:
+
+```typescript
+private getProjectContextForDocument(document: vscode.TextDocument) {
+  for (const [projectPath, indexer] of this.context.projectIndexers) {
+    if (document.uri.fsPath.startsWith(projectPath)) {
+      return { indexer, projectRootPath: projectPath, tsConfig };
+    }
+  }
+  return null;
+}
+```
+
+## Error Handling
+
+### Graceful Degradation
+- Returns empty array on any critical error
+- Logs errors for debugging without breaking functionality
+- Handles cancellation tokens appropriately
+
+### Error Scenarios
+- Invalid diagnostic format
+- Missing project context
+- Indexer lookup failures
+- Malformed element data
+
+## Performance Considerations
+
+### Optimization Strategies
+1. **Early Returns**: Quick validation checks before expensive operations
+2. **Cancellation Support**: Respects `CancellationToken` for long-running operations
+3. **Efficient Filtering**: Only processes relevant diagnostics
+4. **Deduplication**: Prevents duplicate actions in the UI
+
+### Async Operations
+All indexer queries use `async/await` to prevent blocking the UI thread:
+```typescript
+elementData = (await getAngularElementAsync(selectorToSearch, indexer)) ?? null;
+```
+
+## Integration with Command System
+
+The provider creates actions that trigger the import command:
+```typescript
+action.command = {
+  title: `Import ${element.name}`,
+  command: "angular-auto-import.importElement",
+  arguments: [element],
+};
+```
+
+This command is handled by the extension's command system to perform the actual import operation.
+
+## Limitations and Dependencies
+
+### Current Limitations
+- Only processes diagnostics from the extension's own diagnostic provider
+- Relies on accurate diagnostic code format
+- Requires successful element indexing for functionality
+
+### Dependencies on Other Components
+- **Diagnostic Provider**: Must generate properly formatted diagnostics
+- **AngularIndexer**: Must successfully index and store element data
+- **Command Handler**: Must properly handle import operations
+- **Utility Functions**: Relies on `getAngularElementAsync` for element resolution
+
+## Future Enhancements
+
+### Potential Improvements
+1. **Smart Sorting**: Prioritize actions based on usage frequency or proximity
+2. **Batch Operations**: Support importing multiple elements simultaneously
+3. **Context Awareness**: Consider template context for better suggestions
+4. **Performance Metrics**: Add telemetry for optimization insights 
