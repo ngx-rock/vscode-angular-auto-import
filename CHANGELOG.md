@@ -4,6 +4,16 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.6.0] - 2025-08-01
+
+### Added
+- Support for Angular control flow blocks in diagnostic analysis (@if, @switch, @for, @defer)
+- Enhanced template parsing to handle complex Angular template structures including conditional branches and defer blocks
+
+### Improved
+- Diagnostic provider now processes all template branches including @if branches, @switch cases, @for empty blocks, and @defer loading/error/placeholder blocks
+- More comprehensive template analysis for better import detection accuracy
+
 ## [1.5.0] - 2025-07-30
 
 ### Added
