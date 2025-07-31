@@ -123,8 +123,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
-    try {
-      // The diagnostic code is expected to be in the format "type:selector:base64_data"
+    try { 
       if (typeof diagnostic.code !== "string" || !diagnostic.code.includes(":")) {
         return [];
       }
