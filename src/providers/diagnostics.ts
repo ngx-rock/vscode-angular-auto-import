@@ -359,7 +359,52 @@ export class DiagnosticProvider {
           }
 
           if (node && typeof node === "object" && "children" in node && Array.isArray(node.children)) {
+            // Handle regular children
             visit(node.children as TemplateNode[]);
+          }
+          
+          // Handle @if branches
+          if (node && typeof node === "object" && "branches" in node && Array.isArray((node as { branches: AngularIfBranch[] }).branches)) {
+            for (const branch of (node as { branches: AngularIfBranch[] }).branches) {
+              if (branch.children) {
+                visit(branch.children as TemplateNode[]);
+              }
+            }
+          }
+          
+          // Handle @switch cases
+          if (node && typeof node === "object" && "cases" in node && Array.isArray((node as { cases: AngularSwitchCase[] }).cases)) {
+            for (const switchCase of (node as { cases: AngularSwitchCase[] }).cases) {
+              if (switchCase.children) {
+                visit(switchCase.children as TemplateNode[]);
+              }
+            }
+          }
+          
+          // Handle @for empty block
+          if (node && typeof node === "object" && "empty" in node && (node as { empty: AngularForEmpty }).empty) {
+            if ((node as { empty: AngularForEmpty }).empty.children) {
+              visit((node as { empty: AngularForEmpty }).empty.children as TemplateNode[]);
+            }
+          }
+          
+          // Handle @defer blocks (loading, error, placeholder)
+          if (node && typeof node === "object" && "loading" in node && (node as { loading: AngularDeferBlock }).loading) {
+            if ((node as { loading: AngularDeferBlock }).loading.children) {
+              visit((node as { loading: AngularDeferBlock }).loading.children as TemplateNode[]);
+            }
+          }
+          
+          if (node && typeof node === "object" && "error" in node && (node as { error: AngularDeferBlock }).error) {
+            if ((node as { error: AngularDeferBlock }).error.children) {
+              visit((node as { error: AngularDeferBlock }).error.children as TemplateNode[]);
+            }
+          }
+          
+          if (node && typeof node === "object" && "placeholder" in node && (node as { placeholder: AngularDeferBlock }).placeholder) {
+            if ((node as { placeholder: AngularDeferBlock }).placeholder.children) {
+              visit((node as { placeholder: AngularDeferBlock }).placeholder.children as TemplateNode[]);
+            }
           }
         }
       };
@@ -756,4 +801,25 @@ interface ParsedHtmlFullElement extends ParsedHtmlElement {
   type: "component" | "pipe" | "attribute" | "structural-directive" | "property-binding" | "template-reference";
   isAttribute: boolean;
   attributes: { name: string; value: string }[];
+}
+
+// Types for Angular control flow blocks
+interface AngularControlFlowNode {
+  children?: unknown[];
+}
+
+interface AngularIfBranch extends AngularControlFlowNode {
+  children: unknown[];
+}
+
+interface AngularSwitchCase extends AngularControlFlowNode {
+  children: unknown[];
+}
+
+interface AngularForEmpty extends AngularControlFlowNode {
+  children: unknown[];
+}
+
+interface AngularDeferBlock extends AngularControlFlowNode {
+  children: unknown[];
 }
