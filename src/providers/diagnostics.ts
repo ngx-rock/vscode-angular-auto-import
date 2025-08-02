@@ -259,7 +259,7 @@ export class DiagnosticProvider {
         | InstanceType<CompilerModule["TmplAstBoundEvent"]>
         | InstanceType<CompilerModule["TmplAstReference"]>;
 
-      const extractPipesFromExpression = (expression, nodeOffset: number = 0) => {
+      const extractPipesFromExpression = (expression: { sourceSpan?: { start: number; end: number } }, nodeOffset: number = 0) => {
         if (!expression || !expression.sourceSpan) {
           return;
         }
