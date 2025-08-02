@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 import type { AngularIndexer } from "../services";
 
-import { AngularElementData } from "../types";
+import type { AngularElementData } from "../types";
 import { getAngularElementAsync } from "../utils";
 
 import type { ProviderContext } from "./index";
@@ -123,7 +123,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
   ): Promise<vscode.CodeAction[]> {
     const actions: vscode.CodeAction[] = [];
 
-    try { 
+    try {
       if (typeof diagnostic.code !== "string" || !diagnostic.code.includes(":")) {
         return [];
       }
@@ -134,8 +134,6 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
       if (selectorToSearch) {
         let elementData: AngularElementData | null = null;
-
-   
 
         elementData = (await getAngularElementAsync(selectorToSearch, indexer)) ?? null;
 
@@ -154,10 +152,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     return actions;
   }
 
-  private createCodeAction(
-    element: AngularElementData,
-    diagnostic: vscode.Diagnostic
-  ): vscode.CodeAction | null {
+  private createCodeAction(element: AngularElementData, diagnostic: vscode.Diagnostic): vscode.CodeAction | null {
     try {
       const isModule = element.name.endsWith("Module");
 

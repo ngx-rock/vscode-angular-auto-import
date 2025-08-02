@@ -10,8 +10,8 @@
 import * as assert from "node:assert";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { findAngularDependencies, getLibraryEntryPoints } from "../../utils/package-json";
 import type { AngularDependency } from "../../utils/package-json";
+import { findAngularDependencies, getLibraryEntryPoints } from "../../utils/package-json";
 
 describe("Package JSON Utilities", function () {
   // Set timeout for all tests in this suite

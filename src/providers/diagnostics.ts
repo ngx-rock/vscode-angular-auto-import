@@ -259,14 +259,11 @@ export class DiagnosticProvider {
         | InstanceType<CompilerModule["TmplAstBoundEvent"]>
         | InstanceType<CompilerModule["TmplAstReference"]>;
 
-      const extractPipesFromExpression = (expression: any, nodeOffset: number = 0) => {
+      const extractPipesFromExpression = (expression, nodeOffset: number = 0) => {
         if (!expression || !expression.sourceSpan) return;
-        
+
         try {
-          const expressionText = text.slice(
-            expression.sourceSpan.start,
-            expression.sourceSpan.end
-          );
+          const expressionText = text.slice(expression.sourceSpan.start, expression.sourceSpan.end);
           const pipes = this._findPipesInExpression(
             expressionText,
             document,
@@ -277,7 +274,7 @@ export class DiagnosticProvider {
             elements.push({ ...pipe, isAttribute: false, attributes: [] });
           }
         } catch (e) {
-          console.error('[DiagnosticProvider] Error extracting pipes from expression:', e);
+          console.error("[DiagnosticProvider] Error extracting pipes from expression:", e);
         }
       };
 
@@ -288,16 +285,21 @@ export class DiagnosticProvider {
 
           // Universal handler for control flow blocks
           const nodeName = node.constructor.name;
-          
+
           // Handle all types of control flow expressions
-          if (nodeName.includes('Block') || nodeName.includes('Loop') || nodeName.includes('If') || nodeName.includes('Switch')) {
+          if (
+            nodeName.includes("Block") ||
+            nodeName.includes("Loop") ||
+            nodeName.includes("If") ||
+            nodeName.includes("Switch")
+          ) {
             const controlFlowNode = node as any;
-            
+
             // Check for pipes in main expression (condition/iterator)
             if (controlFlowNode.expression) {
               extractPipesFromExpression(controlFlowNode.expression);
             }
-            
+
             // Handle branches (@if/@else/@else if)
             if (controlFlowNode.branches && Array.isArray(controlFlowNode.branches)) {
               for (const branch of controlFlowNode.branches) {
@@ -309,7 +311,7 @@ export class DiagnosticProvider {
                 }
               }
             }
-            
+
             // Handle cases (@switch)
             if (controlFlowNode.cases && Array.isArray(controlFlowNode.cases)) {
               for (const caseBlock of controlFlowNode.cases) {
@@ -321,19 +323,23 @@ export class DiagnosticProvider {
                 }
               }
             }
-            
+
             // Handle main children
             if (controlFlowNode.children && Array.isArray(controlFlowNode.children)) {
               visit(controlFlowNode.children);
             }
-            
+
             // Handle @for empty block
-            if (controlFlowNode.empty && controlFlowNode.empty.children && Array.isArray(controlFlowNode.empty.children)) {
+            if (
+              controlFlowNode.empty &&
+              controlFlowNode.empty.children &&
+              Array.isArray(controlFlowNode.empty.children)
+            ) {
               visit(controlFlowNode.empty.children);
             }
-            
+
             // Handle @defer sub-blocks (placeholder, loading, error)
-            ['placeholder', 'loading', 'error'].forEach(blockType => {
+            ["placeholder", "loading", "error"].forEach((blockType) => {
               if (controlFlowNode[blockType] && controlFlowNode[blockType].children) {
                 visit(controlFlowNode[blockType].children);
               }
@@ -421,12 +427,7 @@ export class DiagnosticProvider {
                 const valueSpan = attr.valueSpan || attr.sourceSpan;
                 if (valueSpan) {
                   const expressionText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
-                  const pipes = this._findPipesInExpression(
-                    expressionText,
-                    document,
-                    offset,
-                    valueSpan.start.offset
-                  );
+                  const pipes = this._findPipesInExpression(expressionText, document, offset, valueSpan.start.offset);
                   for (const pipe of pipes) {
                     elements.push({ ...pipe, isAttribute: false, attributes: [] });
                   }
@@ -458,7 +459,14 @@ export class DiagnosticProvider {
           if (node && typeof node === "object" && "children" in node && Array.isArray(node.children)) {
             // Only visit children if this is not a control flow node (already handled above)
             const nodeName = node.constructor.name;
-            if (!(nodeName.includes('Block') || nodeName.includes('Loop') || nodeName.includes('If') || nodeName.includes('Switch'))) {
+            if (
+              !(
+                nodeName.includes("Block") ||
+                nodeName.includes("Loop") ||
+                nodeName.includes("If") ||
+                nodeName.includes("Switch")
+              )
+            ) {
               visit(node.children as TemplateNode[]);
             }
           }
@@ -544,7 +552,7 @@ export class DiagnosticProvider {
   ): vscode.Diagnostic {
     const message = `'${element.name}' is part of a known ${candidate.type}, but it is not imported.`;
     const diagnostic = new vscode.Diagnostic(element.range, message, severity);
- 
+
     diagnostic.code = `missing-${candidate.type}-import:${specificSelector}`;
     diagnostic.source = "angular-auto-import";
     return diagnostic;
@@ -858,42 +866,3 @@ interface ParsedHtmlFullElement extends ParsedHtmlElement {
   isAttribute: boolean;
   attributes: { name: string; value: string }[];
 }
-
-// Types for Angular control flow blocks
-interface AngularControlFlowNode {
-  children?: unknown[];
-}
-
-interface AngularExpression {
-  span?: { start: number; end: number };
-  sourceSpan?: { start: number; end: number };
-}
-
-interface AngularIfBranch extends AngularControlFlowNode {
-  children: unknown[];
-  expression?: AngularExpression;
-}
-
-interface AngularSwitchCase extends AngularControlFlowNode {
-  children: unknown[];
-  expression?: AngularExpression;
-}
-
-interface AngularSwitchNode extends AngularControlFlowNode {
-  cases: AngularSwitchCase[];
-  expression?: AngularExpression;
-}
-
-interface AngularForNode extends AngularControlFlowNode {
-  expression?: AngularExpression;
-  item?: string;
-}
-
-interface AngularForEmpty extends AngularControlFlowNode {
-  children: unknown[];
-}
-
-interface AngularDeferBlock extends AngularControlFlowNode {
-  children: unknown[];
-}
-

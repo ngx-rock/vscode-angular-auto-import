@@ -94,7 +94,7 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
   );
   context.subscriptions.push(importCmd);
 
-    // Clear cache command
+  // Clear cache command
   const clearCacheCommand = vscode.commands.registerCommand("angular-auto-import.clearCache", async () => {
     console.log("CLEAR_CACHE_COMMAND: Invoked by user.");
     if (commandContext.projectIndexers.size === 0) {

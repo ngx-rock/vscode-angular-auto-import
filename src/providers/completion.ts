@@ -58,13 +58,13 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       // We are inside a tag definition
       const tagContent = linePrefix.substring(openTagIndex + 1);
       const tagNameMatch = tagContent.match(/^([a-zA-Z0-9-]+)/);
-      const tagName = tagNameMatch ? tagNameMatch[0] : '';
+      const tagName = tagNameMatch ? tagNameMatch[0] : "";
       const contentAfterTag = tagContent.substring(tagName.length);
 
       // If there's content right after the tag name without a space, we're not in a valid attribute context yet.
       // e.g. <my-tag[
       if (contentAfterTag.length > 0 && !/^\s/.test(contentAfterTag)) {
-        context = 'none'; // Neither tag nor attribute, do not show suggestions
+        context = "none"; // Neither tag nor attribute, do not show suggestions
       } else if (!/\s/.test(tagContent)) {
         // We are typing the tag name, no spaces yet
         context = "tag";
@@ -78,31 +78,30 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     }
 
     replacementRange = document.getWordRangeAtPosition(position, /[\w-]+/);
-    if (replacementRange && context === 'structural-directive') {
-        const charBefore = linePrefix[replacementRange.start.character - 1];
-        if (charBefore === '*') {
-            replacementRange = new vscode.Range(replacementRange.start.translate(0, -1), replacementRange.end);
-        }
+    if (replacementRange && context === "structural-directive") {
+      const charBefore = linePrefix[replacementRange.start.character - 1];
+      if (charBefore === "*") {
+        replacementRange = new vscode.Range(replacementRange.start.translate(0, -1), replacementRange.end);
+      }
     }
-
 
     const suggestions: vscode.CompletionItem[] = [];
     const hasAttributeContext = context === "attribute" || context === "structural-directive";
     const hasTagContext = context === "tag";
     const hasPipeContext = context === "pipe";
 
-    if (context === 'none') {
-        return [];
+    if (context === "none") {
+      return [];
     }
 
     const seenElements = new Set<string>();
 
     // Use the Trie-based search for indexed elements
     const searchResults = indexer.searchWithSelectors(filterText);
-     console.log(`[CompletionProvider] Searching for "${filterText}", found ${searchResults.length} results.`);
-      if (searchResults.length > 0) {
-     console.log('[CompletionProvider] Search results:', JSON.stringify(searchResults.slice(0, 10), null, 2)); // Log first 10 results
-     }
+    console.log(`[CompletionProvider] Searching for "${filterText}", found ${searchResults.length} results.`);
+    if (searchResults.length > 0) {
+      console.log("[CompletionProvider] Search results:", JSON.stringify(searchResults.slice(0, 10), null, 2)); // Log first 10 results
+    }
     const elementsToProcess = new Map<string, { element: AngularElementData; selectors: string[] }>();
 
     // Group matching selectors by element to process each element only once
@@ -139,16 +138,14 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           (element.type === "directive" || (element.type === "component" && element.originalSelector.includes("["))) &&
           hasAttributeContext
         ) {
-          
           let attrName = elementSelector;
           if (element.type === "component" || context === "structural-directive") {
             attrName = elementSelector.startsWith("[")
-            ? elementSelector.slice(1, -1)
-            : elementSelector.startsWith("*")
-              ? elementSelector.slice(1)
-              : elementSelector;
+              ? elementSelector.slice(1, -1)
+              : elementSelector.startsWith("*")
+                ? elementSelector.slice(1)
+                : elementSelector;
           }
-      
 
           if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
             // The insert text should be the clean name.
@@ -167,7 +164,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             relevance = 2;
           }
         }
-        
+
         if (relevance > bestRelevance) {
           bestRelevance = relevance;
           bestMatchingSelector = elementSelector;
@@ -224,13 +221,18 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       let relevance = 0;
 
       if (stdElement.type === "directive" && hasAttributeContext) {
-          const attrName = stdSelector.startsWith('[') ? stdSelector.slice(1, -1) : stdSelector.startsWith('*') ? stdSelector.slice(1) : stdSelector;
-          if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
-              shouldInclude = true;
-              insertText = attrName;
-              itemKind = context === 'structural-directive' ? vscode.CompletionItemKind.Keyword : vscode.CompletionItemKind.Property;
-              relevance = 3;
-          }
+        const attrName = stdSelector.startsWith("[")
+          ? stdSelector.slice(1, -1)
+          : stdSelector.startsWith("*")
+            ? stdSelector.slice(1)
+            : stdSelector;
+        if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
+          shouldInclude = true;
+          insertText = attrName;
+          itemKind =
+            context === "structural-directive" ? vscode.CompletionItemKind.Keyword : vscode.CompletionItemKind.Property;
+          relevance = 3;
+        }
       } else if (stdElement.type === "pipe" && hasPipeContext) {
         if (stdSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
           shouldInclude = true;
@@ -249,7 +251,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             item.range = replacementRange;
           }
           const isModuleImport = stdElement.name.endsWith("Module");
-          item.detail = `Angular Auto-Import: ${stdElement.type}${isModuleImport ? ` (requires ${stdElement.name})` : ' (standalone)'}`;
+          item.detail = `Angular Auto-Import: ${stdElement.type}${isModuleImport ? ` (requires ${stdElement.name})` : " (standalone)"}`;
           item.documentation = new vscode.MarkdownString(`Import from \`${stdElement.importPath}\`.`);
           item.command = {
             title: `Import ${stdElement.name}`,
@@ -274,9 +276,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     }
 
     return Array.from(dedupedSuggestionsMap.values()).sort((a, b) => {
-        const sortA = a.sortText || a.label.toString();
-        const sortB = b.sortText || b.label.toString();
-        return sortA.localeCompare(sortB);
+      const sortA = a.sortText || a.label.toString();
+      const sortB = b.sortText || b.label.toString();
+      return sortA.localeCompare(sortB);
     });
   }
 

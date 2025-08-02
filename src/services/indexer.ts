@@ -11,10 +11,10 @@ import {
   type Decorator,
   type LiteralTypeNode,
   type ObjectLiteralExpression,
-  type PropertyAssignment,
   Project,
-  SyntaxKind,
+  type PropertyAssignment,
   type SourceFile,
+  SyntaxKind,
   type TypeReferenceNode,
 } from "ts-morph";
 import * as vscode from "vscode";
@@ -841,17 +841,19 @@ export class AngularIndexer {
       );
 
       await context.workspaceState.update(this.workspaceIndexCacheKey, serializableTrie);
-      await context.workspaceState.update(
-        this.workspaceModulesCacheKey,
-        Object.fromEntries(this.projectModuleMap)
-      );
+      await context.workspaceState.update(this.workspaceModulesCacheKey, Object.fromEntries(this.projectModuleMap));
     } catch (error) {
       console.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`, error);
     }
   }
 
   public async clearCache(context: vscode.ExtensionContext): Promise<void> {
-    if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey || !this.workspaceModulesCacheKey) {
+    if (
+      !this.projectRootPath ||
+      !this.workspaceFileCacheKey ||
+      !this.workspaceIndexCacheKey ||
+      !this.workspaceModulesCacheKey
+    ) {
       console.error("AngularIndexer.clearCache: projectRootPath or cache keys not set. Cannot clear cache.");
       return;
     }
@@ -1088,13 +1090,7 @@ export class AngularIndexer {
 
             if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
               const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
-              this._processModuleExports(
-                exportsTuple,
-                className,
-                importPath,
-                componentToModuleMap,
-                allLibraryClasses
-              );
+              this._processModuleExports(exportsTuple, className, importPath, componentToModuleMap, allLibraryClasses);
             }
           }
         }

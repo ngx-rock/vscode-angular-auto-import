@@ -27,7 +27,17 @@ describe("QuickfixImportProvider", function () {
     // Create mock indexer with all required methods
     mockIndexer = {
       getAllSelectors: () =>
-        Array.from(new Set(["test-component", "standalone-component", "test-module", "testPipe", "[testDirective]", "testDirective", "*ngIf"])),
+        Array.from(
+          new Set([
+            "test-component",
+            "standalone-component",
+            "test-module",
+            "testPipe",
+            "[testDirective]",
+            "testDirective",
+            "*ngIf",
+          ])
+        ),
       getElement: (selector: string) => {
         const elements = new Map([
           [
@@ -103,7 +113,7 @@ describe("QuickfixImportProvider", function () {
         ]);
         return elements.get(selector);
       },
-              getElements: (selector: string) => {
+      getElements: (selector: string) => {
         const elements = new Map([
           [
             "test-component",

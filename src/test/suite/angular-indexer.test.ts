@@ -12,7 +12,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { AngularIndexer } from "../../services";
-import { type FileElementsInfo } from "../../types";
+import type { FileElementsInfo } from "../../types";
 
 describe("AngularIndexer", function () {
   // Set timeout for all tests in this suite
@@ -116,7 +116,10 @@ describe("AngularIndexer", function () {
       const result = await indexer.generateFullIndex(mockContext);
 
       assert.ok(result instanceof Map, "Should return a Map");
-      assert.ok(result.size >= 5, "Should index at least 5 elements (component, directive, pipe, standalone component, complex directive)");
+      assert.ok(
+        result.size >= 5,
+        "Should index at least 5 elements (component, directive, pipe, standalone component, complex directive)"
+      );
 
       // Check specific elements
       const selectors = indexer.getAllSelectors();
@@ -132,7 +135,7 @@ describe("AngularIndexer", function () {
 
       const standaloneElements = indexer.getElements("standalone-component");
       assert.ok(standaloneElements.length > 0, "Should find standalone component");
-      
+
       const standaloneComponent = standaloneElements[0];
       assert.strictEqual(standaloneComponent.isStandalone, true, "Should be marked as standalone");
       assert.strictEqual(standaloneComponent.name, "StandaloneComponent", "Should have correct name");
@@ -144,9 +147,13 @@ describe("AngularIndexer", function () {
       // Test complex selector parsing
       const complexElements = indexer.getElements("complexButton");
       assert.ok(complexElements.length > 0, "Should find complex directive");
-      
+
       const complexDirective = complexElements[0];
-      assert.strictEqual(complexDirective.originalSelector, "button[complexButton],a[complexButton]", "Should preserve original selector");
+      assert.strictEqual(
+        complexDirective.originalSelector,
+        "button[complexButton],a[complexButton]",
+        "Should preserve original selector"
+      );
       assert.ok(complexDirective.selectors.includes("complexButton"), "Should include parsed selector");
     });
 
@@ -178,7 +185,7 @@ describe("AngularIndexer", function () {
       try {
         // Should not throw an error
         await indexer.generateFullIndex(mockContext);
-        
+
         // Check that other files were still indexed
         const selectors = indexer.getAllSelectors();
         assert.ok(selectors.length > 0, "Should still index valid files");
@@ -200,14 +207,17 @@ describe("AngularIndexer", function () {
       const results = indexer.searchWithSelectors("test");
       assert.ok(results.length >= 3, "Should find elements with 'test' prefix");
 
-      const selectors = results.map(r => r.selector);
-      assert.ok(selectors.some(s => s.startsWith("test")), "Should include selectors starting with 'test'");
+      const selectors = results.map((r) => r.selector);
+      assert.ok(
+        selectors.some((s) => s.startsWith("test")),
+        "Should include selectors starting with 'test'"
+      );
     });
 
     it("should return exact matches", () => {
       const elements = indexer.getElements("test-component");
       assert.ok(elements.length > 0, "Should find exact match for 'test-component'");
-      
+
       const element = elements[0];
       assert.strictEqual(element.name, "TestComponent", "Should return correct component");
     });
@@ -221,7 +231,7 @@ describe("AngularIndexer", function () {
       // This tests the trie's ability to handle multiple elements per selector
       const allSelectors = indexer.getAllSelectors();
       assert.ok(allSelectors.length > 0, "Should have selectors");
-      
+
       // Test that all selectors are unique in the trie structure
       const uniqueSelectors = [...new Set(allSelectors)];
       assert.strictEqual(allSelectors.length, uniqueSelectors.length, "All selectors should be unique in trie");
@@ -247,7 +257,7 @@ describe("AngularIndexer", function () {
 
     it("should handle file creation", async () => {
       indexer.initializeWatcher(mockContext);
-      
+
       const newComponentPath = path.join(testProjectPath, "src", "app", "new.component.ts");
       const newComponentContent = `
 import { Component } from '@angular/core';
@@ -262,10 +272,10 @@ export class NewComponent {}
       try {
         // Create new file
         fs.writeFileSync(newComponentPath, newComponentContent);
-        
+
         // Give the watcher time to process
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         // Check if the new component was indexed
         const elements = indexer.getElements("new-component");
         assert.ok(elements.length > 0, "Should index newly created component");
@@ -278,7 +288,7 @@ export class NewComponent {}
 
     it("should handle file deletion", async () => {
       indexer.initializeWatcher(mockContext);
-      
+
       const tempComponentPath = path.join(testProjectPath, "src", "app", "temp.component.ts");
       const tempComponentContent = `
 import { Component } from '@angular/core';
@@ -292,16 +302,16 @@ export class TempComponent {}
 
       // Create and index the file first
       fs.writeFileSync(tempComponentPath, tempComponentContent);
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Verify it's indexed
       let elements = indexer.getElements("temp-component");
       assert.ok(elements.length > 0, "Should index temp component");
-      
+
       // Delete the file
       fs.unlinkSync(tempComponentPath);
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Verify it's removed from index
       elements = indexer.getElements("temp-component");
       assert.strictEqual(elements.length, 0, "Should remove deleted component from index");
@@ -316,14 +326,14 @@ export class TempComponent {}
       // Verify data was saved
       const fileCacheKey = indexer.workspaceFileCacheKey;
       const indexCacheKey = indexer.workspaceIndexCacheKey;
-      
+
       assert.ok(mockWorkspaceState.has(fileCacheKey), "Should save file cache");
       assert.ok(mockWorkspaceState.has(indexCacheKey), "Should save index cache");
 
       // Create new indexer and load from cache
       const newIndexer = new AngularIndexer();
       newIndexer.setProjectRoot(testProjectPath);
-      
+
       const loaded = newIndexer.loadFromWorkspace(mockContext);
       assert.ok(loaded, "Should successfully load from cache");
 
@@ -337,7 +347,7 @@ export class TempComponent {}
 
     it("should handle missing cache gracefully", () => {
       indexer.setProjectRoot(testProjectPath);
-      
+
       // Try to load from empty cache
       const loaded = indexer.loadFromWorkspace(mockContext);
       assert.strictEqual(loaded, false, "Should return false when no cache exists");
@@ -350,12 +360,12 @@ export class TempComponent {}
       // Check that the cached data uses the new FileElementsInfo format
       const fileCacheKey = indexer.workspaceFileCacheKey;
       const cachedData = mockWorkspaceState.get(fileCacheKey) as Record<string, FileElementsInfo>;
-      
+
       assert.ok(cachedData, "Should have cached file data");
-      
+
       const firstEntry = Object.values(cachedData)[0];
       assert.ok(firstEntry, "Should have at least one cached file");
-      assert.ok('elements' in firstEntry, "Should use FileElementsInfo format with elements array");
+      assert.ok("elements" in firstEntry, "Should use FileElementsInfo format with elements array");
       assert.ok(Array.isArray(firstEntry.elements), "Elements should be an array");
       assert.ok(firstEntry.elements.length > 0, "Should have at least one element");
     });
@@ -376,9 +386,9 @@ export class TempComponent {}
       // Mock the library indexing functionality
       // Note: Full library indexing is complex and requires actual Angular libraries
       // This test focuses on the indexing structure
-      
+
       await indexer.generateFullIndex(mockContext);
-      
+
       // The indexer should handle the presence of node_modules
       // Even if no actual Angular libraries are found, it shouldn't error
       const selectors = indexer.getAllSelectors();
@@ -440,7 +450,7 @@ ProblematicComponent = Component({
       try {
         // Should not throw an error and should attempt fallback
         await indexer.generateFullIndex(mockContext);
-        
+
         // The indexer should handle this gracefully
         const selectors = indexer.getAllSelectors();
         assert.ok(Array.isArray(selectors), "Should return selectors array even with problematic files");
@@ -457,7 +467,7 @@ ProblematicComponent = Component({
       // Create multiple test files
       const testFiles: string[] = [];
       const srcPath = path.join(testProjectPath, "src", "app", "bulk");
-      
+
       if (!fs.existsSync(srcPath)) {
         fs.mkdirSync(srcPath, { recursive: true });
       }
@@ -480,7 +490,7 @@ export class BulkComponent${i} {}
         }
 
         indexer.setProjectRoot(testProjectPath);
-        
+
         const startTime = Date.now();
         await indexer.generateFullIndex(mockContext);
         const endTime = Date.now();
@@ -495,7 +505,7 @@ export class BulkComponent${i} {}
         }
       } finally {
         // Clean up test files
-        testFiles.forEach(file => {
+        testFiles.forEach((file) => {
           if (fs.existsSync(file)) {
             fs.unlinkSync(file);
           }
@@ -588,8 +598,8 @@ export class ComplexDirective {}
       version: "1.0.0",
       dependencies: {
         "@angular/core": "^17.0.0",
-        "@angular/common": "^17.0.0"
-      }
+        "@angular/common": "^17.0.0",
+      },
     };
     fs.writeFileSync(path.join(testProjectPath, "package.json"), JSON.stringify(packageJsonContent, null, 2));
 
@@ -599,8 +609,8 @@ export class ComplexDirective {}
         target: "ES2022",
         module: "ES2022",
         lib: ["ES2022", "DOM"],
-        strict: true
-      }
+        strict: true,
+      },
     };
     fs.writeFileSync(path.join(testProjectPath, "tsconfig.json"), JSON.stringify(tsconfigContent, null, 2));
   }
@@ -618,8 +628,8 @@ export class ComplexDirective {}
       name: "@angular/material",
       version: "17.0.0",
       peerDependencies: {
-        "@angular/core": "^17.0.0"
-      }
+        "@angular/core": "^17.0.0",
+      },
     };
     fs.writeFileSync(path.join(mockLibPath, "package.json"), JSON.stringify(mockPackageJson, null, 2));
   }

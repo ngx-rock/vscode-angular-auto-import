@@ -2,7 +2,7 @@
  * Основные типы данных для Angular элементов
  */
 
-import * as vscode from "vscode";
+import type * as vscode from "vscode";
 import type { ProcessedTsConfig } from "./tsconfig";
 
 export interface ComponentInfo {
