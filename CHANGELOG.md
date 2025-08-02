@@ -4,6 +4,11 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.6.1] - 2025-08-02
+
+### Fixed
+- Fixed pipe expressions in Angular templates
+
 ## [1.6.0] - 2025-08-01
 
 ### Added
