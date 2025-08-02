@@ -4,6 +4,11 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.6.2] - 2025-08-03
+
+### Improved
+- Semantic resolution of module exports for external libraries using TypeScript's `TypeChecker` for more accurate class name detection, especially when dealing with type aliases.
+
 ## [1.6.1] - 2025-08-02
 
 ### Fixed
