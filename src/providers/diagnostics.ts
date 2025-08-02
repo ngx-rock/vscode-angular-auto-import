@@ -336,6 +336,23 @@ export class DiagnosticProvider {
                 tagName: nodeName,
                 attributes,
               });
+
+              // Check for pipes in bound attribute values (like *ngIf="expression | pipe")
+              if (attr instanceof compiler.TmplAstBoundAttribute && attr.value) {
+                const valueSpan = attr.valueSpan || attr.sourceSpan;
+                if (valueSpan) {
+                  const expressionText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
+                  const pipes = this._findPipesInExpression(
+                    expressionText,
+                    document,
+                    offset,
+                    valueSpan.start.offset
+                  );
+                  for (const pipe of pipes) {
+                    elements.push({ ...pipe, isAttribute: false, attributes: [] });
+                  }
+                }
+              }
             };
 
             for (const attr of regularAttrs) {
@@ -361,26 +378,103 @@ export class DiagnosticProvider {
           if (node && typeof node === "object" && "children" in node && Array.isArray(node.children)) {
             // Handle regular children
             visit(node.children as TemplateNode[]);
+
           }
           
           // Handle @if branches
           if (node && typeof node === "object" && "branches" in node && Array.isArray((node as { branches: AngularIfBranch[] }).branches)) {
             for (const branch of (node as { branches: AngularIfBranch[] }).branches) {
+              // Check for pipes in @if condition expression
+              if ("expression" in branch && branch.expression) {
+                const expressionSpan = branch.expression.span || branch.expression.sourceSpan;
+                if (expressionSpan) {
+                  const expressionText = text.slice(expressionSpan.start, expressionSpan.end);
+                  const pipes = this._findPipesInExpression(
+                    expressionText,
+                    document,
+                    offset,
+                    expressionSpan.start
+                  );
+                  for (const pipe of pipes) {
+                    elements.push({ ...pipe, isAttribute: false, attributes: [] });
+                  }
+                }
+              }
+              
               if (branch.children) {
                 visit(branch.children as TemplateNode[]);
               }
             }
+
           }
           
           // Handle @switch cases
-          if (node && typeof node === "object" && "cases" in node && Array.isArray((node as { cases: AngularSwitchCase[] }).cases)) {
-            for (const switchCase of (node as { cases: AngularSwitchCase[] }).cases) {
+          if (node && typeof node === "object" && "cases" in node && Array.isArray((node as AngularSwitchNode).cases)) {
+            const switchNode = node as AngularSwitchNode;
+            
+            // Check for pipes in @switch expression
+            if ("expression" in switchNode && switchNode.expression) {
+              const expressionSpan = switchNode.expression.span || switchNode.expression.sourceSpan;
+              if (expressionSpan) {
+                const expressionText = text.slice(expressionSpan.start, expressionSpan.end);
+                const pipes = this._findPipesInExpression(
+                  expressionText,
+                  document,
+                  offset,
+                  expressionSpan.start
+                );
+                for (const pipe of pipes) {
+                  elements.push({ ...pipe, isAttribute: false, attributes: [] });
+                }
+              }
+            }
+
+            for (const switchCase of switchNode.cases) {
+              // Check for pipes in @switch case expressions
+              if ("expression" in switchCase && switchCase.expression) {
+                const expressionSpan = switchCase.expression.span || switchCase.expression.sourceSpan;
+                if (expressionSpan) {
+                  const expressionText = text.slice(expressionSpan.start, expressionSpan.end);
+                  const pipes = this._findPipesInExpression(
+                    expressionText,
+                    document,
+                    offset,
+                    expressionSpan.start
+                  );
+                  for (const pipe of pipes) {
+                    elements.push({ ...pipe, isAttribute: false, attributes: [] });
+                  }
+                }
+              }
+
               if (switchCase.children) {
                 visit(switchCase.children as TemplateNode[]);
               }
             }
           }
           
+          // Handle @for loops
+          if (node && typeof node === "object" && "expression" in node && "item" in node) {
+            const forNode = node as AngularForNode;
+            
+            // Check for pipes in @for expression (like @for (item of items | pipe))
+            if (forNode.expression) {
+              const expressionSpan = forNode.expression.span || forNode.expression.sourceSpan;
+              if (expressionSpan) {
+                const expressionText = text.slice(expressionSpan.start, expressionSpan.end);
+                const pipes = this._findPipesInExpression(
+                  expressionText,
+                  document,
+                  offset,
+                  expressionSpan.start
+                );
+                for (const pipe of pipes) {
+                  elements.push({ ...pipe, isAttribute: false, attributes: [] });
+                }
+              }
+            }
+          }
+
           // Handle @for empty block
           if (node && typeof node === "object" && "empty" in node && (node as { empty: AngularForEmpty }).empty) {
             if ((node as { empty: AngularForEmpty }).empty.children) {
@@ -808,12 +902,29 @@ interface AngularControlFlowNode {
   children?: unknown[];
 }
 
+interface AngularExpression {
+  span?: { start: number; end: number };
+  sourceSpan?: { start: number; end: number };
+}
+
 interface AngularIfBranch extends AngularControlFlowNode {
   children: unknown[];
+  expression?: AngularExpression;
 }
 
 interface AngularSwitchCase extends AngularControlFlowNode {
   children: unknown[];
+  expression?: AngularExpression;
+}
+
+interface AngularSwitchNode extends AngularControlFlowNode {
+  cases: AngularSwitchCase[];
+  expression?: AngularExpression;
+}
+
+interface AngularForNode extends AngularControlFlowNode {
+  expression?: AngularExpression;
+  item?: string;
 }
 
 interface AngularForEmpty extends AngularControlFlowNode {
@@ -823,3 +934,4 @@ interface AngularForEmpty extends AngularControlFlowNode {
 interface AngularDeferBlock extends AngularControlFlowNode {
   children: unknown[];
 }
+
