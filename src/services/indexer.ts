@@ -910,7 +910,9 @@ export class AngularIndexer {
             });
 
             const entryPoints = await getLibraryEntryPoints(dep);
-            if (entryPoints.size === 0) continue;
+            if (entryPoints.size === 0) {
+              continue;
+            }
 
             console.log(`[indexNodeModules] Found ${entryPoints.size} entry points for ${dep.name}`);
             await this._indexLibrary(entryPoints);
@@ -1014,18 +1016,26 @@ export class AngularIndexer {
     const classDeclarations = sourceFile.getClasses();
     for (const classDecl of classDeclarations) {
       const ngModuleDecorator = classDecl.getDecorator("NgModule");
-      if (!ngModuleDecorator) continue;
+      if (!ngModuleDecorator) {
+        continue;
+      }
 
       const moduleName = classDecl.getName();
-      if (!moduleName) continue;
+      if (!moduleName) {
+        continue;
+      }
 
       const decoratorArg = ngModuleDecorator.getArguments()[0];
-      if (!decoratorArg || !decoratorArg.isKind(SyntaxKind.ObjectLiteralExpression)) continue;
+      if (!decoratorArg || !decoratorArg.isKind(SyntaxKind.ObjectLiteralExpression)) {
+        continue;
+      }
 
       const objectLiteral = decoratorArg as ObjectLiteralExpression;
       const exportsProp = objectLiteral.getProperty("exports");
 
-      if (!exportsProp) continue;
+      if (!exportsProp) {
+        continue;
+      }
 
       const exportedIdentifiers = this._getIdentifierNamesFromArrayProp(exportsProp as PropertyAssignment);
 
@@ -1043,9 +1053,13 @@ export class AngularIndexer {
   }
 
   private _getIdentifierNamesFromArrayProp(prop: PropertyAssignment | undefined): string[] {
-    if (!prop) return [];
+    if (!prop) {
+      return [];
+    }
     const initializer = prop.getInitializer();
-    if (!initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) return [];
+    if (!initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
+      return [];
+    }
 
     const arr = initializer as ArrayLiteralExpression;
     return arr.getElements().map((el) => el.getText());
@@ -1079,10 +1093,12 @@ export class AngularIndexer {
       for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
         // Skip unnamed or internal Angular modules
-        if (!className || className.startsWith("ɵ")) continue;
+        if (!className || className.startsWith("ɵ")) {
+          continue;
+        }
 
         const modDef = classDecl.getStaticProperty("ɵmod");
-        if (modDef && modDef.isKind(SyntaxKind.PropertyDeclaration)) {
+        if (modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
           const typeNode = modDef.getTypeNode();
           if (typeNode?.isKind(SyntaxKind.TypeReference)) {
             const typeRef = typeNode as TypeReferenceNode;
@@ -1121,7 +1137,7 @@ export class AngularIndexer {
         const exportedClassDecl = allLibraryClasses.get(exportedClassName);
 
         // Check if the exported item is another NgModule
-        if (exportedClassDecl && exportedClassDecl.getStaticProperty("ɵmod")) {
+        if (exportedClassDecl?.getStaticProperty("ɵmod")) {
           // It's a re-exported module. Recursively process its exports.
           const modDef = exportedClassDecl.getStaticProperty("ɵmod");
           if (modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
@@ -1197,7 +1213,7 @@ export class AngularIndexer {
         let current: ClassDeclaration | undefined = cls;
         while (current) {
           const prop = current.getStaticProperty(propName);
-          if (prop && prop.isKind(SyntaxKind.PropertyDeclaration)) {
+          if (prop?.isKind(SyntaxKind.PropertyDeclaration)) {
             return { owner: current, prop };
           }
           current = current.getBaseClass();
@@ -1209,7 +1225,9 @@ export class AngularIndexer {
       for (const classDecl of classDeclarations.values()) {
         const className = classDecl.getName();
         // Skip unnamed or internal Angular classes
-        if (!className || className.startsWith("ɵ")) continue;
+        if (!className || className.startsWith("ɵ")) {
+          continue;
+        }
 
         // Reset for each class
         let elementType: "component" | "directive" | "pipe" | null = null;
@@ -1236,7 +1254,9 @@ export class AngularIndexer {
                 selector = selectorNode.getText().slice(1, -1);
               }
             }
-            if (typeArgs.length > 7) isStandalone = typeArgs[7].getText() === "true";
+            if (typeArgs.length > 7) {
+              isStandalone = typeArgs[7].getText() === "true";
+            }
           }
         } else {
           const { prop: dirDef } = findInheritedStaticProperty(classDecl, "ɵdir");
@@ -1257,7 +1277,9 @@ export class AngularIndexer {
                   selector = selectorNode.getText().slice(1, -1);
                 }
               }
-              if (typeArgs.length > 7) isStandalone = typeArgs[7].getText() === "true";
+              if (typeArgs.length > 7) {
+                isStandalone = typeArgs[7].getText() === "true";
+              }
             }
           } else {
             const { prop: pipeDef } = findInheritedStaticProperty(classDecl, "ɵpipe");
@@ -1273,7 +1295,9 @@ export class AngularIndexer {
                     selector = literal.getLiteralText();
                   }
                 }
-                if (typeArgs.length > 2) isStandalone = typeArgs[2].getText() === "true";
+                if (typeArgs.length > 2) {
+                  isStandalone = typeArgs[2].getText() === "true";
+                }
               }
             }
           }

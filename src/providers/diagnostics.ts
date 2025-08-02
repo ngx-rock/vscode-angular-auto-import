@@ -260,7 +260,9 @@ export class DiagnosticProvider {
         | InstanceType<CompilerModule["TmplAstReference"]>;
 
       const extractPipesFromExpression = (expression, nodeOffset: number = 0) => {
-        if (!expression || !expression.sourceSpan) return;
+        if (!expression || !expression.sourceSpan) {
+          return;
+        }
 
         try {
           const expressionText = text.slice(expression.sourceSpan.start, expression.sourceSpan.end);
@@ -293,7 +295,7 @@ export class DiagnosticProvider {
             nodeName.includes("If") ||
             nodeName.includes("Switch")
           ) {
-            const controlFlowNode = node as any;
+            const controlFlowNode = node as TemplateNode & Record<string, unknown>;
 
             // Check for pipes in main expression (condition/iterator)
             if (controlFlowNode.expression) {
@@ -330,18 +332,16 @@ export class DiagnosticProvider {
             }
 
             // Handle @for empty block
-            if (
-              controlFlowNode.empty &&
-              controlFlowNode.empty.children &&
-              Array.isArray(controlFlowNode.empty.children)
-            ) {
-              visit(controlFlowNode.empty.children);
+            const emptyBlock = controlFlowNode.empty as { children?: TemplateNode[] };
+            if (emptyBlock?.children && Array.isArray(emptyBlock.children)) {
+              visit(emptyBlock.children);
             }
 
             // Handle @defer sub-blocks (placeholder, loading, error)
             ["placeholder", "loading", "error"].forEach((blockType) => {
-              if (controlFlowNode[blockType] && controlFlowNode[blockType].children) {
-                visit(controlFlowNode[blockType].children);
+              const block = controlFlowNode[blockType] as { children?: TemplateNode[] };
+              if (block?.children) {
+                visit(block.children);
               }
             });
           }

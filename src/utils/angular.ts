@@ -80,7 +80,7 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
   }
 
   // For selectors with :not(), also add a version without :not()
-  if (fullSelector && fullSelector.includes(":not")) {
+  if (fullSelector?.includes(":not")) {
     const simplified = fullSelector.replace(/:not\([^)]+\)/g, "").trim();
     if (simplified && simplified !== fullSelector) {
       collection.push(simplified);
@@ -166,7 +166,6 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
       }
     } catch (error) {
       console.warn(`Error getting element from indexer for selector '${sel}':`, error);
-      continue;
     }
   }
 
