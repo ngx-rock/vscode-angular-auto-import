@@ -1,0 +1,51 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["./src"],
+  "entryPointStrategy": "expand",
+  "out": "docs",
+  "name": "Angular Auto Import Extension",
+  "readme": "README.md",
+  "exclude": [
+    "**/node_modules/**",
+    "**/out/**",
+    "**/dist/**",
+    "**/test/**",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+  "excludePrivate": false,
+  "excludeProtected": false,
+  "excludeInternal": false,
+  "excludeNotDocumented": false,
+  "includeVersion": true,
+  "theme": "default",
+  "sourceLinkTemplate": "https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/{path}#L{line}",
+  "gitRevision": "main",
+  "gitRemote": "origin",
+  "disableSources": false,
+  "categorizeByGroup": false,
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true,
+    "includeFolders": true,
+    "compactFolders": false
+  },
+  "validation": {
+    "invalidLink": true,
+    "notExported": true
+  },
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "strict": true
+  },
+  "externalSymbolLinkMappings": {
+    "@types/vscode": {
+      "CompletionList": "#",
+      "Selection": "#"
+    }
+  },
+  "lightHighlightTheme": "light-plus",
+  "darkHighlightTheme": "dark-plus",
+  "highlightLanguages": ["typescript", "javascript", "json", "html", "css"],
+  "typePrintWidth": 80
+} 

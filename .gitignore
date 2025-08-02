@@ -141,3 +141,6 @@ temp
 .idea
 
 memory-bank
+
+# TypeDoc generated documentation
+docs/
