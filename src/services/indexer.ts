@@ -15,6 +15,7 @@ import {
   type PropertyAssignment,
   type SourceFile,
   SyntaxKind,
+  type TypeChecker,
   type TypeReferenceNode,
 } from "ts-morph";
 import * as vscode from "vscode";
@@ -942,6 +943,7 @@ export class AngularIndexer {
     if (libraryFiles.length === 0) {
       return;
     }
+    const typeChecker = this.project.getTypeChecker();
 
     const allLibraryClasses = new Map<string, ClassDeclaration>();
     // Pass 0: Collect all class declarations from all files in the library for easy lookup.
@@ -970,7 +972,7 @@ export class AngularIndexer {
 
     // Pass 1: Build a complete map of all modules and their exports for the entire library
     for (const { importPath, sourceFile } of libraryFiles) {
-      this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap, allLibraryClasses);
+      this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap, allLibraryClasses, typeChecker);
     }
 
     // Pass 2: Index all components/directives/pipes using the complete map
@@ -1069,7 +1071,8 @@ export class AngularIndexer {
     sourceFile: SourceFile,
     importPath: string,
     componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
-    allLibraryClasses: Map<string, ClassDeclaration>
+    allLibraryClasses: Map<string, ClassDeclaration>,
+    typeChecker: TypeChecker
   ) {
     try {
       const classDeclarations = new Map<string, ClassDeclaration>();
@@ -1106,7 +1109,7 @@ export class AngularIndexer {
 
             if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
               const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
-              this._processModuleExports(exportsTuple, className, importPath, componentToModuleMap, allLibraryClasses);
+              this._processModuleExports(exportsTuple, className, importPath, componentToModuleMap, allLibraryClasses, typeChecker);
             }
           }
         }
@@ -1121,16 +1124,22 @@ export class AngularIndexer {
     moduleName: string,
     importPath: string,
     componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
-    allLibraryClasses: Map<string, ClassDeclaration>
+    allLibraryClasses: Map<string, ClassDeclaration>,
+    typeChecker: TypeChecker
   ) {
     for (const element of exportsTuple.getElements()) {
       let exportedClassName: string | undefined;
 
-      if (element.isKind(SyntaxKind.TypeQuery)) {
-        const typeQueryNode = element.asKindOrThrow(SyntaxKind.TypeQuery);
-        exportedClassName = typeQueryNode.getExprName().getText();
-      } else if (element.isKind(SyntaxKind.TypeReference)) {
-        exportedClassName = element.asKindOrThrow(SyntaxKind.TypeReference).getTypeName().getText();
+      // Semantic resolution using TypeChecker
+      const exprName = element.isKind(SyntaxKind.TypeQuery)
+        ? element.asKindOrThrow(SyntaxKind.TypeQuery).getExprName()
+        : element.asKindOrThrow(SyntaxKind.TypeReference).getTypeName();
+      const type = typeChecker.getTypeAtLocation(exprName);
+      const symbol = type.getSymbol() ?? type.getAliasSymbol();
+      if (symbol) {
+        const aliased = symbol.getAliasedSymbol();
+        const finalSymbol = aliased || symbol;
+        exportedClassName = finalSymbol.getName();
       }
 
       if (exportedClassName) {
@@ -1155,7 +1164,8 @@ export class AngularIndexer {
                   moduleName,
                   importPath,
                   componentToModuleMap,
-                  allLibraryClasses
+                  allLibraryClasses,
+                  typeChecker
                 );
               }
             }
