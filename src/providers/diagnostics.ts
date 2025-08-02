@@ -259,8 +259,87 @@ export class DiagnosticProvider {
         | InstanceType<CompilerModule["TmplAstBoundEvent"]>
         | InstanceType<CompilerModule["TmplAstReference"]>;
 
+      const extractPipesFromExpression = (expression: any, nodeOffset: number = 0) => {
+        if (!expression || !expression.sourceSpan) return;
+        
+        try {
+          const expressionText = text.slice(
+            expression.sourceSpan.start,
+            expression.sourceSpan.end
+          );
+          const pipes = this._findPipesInExpression(
+            expressionText,
+            document,
+            offset + nodeOffset,
+            expression.sourceSpan.start
+          );
+          for (const pipe of pipes) {
+            elements.push({ ...pipe, isAttribute: false, attributes: [] });
+          }
+        } catch (e) {
+          console.error('[DiagnosticProvider] Error extracting pipes from expression:', e);
+        }
+      };
+
       const visit = (nodesList: TemplateNode[]) => {
         for (const node of nodesList) {
+          // Debug logging can be enabled for development
+          // console.log('[DEBUG] Node type:', node.constructor.name);
+
+          // Universal handler for control flow blocks
+          const nodeName = node.constructor.name;
+          
+          // Handle all types of control flow expressions
+          if (nodeName.includes('Block') || nodeName.includes('Loop') || nodeName.includes('If') || nodeName.includes('Switch')) {
+            const controlFlowNode = node as any;
+            
+            // Check for pipes in main expression (condition/iterator)
+            if (controlFlowNode.expression) {
+              extractPipesFromExpression(controlFlowNode.expression);
+            }
+            
+            // Handle branches (@if/@else/@else if)
+            if (controlFlowNode.branches && Array.isArray(controlFlowNode.branches)) {
+              for (const branch of controlFlowNode.branches) {
+                if (branch.expression) {
+                  extractPipesFromExpression(branch.expression);
+                }
+                if (branch.children && Array.isArray(branch.children)) {
+                  visit(branch.children);
+                }
+              }
+            }
+            
+            // Handle cases (@switch)
+            if (controlFlowNode.cases && Array.isArray(controlFlowNode.cases)) {
+              for (const caseBlock of controlFlowNode.cases) {
+                if (caseBlock.expression) {
+                  extractPipesFromExpression(caseBlock.expression);
+                }
+                if (caseBlock.children && Array.isArray(caseBlock.children)) {
+                  visit(caseBlock.children);
+                }
+              }
+            }
+            
+            // Handle main children
+            if (controlFlowNode.children && Array.isArray(controlFlowNode.children)) {
+              visit(controlFlowNode.children);
+            }
+            
+            // Handle @for empty block
+            if (controlFlowNode.empty && controlFlowNode.empty.children && Array.isArray(controlFlowNode.empty.children)) {
+              visit(controlFlowNode.empty.children);
+            }
+            
+            // Handle @defer sub-blocks (placeholder, loading, error)
+            ['placeholder', 'loading', 'error'].forEach(blockType => {
+              if (controlFlowNode[blockType] && controlFlowNode[blockType].children) {
+                visit(controlFlowNode[blockType].children);
+              }
+            });
+          }
+
           if (node instanceof compiler.TmplAstElement || node instanceof compiler.TmplAstTemplate) {
             const isTemplate = node instanceof compiler.TmplAstTemplate;
 
@@ -375,129 +454,12 @@ export class DiagnosticProvider {
             }
           }
 
+          // Handle regular children for non-control-flow nodes
           if (node && typeof node === "object" && "children" in node && Array.isArray(node.children)) {
-            // Handle regular children
-            visit(node.children as TemplateNode[]);
-
-          }
-          
-          // Handle @if branches
-          if (node && typeof node === "object" && "branches" in node && Array.isArray((node as { branches: AngularIfBranch[] }).branches)) {
-            for (const branch of (node as { branches: AngularIfBranch[] }).branches) {
-              // Check for pipes in @if condition expression
-              if ("expression" in branch && branch.expression) {
-                const expressionSpan = branch.expression.span || branch.expression.sourceSpan;
-                if (expressionSpan) {
-                  const expressionText = text.slice(expressionSpan.start, expressionSpan.end);
-                  const pipes = this._findPipesInExpression(
-                    expressionText,
-                    document,
-                    offset,
-                    expressionSpan.start
-                  );
-                  for (const pipe of pipes) {
-                    elements.push({ ...pipe, isAttribute: false, attributes: [] });
-                  }
-                }
-              }
-              
-              if (branch.children) {
-                visit(branch.children as TemplateNode[]);
-              }
-            }
-
-          }
-          
-          // Handle @switch cases
-          if (node && typeof node === "object" && "cases" in node && Array.isArray((node as AngularSwitchNode).cases)) {
-            const switchNode = node as AngularSwitchNode;
-            
-            // Check for pipes in @switch expression
-            if ("expression" in switchNode && switchNode.expression) {
-              const expressionSpan = switchNode.expression.span || switchNode.expression.sourceSpan;
-              if (expressionSpan) {
-                const expressionText = text.slice(expressionSpan.start, expressionSpan.end);
-                const pipes = this._findPipesInExpression(
-                  expressionText,
-                  document,
-                  offset,
-                  expressionSpan.start
-                );
-                for (const pipe of pipes) {
-                  elements.push({ ...pipe, isAttribute: false, attributes: [] });
-                }
-              }
-            }
-
-            for (const switchCase of switchNode.cases) {
-              // Check for pipes in @switch case expressions
-              if ("expression" in switchCase && switchCase.expression) {
-                const expressionSpan = switchCase.expression.span || switchCase.expression.sourceSpan;
-                if (expressionSpan) {
-                  const expressionText = text.slice(expressionSpan.start, expressionSpan.end);
-                  const pipes = this._findPipesInExpression(
-                    expressionText,
-                    document,
-                    offset,
-                    expressionSpan.start
-                  );
-                  for (const pipe of pipes) {
-                    elements.push({ ...pipe, isAttribute: false, attributes: [] });
-                  }
-                }
-              }
-
-              if (switchCase.children) {
-                visit(switchCase.children as TemplateNode[]);
-              }
-            }
-          }
-          
-          // Handle @for loops
-          if (node && typeof node === "object" && "expression" in node && "item" in node) {
-            const forNode = node as AngularForNode;
-            
-            // Check for pipes in @for expression (like @for (item of items | pipe))
-            if (forNode.expression) {
-              const expressionSpan = forNode.expression.span || forNode.expression.sourceSpan;
-              if (expressionSpan) {
-                const expressionText = text.slice(expressionSpan.start, expressionSpan.end);
-                const pipes = this._findPipesInExpression(
-                  expressionText,
-                  document,
-                  offset,
-                  expressionSpan.start
-                );
-                for (const pipe of pipes) {
-                  elements.push({ ...pipe, isAttribute: false, attributes: [] });
-                }
-              }
-            }
-          }
-
-          // Handle @for empty block
-          if (node && typeof node === "object" && "empty" in node && (node as { empty: AngularForEmpty }).empty) {
-            if ((node as { empty: AngularForEmpty }).empty.children) {
-              visit((node as { empty: AngularForEmpty }).empty.children as TemplateNode[]);
-            }
-          }
-          
-          // Handle @defer blocks (loading, error, placeholder)
-          if (node && typeof node === "object" && "loading" in node && (node as { loading: AngularDeferBlock }).loading) {
-            if ((node as { loading: AngularDeferBlock }).loading.children) {
-              visit((node as { loading: AngularDeferBlock }).loading.children as TemplateNode[]);
-            }
-          }
-          
-          if (node && typeof node === "object" && "error" in node && (node as { error: AngularDeferBlock }).error) {
-            if ((node as { error: AngularDeferBlock }).error.children) {
-              visit((node as { error: AngularDeferBlock }).error.children as TemplateNode[]);
-            }
-          }
-          
-          if (node && typeof node === "object" && "placeholder" in node && (node as { placeholder: AngularDeferBlock }).placeholder) {
-            if ((node as { placeholder: AngularDeferBlock }).placeholder.children) {
-              visit((node as { placeholder: AngularDeferBlock }).placeholder.children as TemplateNode[]);
+            // Only visit children if this is not a control flow node (already handled above)
+            const nodeName = node.constructor.name;
+            if (!(nodeName.includes('Block') || nodeName.includes('Loop') || nodeName.includes('If') || nodeName.includes('Switch'))) {
+              visit(node.children as TemplateNode[]);
             }
           }
         }
