@@ -7,7 +7,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
-import type { AngularElementData } from "../types";
+import { AngularElementData } from "../types";
 import { isInsideTemplateString } from "../utils/template-detection";
 import type { ProviderContext } from "./index";
 
@@ -113,7 +113,19 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       elementsToProcess.get(elementKey)?.selectors.push(selector);
     }
 
-    for (const { element, selectors } of elementsToProcess.values()) {
+    const elementEntries = Array.from(elementsToProcess.values());
+    if (hasTagContext && filterText) {
+      const expectedName = filterText
+        .split('-')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join('');
+      elementEntries.sort((a, b) => {
+        if (a.element.name === expectedName && b.element.name !== expectedName) return -1;
+        if (b.element.name === expectedName && a.element.name !== expectedName) return 1;
+        return 0;
+      });
+    }
+    for (const { element, selectors } of elementEntries) {
       const elementKey = `${element.path}:${element.name}`;
       if (seenElements.has(elementKey)) {
         continue;
@@ -202,7 +214,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         item.command = {
           title: `Import ${element.name}`,
           command: "angular-auto-import.importElement",
-          arguments: [bestMatchingSelector],
+          arguments: [element],
         };
         item.sortText = `${String.fromCharCode(97 - bestRelevance)}${bestMatchingSelector}`;
         suggestions.push(item);
@@ -253,10 +265,19 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           const isModuleImport = stdElement.name.endsWith("Module");
           item.detail = `Angular Auto-Import: ${stdElement.type}${isModuleImport ? ` (requires ${stdElement.name})` : " (standalone)"}`;
           item.documentation = new vscode.MarkdownString(`Import from \`${stdElement.importPath}\`.`);
+          const elementDataForCommand = new AngularElementData(
+            stdElement.importPath,
+            stdElement.name,
+            stdElement.type,
+            stdSelector, // Use the matched selector as the original selector
+            stdElement.selectors ?? [stdSelector], // Ensure selectors is an array
+            !isModuleImport,
+            isModuleImport ? stdElement.name : undefined
+          );
           item.command = {
             title: `Import ${stdElement.name}`,
             command: "angular-auto-import.importElement",
-            arguments: [stdSelector],
+            arguments: [elementDataForCommand],
           };
           item.sortText = `${String.fromCharCode(96 - relevance)}${stdSelector}`;
           suggestions.push(item);
