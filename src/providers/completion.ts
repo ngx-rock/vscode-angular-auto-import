@@ -62,7 +62,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       const contentAfterTag = tagContent.substring(tagName.length);
 
       // If there's content right after the tag name without a space, we're not in a valid attribute context yet.
-      // e.g. <my-tag[
+      // e.g. <my-tag[ 
       if (contentAfterTag.length > 0 && !/^\s/.test(contentAfterTag)) {
         context = "none"; // Neither tag nor attribute, do not show suggestions
       } else if (!/\s/.test(tagContent)) {
@@ -150,25 +150,46 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           (element.type === "directive" || (element.type === "component" && element.originalSelector.includes("["))) &&
           hasAttributeContext
         ) {
-          let attrName = elementSelector;
+          const attrMatch = /\[([a-zA-Z0-9-]+)\]/.exec(elementSelector);
+          const attrName = attrMatch ? attrMatch[1] : elementSelector;
+
           if (element.type === "component" || context === "structural-directive") {
-            attrName = elementSelector.startsWith("[")
-              ? elementSelector.slice(1, -1)
-              : elementSelector.startsWith("*")
-                ? elementSelector.slice(1)
-                : elementSelector;
+            // For structural directives or components acting as attributes, the name is simpler.
+            // This part might need refinement based on indexer behavior.
           }
 
           if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
             // The insert text should be the clean name.
             insertText = attrName;
-
-            // The label will still be the full selector (e.g., `[mat-menu-item]`), which is handled by `bestMatchingSelector`.
             itemKind =
               context === "structural-directive"
                 ? vscode.CompletionItemKind.Keyword
                 : vscode.CompletionItemKind.Property;
+
+            // --- Relevance Scoring ---
+            // Base score for being a valid attribute/directive in this context.
             relevance = 2;
+
+            // Higher score if the class name strongly matches the selector name.
+            const expectedClassName = attrName
+              .split("-")
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+              .join("");
+
+            if (element.name.startsWith(expectedClassName)) {
+              relevance += 2; // e.g., mat-button -> MatButton
+            }
+
+            // Highest score if the selector explicitly matches the tag we're inside.
+            const openTag = linePrefix.substring(openTagIndex);
+            const tagMatch = /<([a-zA-Z0-9-]+)/.exec(openTag);
+            if (tagMatch) {
+              const currentTag = tagMatch[1];
+              // Selector like `button[mat-button]` on a `<button>` tag.
+              if (elementSelector.startsWith(`${currentTag}[`)) {
+                relevance += 5;
+              }
+            }
           }
         } else if (element.type === "pipe" && hasPipeContext) {
           if (elementSelector.toLowerCase().startsWith(filterText.toLowerCase())) {
