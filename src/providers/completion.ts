@@ -62,7 +62,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       const contentAfterTag = tagContent.substring(tagName.length);
 
       // If there's content right after the tag name without a space, we're not in a valid attribute context yet.
-      // e.g. <my-tag[ 
+      // e.g. <my-tag[
       if (contentAfterTag.length > 0 && !/^\s/.test(contentAfterTag)) {
         context = "none"; // Neither tag nor attribute, do not show suggestions
       } else if (!/\s/.test(tagContent)) {
@@ -116,21 +116,27 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const elementEntries = Array.from(elementsToProcess.values());
     if (hasTagContext && filterText) {
       const expectedName = filterText
-        .split('-')
+        .split("-")
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
+        .join("");
       elementEntries.sort((a, b) => {
         if (a.element.name === expectedName && b.element.name !== expectedName) return -1;
         if (b.element.name === expectedName && a.element.name !== expectedName) return 1;
         return 0;
       });
     }
-    for (const { element, selectors } of elementEntries) {
-      const elementKey = `${element.path}:${element.name}`;
-      if (seenElements.has(elementKey)) {
-        continue;
-      }
 
+    // --- 1. Collect all potential suggestions from indexed elements ---
+    interface PotentialSuggestion {
+      insertText: string;
+      element: AngularElementData;
+      relevance: number;
+      kind: vscode.CompletionItemKind;
+      originalBestSelector: string;
+    }
+    const potentialSuggestions: PotentialSuggestion[] = [];
+
+    for (const { element, selectors } of elementEntries) {
       let bestMatchingSelector: string | null = null;
       let bestRelevance = 0;
       let bestInsertText = "";
@@ -207,10 +213,44 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       }
 
       if (bestRelevance > 0 && bestMatchingSelector) {
+        potentialSuggestions.push({
+          insertText: bestInsertText,
+          element,
+          relevance: bestRelevance,
+          kind: bestItemKind,
+          originalBestSelector: bestMatchingSelector,
+        });
+      }
+    }
+
+    // --- 2. Group suggestions by insert text to identify shared selectors ---
+    const groupedByInsertText = new Map<string, PotentialSuggestion[]>();
+    for (const suggestion of potentialSuggestions) {
+      if (!suggestion.insertText) continue;
+      const group = groupedByInsertText.get(suggestion.insertText);
+      if (group) {
+        group.push(suggestion);
+      } else {
+        groupedByInsertText.set(suggestion.insertText, [suggestion]);
+      }
+    }
+
+    // --- 3. Create final CompletionItems from grouped suggestions ---
+    for (const [insertText, group] of groupedByInsertText.entries()) {
+      const isSharedSelector = group.length > 1;
+
+      for (const sugg of group) {
+        const { element, kind, relevance, originalBestSelector } = sugg;
+        const elementKey = `${element.path}:${element.name}`;
+        if (seenElements.has(elementKey)) {
+          continue;
+        }
         seenElements.add(elementKey);
 
-        const item = new vscode.CompletionItem(bestMatchingSelector, bestItemKind);
-        item.insertText = bestInsertText;
+        const label = isSharedSelector ? `${insertText}:${element.name}` : insertText;
+        const item = new vscode.CompletionItem(label, kind);
+
+        item.insertText = insertText;
         if (replacementRange) {
           item.range = replacementRange;
         }
@@ -218,17 +258,17 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         if (element.isStandalone) {
           item.detail = `Angular Auto-Import: standalone ${element.type}`;
           item.documentation = new vscode.MarkdownString(
-            `✅ Import standalone \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector: \`${bestMatchingSelector}\``
+            `✅ Import standalone \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector: \`${originalBestSelector}\``
           );
         } else if (element.exportingModuleName) {
           item.detail = `Angular Auto-Import: from ${element.exportingModuleName}`;
           item.documentation = new vscode.MarkdownString(
-            `⚠️ Import \`${element.name}\` via \`${element.exportingModuleName}\` module from \`${element.path}\`.\n\nSelector: \`${bestMatchingSelector}\``
+            `⚠️ Import \`${element.name}\` via \`${element.exportingModuleName}\` module from \`${element.path}\`.\n\nSelector: \`${originalBestSelector}\``
           );
         } else {
           item.detail = `Angular Auto-Import: ${element.type}`;
           item.documentation = new vscode.MarkdownString(
-            `Import \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector: \`${bestMatchingSelector}\``
+            `Import \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector: \`${originalBestSelector}\``
           );
         }
 
@@ -237,7 +277,8 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           command: "angular-auto-import.importElement",
           arguments: [element],
         };
-        item.sortText = `${String.fromCharCode(97 - bestRelevance)}${bestMatchingSelector}`;
+
+        item.sortText = `${String.fromCharCode(97 - relevance)}${insertText}`;
         suggestions.push(item);
       }
     }
