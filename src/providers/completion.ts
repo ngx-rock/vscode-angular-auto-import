@@ -42,6 +42,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     let filterText = "";
     let replacementRange: vscode.Range | undefined;
     let context: "tag" | "attribute" | "pipe" | "structural-directive" | "none" = "none";
+    let triggerChar: "[" | "*" | undefined;
 
     const openTagIndex = linePrefix.lastIndexOf("<");
     const closeTagIndex = linePrefix.lastIndexOf(">");
@@ -75,9 +76,11 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         if (partialWord.startsWith("[")) {
           context = "attribute";
           filterText = partialWord.substring(1);
+          triggerChar = "[";
         } else if (partialWord.startsWith("*")) {
           context = "structural-directive";
           filterText = partialWord.substring(1);
+          triggerChar = "*";
         } else if (partialWord.length > 0) {
           context = "attribute";
           filterText = partialWord;
@@ -90,12 +93,14 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     }
 
     replacementRange = document.getWordRangeAtPosition(position, /[\w-]+/);
-    if (replacementRange) {
-      const charBefore = linePrefix[replacementRange.start.character - 1];
-      if (charBefore === "*" || charBefore === "[") {
-        replacementRange = new vscode.Range(replacementRange.start.translate(0, -1), replacementRange.end);
-      }
+    if (replacementRange && filterText && !replacementRange.isEqual(new vscode.Range(position, position))) {
+        const existingText = document.getText(replacementRange);
+        if (filterText.startsWith(existingText)) {
+            // Adjust the start of the replacement range to match the filter text's start.
+            // This happens when getWordRangeAtPosition doesn't capture the full intended word.
+        }
     }
+
 
     const suggestions: vscode.CompletionItem[] = [];
     const hasAttributeContext = context === "attribute" || context === "structural-directive";
@@ -109,11 +114,14 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const seenElements = new Set<string>();
 
     // Use the Trie-based search for indexed elements
-    const searchResults = indexer.searchWithSelectors(filterText);
+    let searchResults = indexer.searchWithSelectors(filterText);
     console.log(`[CompletionProvider] Searching for "${filterText}", found ${searchResults.length} results.`);
     if (searchResults.length > 0) {
       console.log("[CompletionProvider] Search results:", JSON.stringify(searchResults.slice(0, 10), null, 2)); // Log first 10 results
     }
+
+    searchResults = searchResults.slice(0, 10);
+
     const elementsToProcess = new Map<string, { element: AngularElementData; selectors: string[] }>();
 
     // Group matching selectors by element to process each element only once
@@ -136,7 +144,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         if (b.element.name === expectedName && a.element.name !== expectedName) return 1;
         return 0;
       });
-    }
+    } 
 
     // --- 1. Collect all potential suggestions from indexed elements ---
     interface PotentialSuggestion {
@@ -173,15 +181,23 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             : elementSelector.startsWith("*")
               ? elementSelector.slice(1)
               : elementSelector;
-
+              
           if (element.type === "component" || context === "structural-directive") {
             // For structural directives or components acting as attributes, the name is simpler.
             // This part might need refinement based on indexer behavior.
           }
 
           if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
-            // The insert text should be the clean name.
-            insertText = attrName;
+          
+            // The insert text should be the clean name, but wrapped correctly if needed.
+            if (context === 'structural-directive' && !triggerChar) {
+                insertText = `*${attrName}`;
+            } else if (context === 'attribute' && !triggerChar) {
+                insertText = `[${attrName}]`;
+            } else {
+                insertText = attrName;
+            }
+
             itemKind =
               context === "structural-directive"
                 ? vscode.CompletionItemKind.Keyword
@@ -238,6 +254,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       }
     }
 
+  
     // --- 2. Group suggestions by insert text to identify shared selectors ---
     const groupedByInsertText = new Map<string, PotentialSuggestion[]>();
     for (const suggestion of potentialSuggestions) {
@@ -256,14 +273,23 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
       for (const sugg of group) {
         const { element, kind, relevance, originalBestSelector } = sugg;
+        
         const elementKey = `${element.path}:${element.name}`;
         if (seenElements.has(elementKey)) {
           continue;
         }
         seenElements.add(elementKey);
 
+        const isSharedSelector = group.length > 1;
         const label = isSharedSelector ? `${insertText}:${element.name}` : insertText;
         const item = new vscode.CompletionItem(label, kind);
+        
+        const attrName = originalBestSelector.startsWith("[")
+              ? originalBestSelector.slice(1, -1)
+              : originalBestSelector.startsWith("*")
+                ? originalBestSelector.slice(1)
+                : originalBestSelector;
+        item.filterText = attrName
 
         item.insertText = insertText;
         if (replacementRange) {
@@ -287,6 +313,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           );
         }
 
+    
         item.command = {
           title: `Import ${element.name}`,
           command: "angular-auto-import.importElement",
@@ -317,7 +344,13 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             : stdSelector;
         if (attrName.toLowerCase().startsWith(filterText.toLowerCase())) {
           shouldInclude = true;
-          insertText = attrName;
+          if (context === 'structural-directive' && !triggerChar) {
+              insertText = `*${attrName}`;
+          } else if (context === 'attribute' && !triggerChar) {
+              insertText = `[${attrName}]`;
+          } else {
+              insertText = attrName;
+          }
           itemKind =
             context === "structural-directive" ? vscode.CompletionItemKind.Keyword : vscode.CompletionItemKind.Property;
           relevance = 3;
@@ -336,6 +369,14 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           seenElements.add(elementKey);
           const item = new vscode.CompletionItem(stdSelector, itemKind);
           item.insertText = insertText;
+
+          const attrName = stdSelector.startsWith("[")
+              ? stdSelector.slice(1, -1)
+              : stdSelector.startsWith("*")
+                ? stdSelector.slice(1)
+                : stdSelector;
+          item.filterText = attrName;
+
           if (replacementRange) {
             item.range = replacementRange;
           }
@@ -379,6 +420,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       return sortA.localeCompare(sortB);
     });
 
+  
     // Return a CompletionList and mark it as incomplete to force re-querying on every keystroke
     return new vscode.CompletionList(finalSuggestions, true);
   }
