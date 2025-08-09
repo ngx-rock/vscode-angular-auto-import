@@ -165,8 +165,11 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           (element.type === "directive" || (element.type === "component" && element.originalSelector.includes("["))) &&
           hasAttributeContext
         ) {
-          const attrMatch = /\[([a-zA-Z0-9-]+)\]/.exec(elementSelector);
-          const attrName = attrMatch ? attrMatch[1] : elementSelector;
+          const attrName = elementSelector.startsWith("[")
+            ? elementSelector.slice(1, -1)
+            : elementSelector.startsWith("*")
+              ? elementSelector.slice(1)
+              : elementSelector;
 
           if (element.type === "component" || context === "structural-directive") {
             // For structural directives or components acting as attributes, the name is simpler.
