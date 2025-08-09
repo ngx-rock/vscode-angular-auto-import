@@ -23,37 +23,43 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     document: vscode.TextDocument,
     position: vscode.Position,
     _token: vscode.CancellationToken,
-    _context: vscode.CompletionContext
-  ): Promise<vscode.CompletionItem[]> {
+    _context: vscode.CompletionContext,
+  ): Promise<vscode.CompletionList> {
     const projCtx = this.getProjectContextForDocument(document);
     if (!projCtx) {
-      return [];
+      return new vscode.CompletionList([], true);
     }
 
     // For TypeScript files, ensure we are inside a template string
     if (document.languageId === "typescript" && !isInsideTemplateString(document, position)) {
-      return [];
+      return new vscode.CompletionList([], true);
     }
 
     const { indexer } = projCtx;
     const linePrefix = document.lineAt(position).text.slice(0, position.character);
 
+
+
     // --- Regex-based Context Detection ---
     let filterText = "";
     let replacementRange: vscode.Range | undefined;
     let context: "tag" | "attribute" | "pipe" | "structural-directive" | "none" = "none";
+    console.error('XXXdocument.lineAt(position).text', linePrefix)
 
     const pipeMatch = /\|\s*([a-zA-Z0-9_-]*)$/.exec(linePrefix);
     const structuralMatch = /\*([a-zA-Z0-9_-]*)$/.exec(linePrefix);
     const openTagIndex = linePrefix.lastIndexOf("<");
     const closeTagIndex = linePrefix.lastIndexOf(">");
 
+
     if (pipeMatch) {
       context = "pipe";
       filterText = pipeMatch[1];
     } else if (structuralMatch) {
       context = "structural-directive";
-      filterText = structuralMatch[1];
+
+    console.error('XXX structuralMatch', structuralMatch[1])
+      filterText =  structuralMatch[1];
     } else if (openTagIndex > closeTagIndex) {
       // We are inside a tag definition
       const tagContent = linePrefix.substring(openTagIndex + 1);
@@ -66,6 +72,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       if (contentAfterTag.length > 0 && !/^\s/.test(contentAfterTag)) {
         context = "none"; // Neither tag nor attribute, do not show suggestions
       } else if (!/\s/.test(tagContent)) {
+        console.error('XXX component')
         // We are typing the tag name, no spaces yet
         context = "tag";
         filterText = tagContent;
@@ -74,10 +81,12 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         context = "attribute";
         const lastWordMatch = /\s([a-zA-Z0-9-]*)$/.exec(tagContent);
         filterText = lastWordMatch ? lastWordMatch[1] : "";
+        console.error('XXX lastWordMatch', lastWordMatch)
+        console.error('XXX filterText', filterText)
       }
     }
 
-    replacementRange = document.getWordRangeAtPosition(position, /[\w-]+/);
+    replacementRange = document.getWordRangeAtPosition(position, /[\w-]+/);  
     if (replacementRange && context === "structural-directive") {
       const charBefore = linePrefix[replacementRange.start.character - 1];
       if (charBefore === "*") {
@@ -91,7 +100,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const hasPipeContext = context === "pipe";
 
     if (context === "none") {
-      return [];
+      return new vscode.CompletionList([], true);
     }
 
     const seenElements = new Set<string>();
@@ -177,7 +186,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             relevance = 2;
 
             // Higher score if the class name strongly matches the selector name.
-            const expectedClassName = attrName
+            const expectedClassName = attrName 
               .split("-")
               .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
               .join("");
@@ -358,11 +367,14 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       }
     }
 
-    return Array.from(dedupedSuggestionsMap.values()).sort((a, b) => {
+    const finalSuggestions = Array.from(dedupedSuggestionsMap.values()).sort((a, b) => {
       const sortA = a.sortText || a.label.toString();
       const sortB = b.sortText || b.label.toString();
       return sortA.localeCompare(sortB);
     });
+
+    // Return a CompletionList and mark it as incomplete to force re-querying on every keystroke
+    return new vscode.CompletionList(finalSuggestions, true);
   }
 
   private getProjectContextForDocument(document: vscode.TextDocument) {
