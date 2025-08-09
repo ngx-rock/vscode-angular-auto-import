@@ -38,33 +38,25 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     const { indexer } = projCtx;
     const linePrefix = document.lineAt(position).text.slice(0, position.character);
 
-
-
-    // --- Regex-based Context Detection ---
+    // --- Unified Context Detection ---
     let filterText = "";
     let replacementRange: vscode.Range | undefined;
     let context: "tag" | "attribute" | "pipe" | "structural-directive" | "none" = "none";
-    console.error('XXXdocument.lineAt(position).text', linePrefix)
 
-    const pipeMatch = /\|\s*([a-zA-Z0-9_-]*)$/.exec(linePrefix);
-    const structuralMatch = /\*([a-zA-Z0-9_-]*)$/.exec(linePrefix);
     const openTagIndex = linePrefix.lastIndexOf("<");
     const closeTagIndex = linePrefix.lastIndexOf(">");
+    const pipeIndex = linePrefix.lastIndexOf("|");
 
-
-    if (pipeMatch) {
+    if (pipeIndex > openTagIndex && pipeIndex > closeTagIndex) {
+      // We are in a pipe context
       context = "pipe";
-      filterText = pipeMatch[1];
-    } else if (structuralMatch) {
-      context = "structural-directive";
-
-    console.error('XXX structuralMatch', structuralMatch[1])
-      filterText =  structuralMatch[1];
+      const textAfterPipe = linePrefix.substring(pipeIndex + 1);
+      filterText = textAfterPipe.trim();
     } else if (openTagIndex > closeTagIndex) {
       // We are inside a tag definition
       const tagContent = linePrefix.substring(openTagIndex + 1);
-      const tagNameMatch = tagContent.match(/^([a-zA-Z0-9-]+)/);
-      const tagName = tagNameMatch ? tagNameMatch[0] : "";
+      const firstWordMatch = tagContent.match(/^[a-zA-Z0-9-]+/);
+      const tagName = firstWordMatch ? firstWordMatch[0] : "";
       const contentAfterTag = tagContent.substring(tagName.length);
 
       // If there's content right after the tag name without a space, we're not in a valid attribute context yet.
@@ -72,24 +64,35 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       if (contentAfterTag.length > 0 && !/^\s/.test(contentAfterTag)) {
         context = "none"; // Neither tag nor attribute, do not show suggestions
       } else if (!/\s/.test(tagContent)) {
-        console.error('XXX component')
         // We are typing the tag name, no spaces yet
         context = "tag";
         filterText = tagContent;
       } else {
         // We are in an attribute context (space exists)
-        context = "attribute";
-        const lastWordMatch = /\s([a-zA-Z0-9-]*)$/.exec(tagContent);
-        filterText = lastWordMatch ? lastWordMatch[1] : "";
-        console.error('XXX lastWordMatch', lastWordMatch)
-        console.error('XXX filterText', filterText)
+        const lastSpaceIndex = tagContent.lastIndexOf(" ");
+        const partialWord = tagContent.substring(lastSpaceIndex + 1);
+
+        if (partialWord.startsWith("[")) {
+          context = "attribute";
+          filterText = partialWord.substring(1);
+        } else if (partialWord.startsWith("*")) {
+          context = "structural-directive";
+          filterText = partialWord.substring(1);
+        } else if (partialWord.length > 0) {
+          context = "attribute";
+          filterText = partialWord;
+        } else {
+          // After a space, waiting for attribute name
+          context = "attribute";
+          filterText = "";
+        }
       }
     }
 
-    replacementRange = document.getWordRangeAtPosition(position, /[\w-]+/);  
-    if (replacementRange && context === "structural-directive") {
+    replacementRange = document.getWordRangeAtPosition(position, /[\w-]+/);
+    if (replacementRange) {
       const charBefore = linePrefix[replacementRange.start.character - 1];
-      if (charBefore === "*") {
+      if (charBefore === "*" || charBefore === "[") {
         replacementRange = new vscode.Range(replacementRange.start.translate(0, -1), replacementRange.end);
       }
     }
