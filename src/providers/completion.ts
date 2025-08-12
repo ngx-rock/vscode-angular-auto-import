@@ -193,7 +193,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             if (context === 'structural-directive' && !triggerChar) {
                 insertText = `*${attrName}`;
             } else if (context === 'attribute' && !triggerChar) {
-                insertText = `[${attrName}]`;
+                insertText = attrName; // `[${attrName}]`;
             } else {
                 insertText = attrName;
             }
@@ -347,7 +347,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           if (context === 'structural-directive' && !triggerChar) {
               insertText = `*${attrName}`;
           } else if (context === 'attribute' && !triggerChar) {
-              insertText = `[${attrName}]`;
+              insertText = attrName; // `[${attrName}]`;
           } else {
               insertText = attrName;
           }
