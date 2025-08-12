@@ -4,6 +4,13 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.7.0] - 2025-08-13
+ 
+### Improved
+- Completion suggestions now show shared selectors with element names for better disambiguation
+- More intelligent attribute and structural directive context detection
+- Better filter text handling for improved search accuracy 
+
 ## [1.6.2] - 2025-08-03
 
 ### Improved
