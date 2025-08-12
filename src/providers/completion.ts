@@ -140,8 +140,12 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
         .join("");
       elementEntries.sort((a, b) => {
-        if (a.element.name === expectedName && b.element.name !== expectedName) return -1;
-        if (b.element.name === expectedName && a.element.name !== expectedName) return 1;
+        if (a.element.name === expectedName && b.element.name !== expectedName) {
+          return -1;
+        }
+        if (b.element.name === expectedName && a.element.name !== expectedName) {
+          return 1;
+        }
         return 0;
       });
     } 
@@ -258,7 +262,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     // --- 2. Group suggestions by insert text to identify shared selectors ---
     const groupedByInsertText = new Map<string, PotentialSuggestion[]>();
     for (const suggestion of potentialSuggestions) {
-      if (!suggestion.insertText) continue;
+      if (!suggestion.insertText) {
+        continue;
+      }
       const group = groupedByInsertText.get(suggestion.insertText);
       if (group) {
         group.push(suggestion);
@@ -269,8 +275,6 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
     // --- 3. Create final CompletionItems from grouped suggestions ---
     for (const [insertText, group] of groupedByInsertText.entries()) {
-      const isSharedSelector = group.length > 1;
-
       for (const sugg of group) {
         const { element, kind, relevance, originalBestSelector } = sugg;
         

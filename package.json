@@ -118,7 +118,7 @@
     "test": "vscode-test",
     "vsce:package": "vsce package --no-dependencies",
     "vsce:publish": "vsce publish --no-dependencies",
-    "publish": "pnpm run vsce:package && pnpm run vsce:publish",
+    "release": "pnpm run vsce:package && pnpm run vsce:publish",
     "docs:build": "rm -rf docs && typedoc"
   },
   "devDependencies": {
