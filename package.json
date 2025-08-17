@@ -107,7 +107,7 @@
     "copy-test-fixtures": "cp -r src/test/fixtures out/test/",
     "pretest": "pnpm run compile-tests && pnpm run copy-test-fixtures && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
-    "lint": "pnpm run lint:biome && pnpm run lint:knip",
+    "lint": "pnpm run lint:biome && pnpm run lint:knip && pnpm run check-types",
     "lint:biome": "biome lint --diagnostic-level=error --no-errors-on-unmatched src",
     "lint:knip": "knip",
     "lint:fix": "biome lint --write src",
@@ -119,7 +119,10 @@
     "vsce:package": "vsce package --no-dependencies",
     "vsce:publish": "vsce publish --no-dependencies",
     "release": "pnpm run vsce:package && pnpm run vsce:publish",
-    "docs:build": "rm -rf docs && typedoc"
+    "docs:build": "rm -rf docs && typedoc",
+    "docs:serve": "cd docs && python3 -m http.server 8082",
+    "docs:clean": "rm -rf docs",
+    "docs:watch": "typedoc --watch"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
@@ -135,6 +138,7 @@
     "mocha": "^10.8.2",
     "npm-run-all": "^4.1.5",
     "typedoc": "^0.28.8",
+    "typedoc-plugin-markdown": "^4.8.1",
     "typescript": "^5.8.3"
   },
   "dependencies": {
