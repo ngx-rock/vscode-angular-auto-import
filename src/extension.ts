@@ -4,6 +4,17 @@
  * =================================================================================================
  *
  * A modularly designed extension for automatically importing Angular elements.
+ * 
+ * This module serves as the main entry point for the VS Code extension, handling:
+ * - Extension activation and deactivation lifecycle
+ * - Project discovery and initialization
+ * - Configuration management
+ * - Provider and command registration
+ * - Multi-project workspace support
+ * 
+ * @module Main extension entry point for Angular Auto-Import
+ * @author Angular Auto-Import Team
+ * @since 1.0.0
  */
 
 import * as fs from "node:fs";
@@ -17,14 +28,52 @@ import * as TsConfigHelper from "./services/tsconfig";
 import type { ProcessedTsConfig, ProjectContext } from "./types";
 import { clearAllTemplateCache, clearTemplateCache } from "./utils/template-detection";
 
-// Global state
+// ===========================================================================================
+// Global State Management
+// ===========================================================================================
+
+/** 
+ * Map of project root paths to their corresponding Angular indexer instances.
+ * Each indexer handles the parsing and caching of Angular elements for a specific project.
+ */
 const projectIndexers = new Map<string, AngularIndexer>();
+
+/** 
+ * Map of project root paths to their processed TypeScript configuration.
+ * Stores parsed tsconfig.json data including path mappings and compiler options.
+ */
 const projectTsConfigs = new Map<string, ProcessedTsConfig | null>();
+
+/** 
+ * Map of project root paths to their periodic reindexing interval timers.
+ * Used to manage automatic background reindexing for each project.
+ */
 const projectIntervals = new Map<string, NodeJS.Timeout>();
+
+/** 
+ * Current extension configuration loaded from VS Code settings.
+ * Contains user preferences for project paths, refresh intervals, etc.
+ */
 let extensionConfig: ExtensionConfig;
 
 /**
- * Activates the extension.
+ * Activates the Angular Auto-Import extension.
+ * 
+ * This is the main entry point called by VS Code when the extension is activated.
+ * Handles the complete initialization process including:
+ * - Configuration loading
+ * - Project discovery and setup
+ * - Provider and command registration
+ * - File system watcher setup
+ * 
+ * @param context - The VS Code extension context providing access to extension APIs
+ * @throws {Error} When extension activation fails due to configuration or initialization issues
+ * 
+ * @example
+ * ```typescript
+ * // Called automatically by VS Code when extension activates
+ * await activate(context);
+ * ```
  */
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   try {
@@ -71,7 +120,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 }
 
 /**
- * Deactivates the extension.
+ * Deactivates the Angular Auto-Import extension and cleans up all resources.
+ * 
+ * This function is called when the extension is being disabled or VS Code is shutting down.
+ * It ensures proper cleanup of:
+ * - Active reindexing intervals
+ * - Angular indexer instances
+ * - TypeScript configuration caches
+ * - Template detection caches
+ * 
+ * @example
+ * ```typescript
+ * // Called automatically by VS Code when extension deactivates
+ * deactivate();
+ * ```
  */
 export function deactivate(): void {
   // Clear intervals
@@ -91,7 +153,22 @@ export function deactivate(): void {
 }
 
 /**
- * Determines the project root directories.
+ * Determines the project root directories for Angular Auto-Import to operate on.
+ * 
+ * The function follows this priority order:
+ * 1. Uses workspace folders if available (ignores projectPath setting)
+ * 2. Falls back to configured projectPath setting if no workspace folders
+ * 3. Returns empty array if neither is available or valid
+ * 
+ * @returns Promise resolving to array of absolute project root paths
+ * @throws {Error} When configured project path is invalid or inaccessible
+ * 
+ * @example
+ * ```typescript
+ * const roots = await determineProjectRoots();
+ * console.log('Found project roots:', roots);
+ * // Output: ['C:\\workspace\\my-angular-app']
+ * ```
  */
 async function determineProjectRoots(): Promise<string[]> {
   let effectiveProjectRoots: string[] = [];
@@ -121,7 +198,23 @@ async function determineProjectRoots(): Promise<string[]> {
 }
 
 /**
- * Initializes the projects.
+ * Initializes Angular Auto-Import for all discovered project roots.
+ * 
+ * For each project root, this function:
+ * - Loads and parses the TypeScript configuration
+ * - Creates and configures an Angular indexer instance
+ * - Performs initial indexing of Angular elements
+ * - Sets up periodic reindexing if configured
+ * - Registers cleanup handlers with the extension context
+ * 
+ * @param projectRoots - Array of absolute paths to project root directories
+ * @param context - VS Code extension context for resource management
+ * 
+ * @example
+ * ```typescript
+ * const roots = ['/path/to/project1', '/path/to/project2'];
+ * await initializeProjects(roots, context);
+ * ```
  */
 async function initializeProjects(projectRoots: string[], context: vscode.ExtensionContext): Promise<void> {
   for (const projectRootPath of projectRoots) {
@@ -174,7 +267,21 @@ async function initializeProjects(projectRoots: string[], context: vscode.Extens
 }
 
 /**
- * Handles configuration changes.
+ * Handles runtime configuration changes for the extension.
+ * 
+ * Responds to changes in VS Code settings by:
+ * - Updating periodic reindexing intervals
+ * - Handling project path changes
+ * - Preserving existing indexer state when possible
+ * 
+ * @param newConfig - The updated extension configuration
+ * @param context - VS Code extension context for resource management
+ * 
+ * @example
+ * ```typescript
+ * // Called automatically when user changes settings
+ * await handleConfigurationChange(updatedConfig, context);
+ * ```
  */
 async function handleConfigurationChange(newConfig: ExtensionConfig, context: vscode.ExtensionContext): Promise<void> {
   console.log("Configuration changed, updating...");
@@ -216,7 +323,24 @@ async function handleConfigurationChange(newConfig: ExtensionConfig, context: vs
 }
 
 /**
- * Generates the initial index for a project.
+ * Generates the initial Angular element index for a specific project.
+ * 
+ * This function handles the first-time indexing of a project by:
+ * - Setting the project root path in the indexer
+ * - Attempting to load from workspace cache
+ * - Performing full scan if cache is unavailable or invalid
+ * - Initializing file system watchers for incremental updates
+ * - Logging index statistics and warnings
+ * 
+ * @param projectRootPath - Absolute path to the project root directory
+ * @param indexer - The Angular indexer instance for this project
+ * @param context - VS Code extension context for persistence operations
+ * 
+ * @example
+ * ```typescript
+ * const indexer = new AngularIndexer();
+ * await generateInitialIndexForProject('/path/to/project', indexer, context);
+ * ```
  */
 async function generateInitialIndexForProject(
   projectRootPath: string,
@@ -248,7 +372,25 @@ async function generateInitialIndexForProject(
 }
 
 /**
- * Generates the index for a project.
+ * Regenerates the complete Angular element index for a project.
+ * 
+ * This function performs a full reindexing operation, typically called:
+ * - During periodic refresh intervals
+ * - When significant project structure changes are detected
+ * - As a fallback when incremental updates fail
+ * 
+ * The function ensures cache keys are properly set and reinitializes
+ * file watchers if they become inactive.
+ * 
+ * @param projectRootPath - Absolute path to the project root directory
+ * @param indexer - The Angular indexer instance for this project
+ * @param context - VS Code extension context for persistence operations
+ * 
+ * @example
+ * ```typescript
+ * // Called periodically or on demand
+ * await generateIndexForProject('/path/to/project', existingIndexer, context);
+ * ```
  */
 async function generateIndexForProject(
   projectRootPath: string,
@@ -269,7 +411,24 @@ async function generateIndexForProject(
 }
 
 /**
- * Gets the project context for a document.
+ * Retrieves the project context for a given VS Code document.
+ * 
+ * This function determines which project a document belongs to and returns
+ * the associated indexer and TypeScript configuration. The lookup follows:
+ * 1. Direct workspace folder membership
+ * 2. Fallback to path-based matching against known project roots
+ * 
+ * @param document - The VS Code text document to find context for
+ * @returns Project context containing indexer and tsconfig, or undefined if not found
+ * 
+ * @example
+ * ```typescript
+ * const context = getProjectContextForDocument(document);
+ * if (context) {
+ *   const { projectRootPath, indexer, tsConfig } = context;
+ *   // Use indexer to find Angular elements
+ * }
+ * ```
  */
 export function getProjectContextForDocument(document: vscode.TextDocument): ProjectContext | undefined {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
@@ -299,7 +458,23 @@ export function getProjectContextForDocument(document: vscode.TextDocument): Pro
 }
 
 /**
- * Registers providers and commands.
+ * Registers all VS Code providers and commands for the extension.
+ * 
+ * This function sets up:
+ * - Language service providers (completion, diagnostics, quickfix)
+ * - Extension commands (reindex, manual import)
+ * - Provider and command contexts with shared state
+ * 
+ * The registration order ensures providers are available before commands
+ * that might depend on them.
+ * 
+ * @param context - VS Code extension context for provider/command registration
+ * 
+ * @example
+ * ```typescript
+ * // Called during extension activation
+ * await registerProvidersAndCommands(context);
+ * ```
  */
 async function registerProvidersAndCommands(context: vscode.ExtensionContext): Promise<void> {
   // Create provider context
