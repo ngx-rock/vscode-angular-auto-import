@@ -82,15 +82,15 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 
 | Module | Description |
 | ------ | ------ |
-| [commands](commands.md) | - |
+| [commands](commands.md) | VSCode Commands Registration |
 | [config](config.md) | Central export for configuration files. |
 | [config/angular-elements](config/angular-elements.md) | Configuration for standard Angular directives and pipes. |
 | [config/settings](config/settings.md) | Manages extension settings and configuration. |
 | [Main extension entry point for Angular Auto-Import](Main-extension-entry-point-for-Angular-Auto-Import.md) | VSCode Extension: Angular Auto-Import |
-| [providers](providers.md) | ================================================================================================= VSCode Providers Registration ================================================================================================= |
-| [providers/completion](providers/completion.md) | ================================================================================================= Angular Auto-Import Completion Provider ================================================================================================= |
-| [providers/diagnostics](providers/diagnostics.md) | - |
-| [providers/quickfix](providers/quickfix.md) | - |
+| [providers](providers.md) | VSCode Providers Registration |
+| [providers/completion](providers/completion.md) | Angular Auto-Import Completion Provider |
+| [providers/diagnostics](providers/diagnostics.md) | Angular Auto-Import Diagnostic Provider |
+| [providers/quickfix](providers/quickfix.md) | Angular Auto-Import QuickFix Provider |
 | [services](services.md) | Central export for all services. |
 | [services/indexer](services/indexer.md) | Angular Indexer Service Responsible for indexing Angular components, directives, and pipes. |
 | [services/tsconfig](services/tsconfig.md) | TypeScript Configuration Helper Service Responsible for handling tsconfig.json and resolving path aliases. |
@@ -99,7 +99,7 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 | [types/tsconfig](types/tsconfig.md) | Defines types related to TypeScript configuration and path mappings. |
 | [utils](utils.md) | Central export for all utility functions. |
 | [utils/angular](utils/angular.md) | Utilities for working with Angular elements and selectors. |
-| [utils/import](utils/import.md) | ================================================================================================= Angular Auto-Import Utility Functions ================================================================================================= |
+| [utils/import](utils/import.md) | Angular Auto-Import Utility Functions |
 | [utils/package-json](utils/package-json.md) | Utilities for working with `package.json` files. |
 | [utils/path](utils/path.md) | Utilities for working with file paths. |
-| [utils/template-detection](utils/template-detection.md) | ================================================================================================= Optimized Template String Detection Utility ================================================================================================= |
+| [utils/template-detection](utils/template-detection.md) | Optimized Template String Detection Utility |

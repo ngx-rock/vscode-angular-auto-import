@@ -1250,7 +1250,14 @@ export class AngularIndexer {
 
             if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
               const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
-              this._processModuleExports(exportsTuple, className, importPath, componentToModuleMap, allLibraryClasses, typeChecker);
+              this._processModuleExports(
+                exportsTuple,
+                className,
+                importPath,
+                componentToModuleMap,
+                allLibraryClasses,
+                typeChecker
+              );
             }
           }
         }

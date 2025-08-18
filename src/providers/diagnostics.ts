@@ -1,7 +1,8 @@
 /**
- * =================================================================================================
+ *
  * Angular Auto-Import Diagnostic Provider
- * =================================================================================================
+ *
+ * @module
  */
 
 import * as fs from "node:fs";
@@ -269,7 +270,10 @@ export class DiagnosticProvider {
         | InstanceType<CompilerModule["TmplAstBoundEvent"]>
         | InstanceType<CompilerModule["TmplAstReference"]>;
 
-      const extractPipesFromExpression = (expression: { sourceSpan?: { start: number; end: number } }, nodeOffset: number = 0) => {
+      const extractPipesFromExpression = (
+        expression: { sourceSpan?: { start: number; end: number } },
+        nodeOffset: number = 0
+      ) => {
         if (!expression || !expression.sourceSpan) {
           return;
         }

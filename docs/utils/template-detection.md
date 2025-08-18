@@ -6,9 +6,7 @@
 
 # utils/template-detection
 
-=================================================================================================
 Optimized Template String Detection Utility
-=================================================================================================
 
 This module provides fast, regex-based detection of whether a cursor position
 is inside an Angular component's template string, replacing the expensive
@@ -20,7 +18,7 @@ ts-morph AST parsing approach with efficient string operations.
 
 > **clearAllTemplateCache**(): `void`
 
-Defined in: [utils/template-detection.ts:252](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L252)
+Defined in: [utils/template-detection.ts:251](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L251)
 
 Clear all template cache (useful for cleanup).
 
@@ -34,7 +32,7 @@ Clear all template cache (useful for cleanup).
 
 > **clearTemplateCache**(`documentUri`): `void`
 
-Defined in: [utils/template-detection.ts:245](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L245)
+Defined in: [utils/template-detection.ts:244](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L244)
 
 Clear cache for a specific document (useful when document is closed).
 
@@ -54,7 +52,7 @@ Clear cache for a specific document (useful when document is closed).
 
 > **isInsideTemplateString**(`document`, `position`): `boolean`
 
-Defined in: [utils/template-detection.ts:50](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L50)
+Defined in: [utils/template-detection.ts:49](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L49)
 
 Optimized function to check if a position is inside an Angular template string.
 Uses regex-based parsing instead of ts-morph for significant performance improvement.

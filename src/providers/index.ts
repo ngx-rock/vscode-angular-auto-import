@@ -1,7 +1,7 @@
 /**
- * =================================================================================================
+ *
  * VSCode Providers Registration
- * =================================================================================================
+ *
  * @module
  */
 
@@ -9,7 +9,7 @@ import * as vscode from "vscode";
 import type { ExtensionConfig } from "../config";
 import type { AngularIndexer } from "../services";
 import type { ProcessedTsConfig } from "../types";
-import { setGlobalDiagnosticProvider } from "../utils/import";
+import { setGlobalDiagnosticProvider } from "../utils";
 import { CompletionProvider } from "./completion";
 import { DiagnosticProvider } from "./diagnostics";
 import { QuickfixImportProvider } from "./quickfix";

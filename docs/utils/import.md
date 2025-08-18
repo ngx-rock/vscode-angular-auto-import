@@ -6,9 +6,7 @@
 
 # utils/import
 
-=================================================================================================
 Angular Auto-Import Utility Functions
-=================================================================================================
 
 This module handles the core import functionality for Angular elements.
 
@@ -36,7 +34,7 @@ Key Bug Fixes:
 
 > **importElementToFile**(`element`, `componentFilePathAbs`, `projectRootPath`, `indexerProject`, `_tsConfig`): `Promise`\<`boolean`\>
 
-Defined in: [utils/import.ts:81](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/import.ts#L81)
+Defined in: [utils/import.ts:80](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/import.ts#L80)
 
 Imports an Angular element into a component file. This function handles adding the import statement
 and updating the `@Component` decorator's `imports` array.
@@ -63,7 +61,7 @@ A promise that resolves to `true` if the import was successful, `false` otherwis
 
 > **setGlobalDiagnosticProvider**(`provider`): `void`
 
-Defined in: [utils/import.ts:54](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/import.ts#L54)
+Defined in: [utils/import.ts:53](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/import.ts#L53)
 
 Sets the global diagnostic provider instance.
 

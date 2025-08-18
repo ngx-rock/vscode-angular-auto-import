@@ -1,7 +1,6 @@
 /**
- * =================================================================================================
+ *
  * Optimized Template String Detection Utility
- * =================================================================================================
  *
  * This module provides fast, regex-based detection of whether a cursor position
  * is inside an Angular component's template string, replacing the expensive

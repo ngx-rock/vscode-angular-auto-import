@@ -96,7 +96,7 @@ An array of identifier names.
 
 > `private` **\_indexDeclarationsInFile**(`sourceFile`, `importPath`, `componentToModuleMap`): `Promise`\<`void`\>
 
-Defined in: [services/indexer.ts:1345](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1345)
+Defined in: [services/indexer.ts:1352](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1352)
 
 **`Internal`**
 
@@ -138,7 +138,7 @@ Indexes a library from its entry points.
 
 > `private` **\_processModuleExports**(`exportsTuple`, `moduleName`, `importPath`, `componentToModuleMap`, `allLibraryClasses`, `typeChecker`): `void`
 
-Defined in: [services/indexer.ts:1273](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1273)
+Defined in: [services/indexer.ts:1280](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1280)
 
 **`Internal`**
 
@@ -201,7 +201,7 @@ Clears the index from memory and the workspace state.
 
 > **dispose**(): `void`
 
-Defined in: [services/indexer.ts:1601](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1601)
+Defined in: [services/indexer.ts:1608](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1608)
 
 Disposes the file watcher and clears the caches.
 
@@ -360,7 +360,7 @@ The hash of the string.
 
 > **getAllSelectors**(): `string`[]
 
-Defined in: [services/indexer.ts:1516](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1516)
+Defined in: [services/indexer.ts:1523](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1523)
 
 Gets all indexed selectors.
 
@@ -374,7 +374,7 @@ An array of selectors.
 
 > `private` **getAngularFilesFallback**(`basePath`): `string`[]
 
-Defined in: [services/indexer.ts:1560](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1560)
+Defined in: [services/indexer.ts:1567](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1567)
 
 **`Internal`**
 
@@ -396,7 +396,7 @@ An array of file paths.
 
 > `private` **getAngularFilesUsingVsCode**(): `Promise`\<`string`[]\>
 
-Defined in: [services/indexer.ts:1534](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1534)
+Defined in: [services/indexer.ts:1541](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1541)
 
 **`Internal`**
 
@@ -589,7 +589,7 @@ Saves the index to the workspace state.
 
 > **searchWithSelectors**(`prefix`): `object`[]
 
-Defined in: [services/indexer.ts:1525](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1525)
+Defined in: [services/indexer.ts:1532](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/indexer.ts#L1532)
 
 Searches for selectors with a given prefix.
 

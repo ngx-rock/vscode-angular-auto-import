@@ -259,13 +259,13 @@ async function getBestMatchUsingAngularMatcher(
       // Create a SelectorMatcher for this candidate
       const matcher = new SelectorMatcher();
       const individualSelectors = CssSelector.parse(candidate.originalSelector);
-      
+
       // Add each individual selector to the matcher
       // This is crucial for complex selectors like "a[tuiButton],button[tuiButton]"
       matcher.addSelectables(individualSelectors);
 
       const matchedSelectors: string[] = [];
-      
+
       // Check if the template selector matches any of the candidate's selectors
       matcher.match(templateCssSelector, (matchedSelector) => {
         matchedSelectors.push(matchedSelector.toString());
