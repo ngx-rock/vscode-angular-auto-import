@@ -34,9 +34,6 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "workspaceContains:**/*.component.ts",
-    "workspaceContains:**/*.directive.ts",
-    "workspaceContains:**/*.pipe.ts",
     "onLanguage:html"
   ],
   "main": "./dist/extension.js",

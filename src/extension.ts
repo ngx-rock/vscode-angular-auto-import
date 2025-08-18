@@ -1,7 +1,6 @@
 /**
- * =================================================================================================
+ *
  * VSCode Extension: Angular Auto-Import
- * =================================================================================================
  *
  * A modularly designed extension for automatically importing Angular elements.
  * 
@@ -28,11 +27,7 @@ import * as TsConfigHelper from "./services/tsconfig";
 import type { ProcessedTsConfig, ProjectContext } from "./types";
 import { clearAllTemplateCache, clearTemplateCache } from "./utils/template-detection";
 
-// ===========================================================================================
-// Global State Management
-// ===========================================================================================
-
-/** 
+ /**
  * Map of project root paths to their corresponding Angular indexer instances.
  * Each indexer handles the parsing and caching of Angular elements for a specific project.
  */
@@ -115,7 +110,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("❌ Error activating Angular Auto-Import extension:", err);
-    vscode.window.showErrorMessage(`❌ Failed to activate Angular Auto-Import: ${err.message}`);
+    vscode.window.showErrorMessage(`❌ Failed to activate Angular-Auto-Import: ${err.message}`);
+  }
+}
+
+/**
+ * Checks if a directory is an Angular project by looking for `@angular/core` in `package.json`.
+ * @param projectRoot - The absolute path to the project root.
+ * @returns A promise that resolves to `true` if it's an Angular project, `false` otherwise.
+ */
+async function isAngularProject(projectRoot: string): Promise<boolean> {
+  const packageJsonPath = path.join(projectRoot, "package.json");
+  try {
+    if (!fs.existsSync(packageJsonPath)) {
+      return false;
+    }
+    const packageJsonContent = await fs.promises.readFile(packageJsonPath, "utf8");
+    const packageJson = JSON.parse(packageJsonContent);
+    const dependencies = packageJson.dependencies || {};
+    const devDependencies = packageJson.devDependencies || {};
+    return !!dependencies["@angular/core"] || !!devDependencies["@angular/core"];
+  } catch (error) {
+    console.error(`Error checking for Angular project in ${projectRoot}:`, error);
+    return false;
   }
 }
 
@@ -218,6 +235,11 @@ async function determineProjectRoots(): Promise<string[]> {
  */
 async function initializeProjects(projectRoots: string[], context: vscode.ExtensionContext): Promise<void> {
   for (const projectRootPath of projectRoots) {
+    if (!(await isAngularProject(projectRootPath))) {
+      console.log(`Skipping non-Angular project: ${projectRootPath}`);
+      continue;
+    }
+
     console.log(`📁 Initializing project: ${projectRootPath}`);
 
     try {
