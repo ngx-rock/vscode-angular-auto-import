@@ -4,6 +4,12 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.8.0] - 2025-08-18
+
+### Changed
+
+- Removed file naming convention restrictions - all TypeScript files are now indexed regardless of suffix
+
 ## [1.7.0] - 2025-08-13
  
 ### Improved

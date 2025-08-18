@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"
@@ -116,10 +116,7 @@
     "vsce:package": "vsce package --no-dependencies",
     "vsce:publish": "vsce publish --no-dependencies",
     "release": "pnpm run vsce:package && pnpm run vsce:publish",
-    "docs:build": "rm -rf docs && typedoc",
-    "docs:serve": "cd docs && python3 -m http.server 8082",
-    "docs:clean": "rm -rf docs",
-    "docs:watch": "typedoc --watch"
+    "docs:build": "rm -rf docs && typedoc"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
