@@ -2,6 +2,7 @@
  * =================================================================================================
  * VSCode Providers Registration
  * =================================================================================================
+ * @module
  */
 
 import * as vscode from "vscode";
@@ -17,14 +18,28 @@ import { QuickfixImportProvider } from "./quickfix";
  * Context for the providers.
  */
 export interface ProviderContext {
+  /**
+   * A map of project root paths to their corresponding `AngularIndexer` instances.
+   */
   projectIndexers: Map<string, AngularIndexer>;
+  /**
+   * A map of project root paths to their corresponding processed `tsconfig.json` files.
+   */
   projectTsConfigs: Map<string, ProcessedTsConfig | null>;
+  /**
+   * The current extension configuration.
+   */
   extensionConfig: ExtensionConfig;
+  /**
+   * The extension context.
+   */
   extensionContext: vscode.ExtensionContext;
 }
 
 /**
- * Registers all VSCode providers.
+ * Registers all VSCode providers for the extension.
+ * @param context The extension context.
+ * @param providerContext The context to be shared among providers.
  */
 export function registerProviders(context: vscode.ExtensionContext, providerContext: ProviderContext): void {
   console.log("🔌 Registering VSCode providers...");

@@ -6,18 +6,33 @@
  * This module provides fast, regex-based detection of whether a cursor position
  * is inside an Angular component's template string, replacing the expensive
  * ts-morph AST parsing approach with efficient string operations.
+ *
+ * @module
  */
 
 import type * as vscode from "vscode";
 
+/**
+ * Represents a range of a template string.
+ * @internal
+ */
 interface TemplateStringRange {
+  /** The start offset of the template string. */
   start: number;
+  /** The end offset of the template string. */
   end: number;
-  quote: string; // The quote character used: ', ", or `
+  /** The quote character used: ', ", or ` */
+  quote: string;
 }
 
+/**
+ * Represents a cache entry for template string ranges.
+ * @internal
+ */
 interface CacheEntry {
+  /** The version of the document. */
   version: number;
+  /** The cached template string ranges. */
   templateRanges: TemplateStringRange[];
 }
 
@@ -27,6 +42,10 @@ const templateCache = new Map<string, CacheEntry>();
 /**
  * Optimized function to check if a position is inside an Angular template string.
  * Uses regex-based parsing instead of ts-morph for significant performance improvement.
+ *
+ * @param document The VS Code text document.
+ * @param position The position to check.
+ * @returns `true` if the position is inside a template string, `false` otherwise.
  */
 export function isInsideTemplateString(document: vscode.TextDocument, position: vscode.Position): boolean {
   const offset = document.offsetAt(position);
@@ -38,6 +57,10 @@ export function isInsideTemplateString(document: vscode.TextDocument, position: 
 /**
  * Extract all template string ranges from an Angular component file.
  * Uses caching to avoid re-parsing the same document version.
+ *
+ * @param document The VS Code text document.
+ * @returns An array of template string ranges.
+ * @internal
  */
 function getTemplateStringRanges(document: vscode.TextDocument): TemplateStringRange[] {
   const cacheKey = document.uri.toString();
@@ -64,6 +87,10 @@ function getTemplateStringRanges(document: vscode.TextDocument): TemplateStringR
 /**
  * Parse template string ranges from TypeScript source code.
  * Handles @Component decorators with template properties.
+ *
+ * @param text The source code to parse.
+ * @returns An array of template string ranges.
+ * @internal
  */
 function parseTemplateStringRanges(text: string): TemplateStringRange[] {
   const ranges: TemplateStringRange[] = [];
@@ -93,6 +120,11 @@ function parseTemplateStringRanges(text: string): TemplateStringRange[] {
 
 /**
  * Find template property ranges within a @Component decorator.
+ *
+ * @param decoratorContent The content of the decorator.
+ * @param offset The offset of the decorator content in the original text.
+ * @returns An array of template string ranges.
+ * @internal
  */
 function findTemplatePropertyRanges(decoratorContent: string, offset: number): TemplateStringRange[] {
   const ranges: TemplateStringRange[] = [];
@@ -124,6 +156,11 @@ function findTemplatePropertyRanges(decoratorContent: string, offset: number): T
 
 /**
  * Find the matching closing brace for an opening brace.
+ *
+ * @param text The text to search in.
+ * @param openBracePos The position of the opening brace.
+ * @returns The position of the matching closing brace, or -1 if not found.
+ * @internal
  */
 function findMatchingBrace(text: string, openBracePos: number): number {
   let braceCount = 1;
@@ -169,6 +206,12 @@ function findMatchingBrace(text: string, openBracePos: number): number {
 
 /**
  * Find the matching closing quote for an opening quote.
+ *
+ * @param text The text to search in.
+ * @param openQuotePos The position of the opening quote.
+ * @param quoteChar The character of the quote to match.
+ * @returns The position of the matching closing quote, or -1 if not found.
+ * @internal
  */
 function findMatchingQuote(text: string, openQuotePos: number, quoteChar: string): number {
   let escaped = false;
@@ -196,6 +239,8 @@ function findMatchingQuote(text: string, openQuotePos: number, quoteChar: string
 
 /**
  * Clear cache for a specific document (useful when document is closed).
+ *
+ * @param documentUri The URI of the document to clear from the cache.
  */
 export function clearTemplateCache(documentUri: string): void {
   templateCache.delete(documentUri);

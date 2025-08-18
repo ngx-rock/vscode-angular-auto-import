@@ -1,17 +1,25 @@
 /**
- * Утилиты для работы с путями файлов
+ * Utilities for working with file paths.
+ * @module
  */
 import * as path from "node:path";
 
 /**
- * Нормализует путь, заменяя обратные слэши на прямые.
+ * Normalizes a path by replacing backslashes with forward slashes.
+ *
+ * @param p The path to normalize.
+ * @returns The normalized path.
  */
 export function normalizePath(p: string): string {
   return p.replace(/\\/g, "/");
 }
 
 /**
- * Заменяет или удаляет расширение файла.
+ * Replaces or removes the extension of a file path.
+ *
+ * @param filePath The original file path.
+ * @param newExtensionWithDotOrEmpty The new extension (e.g., '.ts') or an empty string to remove the extension.
+ * @returns The modified file path.
  */
 export function switchFileType(filePath: string, newExtensionWithDotOrEmpty: string): string {
   const dir = path.dirname(filePath);
@@ -29,7 +37,11 @@ export function switchFileType(filePath: string, newExtensionWithDotOrEmpty: str
 }
 
 /**
- * Вычисляет относительный путь от одного файла до другого.
+ * Calculates the relative path from one file to another.
+ *
+ * @param fromFileAbs The absolute path of the source file.
+ * @param toFileAbsNoExt The absolute path of the target file, without the extension.
+ * @returns The relative path.
  */
 export function getRelativeFilePath(fromFileAbs: string, toFileAbsNoExt: string): string {
   const relative = path.relative(path.dirname(fromFileAbs), toFileAbsNoExt);

@@ -1,5 +1,6 @@
 /**
- * Центральный экспорт всех утилит
+ * Central export for all utility functions.
+ * @module
  */
 
 export * from "./angular";

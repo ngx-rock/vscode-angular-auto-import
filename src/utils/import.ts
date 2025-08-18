@@ -22,6 +22,8 @@
  *
  * 4. **Active Document Priority**: All operations now prioritize active VSCode documents
  *    over disk content, ensuring that unsaved changes are properly handled.
+ *
+ * @module
  */
 
 import * as fs from "node:fs";
@@ -40,12 +42,14 @@ import type { AngularElementData, ProcessedTsConfig } from "../types";
 import { switchFileType } from "./path";
 
 /**
- * Global reference to diagnostic provider for updating diagnostics
+ * Global reference to diagnostic provider for updating diagnostics.
+ * @internal
  */
 let globalDiagnosticProvider: import("../providers/diagnostics").DiagnosticProvider | null = null;
 
 /**
- * Sets the global diagnostic provider
+ * Sets the global diagnostic provider instance.
+ * @param provider The diagnostic provider instance.
  */
 export function setGlobalDiagnosticProvider(
   provider: import("../providers/diagnostics").DiagnosticProvider | null
@@ -54,14 +58,25 @@ export function setGlobalDiagnosticProvider(
 }
 
 /**
- * Gets the active VSCode document for a given file path
+ * Gets the active VSCode document for a given file path.
+ * @param filePath The absolute path to the file.
+ * @returns The active `vscode.TextDocument` or `undefined` if not found.
+ * @internal
  */
 function getActiveDocument(filePath: string): vscode.TextDocument | undefined {
   return vscode.workspace.textDocuments.find((doc) => doc.uri.fsPath === filePath);
 }
 
 /**
- * Импортирует Angular элемент в файл компонента
+ * Imports an Angular element into a component file. This function handles adding the import statement
+ * and updating the `@Component` decorator's `imports` array.
+ *
+ * @param element The Angular element to import.
+ * @param componentFilePathAbs The absolute path to the component file.
+ * @param projectRootPath The root path of the project.
+ * @param indexerProject The ts-morph project instance.
+ * @param _tsConfig The processed tsconfig.json.
+ * @returns A promise that resolves to `true` if the import was successful, `false` otherwise.
  */
 export async function importElementToFile(
   element: AngularElementData,
@@ -253,7 +268,12 @@ export async function importElementToFile(
 }
 
 /**
- * Добавляет элемент в массив imports декоратора @Component
+ * Adds an import to the `imports` array of a `@Component` decorator.
+ *
+ * @param importName The name of the module or component to add.
+ * @param sourceFile The ts-morph `SourceFile` to modify.
+ * @returns `true` if the file was modified, `false` otherwise.
+ * @internal
  */
 function addImportToAnnotationTsMorph(importName: string, sourceFile: SourceFile): boolean {
   let modified = false;

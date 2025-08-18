@@ -1,19 +1,22 @@
 /**
- * TypeScript конфигурация и типы путей
+ * Defines types related to TypeScript configuration and path mappings.
+ * @module
  */
 
 /**
- * Типы для работы с TypeScript конфигурацией
- */
-
-/**
- * Обработанная конфигурация TypeScript с разрешенными путями
+ * Represents a processed TypeScript configuration with resolved paths.
  */
 export interface ProcessedTsConfig {
-  /** Абсолютный базовый URL для разрешения модулей */
+  /**
+   * The absolute base URL for module resolution.
+   */
   absoluteBaseUrl: string;
-  /** Алиасы путей из tsconfig.json */
+  /**
+   * Path aliases from the tsconfig.json file.
+   */
   paths: Record<string, string[]>;
-  /** Путь к исходному файлу tsconfig.json */
+  /**
+   * The path to the source tsconfig.json file.
+   */
   sourceFilePath: string;
 }
