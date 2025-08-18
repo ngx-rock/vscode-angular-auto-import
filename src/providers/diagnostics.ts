@@ -108,8 +108,18 @@ export class DiagnosticProvider {
    */
   private async updateRelatedHtmlDiagnostics(tsDocument: vscode.TextDocument): Promise<void> {
     try {
-      // Check if the file is an Angular component
-      if (!tsDocument.fileName.includes(".component.ts")) {
+      const projCtx = this.getProjectContextForDocument(tsDocument);
+      if (!projCtx) {
+        return;
+      }
+
+      const sourceFile = projCtx.indexer.project.getSourceFile(tsDocument.fileName);
+      if (!sourceFile) {
+        return;
+      }
+
+      const isComponent = sourceFile.getClasses().some((c) => c.getDecorator("Component"));
+      if (!isComponent) {
         return;
       }
 

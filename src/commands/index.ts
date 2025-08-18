@@ -14,16 +14,45 @@ import type { AngularElementData, ProcessedTsConfig } from "../types";
 import { importElementToFile, switchFileType } from "../utils";
 
 /**
- * Context for the commands.
+ * Context object containing shared state and dependencies for extension commands.
+ * 
+ * @interface CommandContext
+ * @example
+ * ```typescript
+ * const commandContext: CommandContext = {
+ *   projectIndexers: new Map(),
+ *   projectTsConfigs: new Map(),
+ *   extensionConfig: getConfiguration()
+ * };
+ * ```
  */
 export interface CommandContext {
+  /** Map of project root paths to their corresponding Angular indexers */
   projectIndexers: Map<string, AngularIndexer>;
+  /** Map of project root paths to their parsed TypeScript configurations */
   projectTsConfigs: Map<string, ProcessedTsConfig | null>;
+  /** Current extension configuration settings */
   extensionConfig: ExtensionConfig;
 }
 
 /**
- * Registers all extension commands.
+ * Registers all extension commands with the VS Code command registry.
+ * 
+ * This function sets up the following commands:
+ * - `angular-auto-import.reindex`: Re-indexes Angular elements for the current or all projects
+ * - `angular-auto-import.importElement`: Imports a specific Angular element into the current file
+ * - `angular-auto-import.clearCache`: Clears the cached index data for all projects
+ * 
+ * @param context - The VS Code extension context for managing disposables
+ * @param commandContext - Shared state and dependencies for commands
+ * 
+ * @example
+ * ```typescript
+ * export function activate(context: vscode.ExtensionContext) {
+ *   const commandContext = createCommandContext();
+ *   registerCommands(context, commandContext);
+ * }
+ * ```
  */
 export function registerCommands(context: vscode.ExtensionContext, commandContext: CommandContext): void {
   // Re-index command
@@ -114,7 +143,23 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
 }
 
 /**
- * Generates the index for a project.
+ * Generates or regenerates the Angular element index for a specific project.
+ * 
+ * This function performs a full index generation, including:
+ * - Setting up cache keys if not already configured
+ * - Scanning for Angular components, directives, and pipes
+ * - Initializing file watchers for incremental updates
+ * 
+ * @param projectRootPath - Absolute path to the project root directory
+ * @param indexer - The Angular indexer instance for this project
+ * @param context - VS Code extension context for cache management
+ * 
+ * @throws Will log warnings if cache keys are not properly configured
+ * 
+ * @example
+ * ```typescript
+ * await generateIndexForProject('/path/to/project', indexer, context);
+ * ```
  */
 async function generateIndexForProject(
   projectRootPath: string,
@@ -135,7 +180,28 @@ async function generateIndexForProject(
 }
 
 /**
- * Gets the project context for a document.
+ * Resolves the project context (indexer, root path, and TypeScript config) for a given document.
+ * 
+ * This function attempts to find the appropriate project context by:
+ * 1. First checking if the document belongs to a workspace folder
+ * 2. If not found, searching through known project roots for a match
+ * 3. Returns undefined if no matching project context is found
+ * 
+ * @param document - The VS Code text document to resolve context for
+ * @param commandContext - Shared command context containing project mappings
+ * 
+ * @returns Project context object with indexer, root path, and TypeScript config, or undefined if not found
+ * 
+ * @example
+ * ```typescript
+ * const activeEditor = vscode.window.activeTextEditor;
+ * if (activeEditor) {
+ *   const projectContext = getProjectContextForDocument(activeEditor.document, commandContext);
+ *   if (projectContext) {
+ *     // Use projectContext.indexer, projectContext.projectRootPath, etc.
+ *   }
+ * }
+ * ```
  */
 function getProjectContextForDocument(
   document: vscode.TextDocument,
@@ -174,7 +240,34 @@ function getProjectContextForDocument(
 }
 
 /**
- * Logic for the import element command.
+ * Executes the core logic for importing an Angular element into the current file.
+ * 
+ * This function handles the complete import workflow:
+ * 1. Validates that the element exists in the index
+ * 2. Determines the target TypeScript file (switches from .html to .ts if needed)
+ * 3. Verifies the target file exists
+ * 4. Performs the actual import operation using ts-morph
+ * 5. Shows appropriate user feedback
+ * 
+ * @param elementData - The Angular element data to import (component, directive, or pipe)
+ * @param projectRootPath - Absolute path to the project root
+ * @param tsConfig - Parsed TypeScript configuration for path resolution
+ * @param indexer - Angular indexer containing the ts-morph project instance
+ * 
+ * @returns Promise that resolves to true if import was successful, false otherwise
+ * 
+ * @example
+ * ```typescript
+ * const success = await importElementCommandLogic(
+ *   elementData,
+ *   '/path/to/project',
+ *   tsConfig,
+ *   indexer
+ * );
+ * if (success) {
+ *   console.log('Import completed successfully');
+ * }
+ * ```
  */
 async function importElementCommandLogic(
   elementData: AngularElementData | undefined,

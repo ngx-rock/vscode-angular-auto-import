@@ -269,11 +269,7 @@ export class AngularIndexer {
       return;
     }
 
-    // Updated pattern to support uppercase letters in filenames
-    const pattern = new vscode.RelativePattern(
-      this.projectRootPath,
-      "**/*{[Cc]omponent,[Dd]irective,[Pp]ipe,[Mm]odule}.ts"
-    );
+    const pattern = new vscode.RelativePattern(this.projectRootPath, "**/*.ts");
     this.fileWatcher = vscode.workspace.createFileSystemWatcher(pattern);
 
     this.fileWatcher.onDidCreate(async (uri) => {
@@ -520,19 +516,14 @@ export class AngularIndexer {
     const selectorRegex = /selector:\s*['"]([^'"]*)['"]/;
     const pipeNameRegex = /name:\s*['"]([^'"]*)['"]/;
     const classNameRegex = /export\s+class\s+(\w+)/;
-    const fileName = path.basename(filePath);
-    let elementType: "component" | "directive" | "pipe";
+    const decoratorRegex = /@(Component|Directive|Pipe)\s*\(/;
 
-    // Support both lowercase and uppercase patterns
-    if (fileName.includes(".component.") || fileName.includes(".Component.")) {
-      elementType = "component";
-    } else if (fileName.includes(".directive.") || fileName.includes(".Directive.")) {
-      elementType = "directive";
-    } else if (fileName.includes(".pipe.") || fileName.includes(".Pipe.")) {
-      elementType = "pipe";
-    } else {
+    const decoratorMatch = decoratorRegex.exec(content);
+    if (!decoratorMatch) {
       return null;
     }
+
+    const decoratorType = decoratorMatch[1].toLowerCase() as "component" | "directive" | "pipe";
 
     const classNameMatch = classNameRegex.exec(content);
     if (!classNameMatch?.[1]) {
@@ -540,7 +531,7 @@ export class AngularIndexer {
     }
 
     let selector: string | undefined;
-    if (elementType === "pipe") {
+    if (decoratorType === "pipe") {
       selector = pipeNameRegex.exec(content)?.[1];
     } else {
       selector = selectorRegex.exec(content)?.[1];
@@ -553,7 +544,7 @@ export class AngularIndexer {
         selector,
         lastModified: fs.statSync(filePath).mtime.getTime(),
         hash: this.generateHash(content),
-        type: elementType,
+        type: decoratorType,
         isStandalone: false, // Fallback parser cannot determine this, default to false.
       };
     }
@@ -1361,8 +1352,7 @@ export class AngularIndexer {
 
   private async getAngularFilesUsingVsCode(): Promise<string[]> {
     try {
-      // Updated patterns to support uppercase letters in filenames
-      const patterns = ["**/*[Cc]omponent.ts", "**/*[Dd]irective.ts", "**/*[Pp]ipe.ts"];
+      const patterns = ["**/*.ts"];
       const allFiles: string[] = [];
       for (const pattern of patterns) {
         const files = await vscode.workspace.findFiles(
@@ -1404,7 +1394,7 @@ export class AngularIndexer {
             if (!excludedDirs.has(entry.name)) {
               traverseDirectory(fullPath);
             }
-          } else if (entry.isFile() && /\.([Cc]omponent|[Dd]irective|[Pp]ipe|[Mm]odule)\.ts$/.test(entry.name)) {
+          } else if (entry.isFile() && /\.ts$/.test(entry.name)) {
             angularFiles.push(path.relative(basePath, fullPath));
           }
         }

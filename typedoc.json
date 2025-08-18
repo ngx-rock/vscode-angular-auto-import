@@ -5,6 +5,7 @@
   "out": "docs",
   "name": "Angular Auto Import Extension",
   "readme": "README.md",
+  "plugin": ["typedoc-plugin-markdown"],
   "exclude": [
     "**/node_modules/**",
     "**/out/**",
@@ -18,18 +19,11 @@
   "excludeInternal": false,
   "excludeNotDocumented": false,
   "includeVersion": true,
-  "theme": "default",
   "sourceLinkTemplate": "https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/{path}#L{line}",
   "gitRevision": "main",
   "gitRemote": "origin",
   "disableSources": false,
   "categorizeByGroup": false,
-  "navigation": {
-    "includeCategories": true,
-    "includeGroups": true,
-    "includeFolders": true,
-    "compactFolders": false
-  },
   "validation": {
     "invalidLink": true,
     "notExported": true
@@ -44,8 +38,18 @@
       "Selection": "#"
     }
   },
-  "lightHighlightTheme": "light-plus",
-  "darkHighlightTheme": "dark-plus",
-  "highlightLanguages": ["typescript", "javascript", "json", "html", "css"],
-  "typePrintWidth": 80
+  "fileExtension": ".md",
+  "hidePageHeader": false,
+  "hideBreadcrumbs": false,
+  "hidePageTitle": false,
+  "mergeReadme": true,
+  "indexFormat": "table",
+  "parametersFormat": "table",
+  "propertiesFormat": "table",
+  "typeDeclarationFormat": "table",
+  "outputFileStrategy": "modules",
+  "textContentMappings": {
+    "header.title": "Angular Auto Import Extension API Documentation",
+    "header.docs": "Generated documentation for the Angular Auto Import VS Code extension"
+  }
 } 

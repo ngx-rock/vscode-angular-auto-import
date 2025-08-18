@@ -66,7 +66,7 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 
 **File Naming Convention**: The extension only detects and indexes Angular components, directives, and pipes whose filenames include a specific suffix (`.component.ts`, `.directive.ts`, `.pipe.ts`). Files that do not follow this convention will be ignored during indexing.
 
-**Testing Scope**: The extension has been tested primarily with projects using standalone modules. While it may work with traditional NgModule-based projects, full compatibility and performance optimization are not guaranteed for non-standalone architectures.
+**Standalone Projects Only**: This extension is designed to work exclusively with standalone Angular projects. Traditional NgModule-based projects are not supported.
 
 --- 
 
