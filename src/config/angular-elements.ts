@@ -1,7 +1,12 @@
 /**
  * Configuration for standard Angular directives and pipes.
+ * @module
  */
 
+/**
+ * A map of standard Angular directives and pipes, keyed by their selectors.
+ * This is used to provide auto-import suggestions for built-in Angular elements.
+ */
 export const STANDARD_ANGULAR_ELEMENTS: {
   [selector: string]: {
     name: string;

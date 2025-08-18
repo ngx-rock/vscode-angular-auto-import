@@ -1,5 +1,6 @@
 /**
- * Utilities for working with Angular elements and selectors
+ * Utilities for working with Angular elements and selectors.
+ * @module
  */
 
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
@@ -8,7 +9,15 @@ import { AngularElementData } from "../types";
 
 /**
  * Parses a complex Angular selector and returns an array of individual selectors.
- * Uses CssSelector.parse from @angular/compiler for reliable parsing.
+ * This function uses the Angular compiler's `CssSelector.parse` for reliable parsing.
+ *
+ * @param selectorString The complex selector string to parse.
+ * @returns A promise that resolves to an array of individual selectors.
+ * @example
+ * ```typescript
+ * const selectors = await parseAngularSelector('my-component[some-attribute], .another-class');
+ * console.log(selectors); // ['my-component[some-attribute]', '.another-class']
+ * ```
  */
 export async function parseAngularSelector(selectorString: string): Promise<string[]> {
   if (!selectorString) {
@@ -21,6 +30,12 @@ export async function parseAngularSelector(selectorString: string): Promise<stri
   return parseAngularSelectorSync(selectorString);
 }
 
+/**
+ * Synchronous part of the selector parsing logic.
+ * @param selectorString The selector string to parse.
+ * @returns A promise that resolves to an array of selectors.
+ * @internal
+ */
 async function parseAngularSelectorSync(selectorString: string): Promise<string[]> {
   // Using dynamic import() which works better with ES modules
   const compiler = await import("@angular/compiler");
@@ -42,6 +57,7 @@ async function parseAngularSelectorSync(selectorString: string): Promise<string[
 
 /**
  * Defines an interface for the CssSelector object for type safety.
+ * @internal
  */
 interface CssSelectorForParsing {
   element: string | null;
@@ -53,6 +69,9 @@ interface CssSelectorForParsing {
 
 /**
  * Recursively processes a CssSelector and its notSelectors.
+ * @param cssSelector The CSS selector to process.
+ * @param collection The array to store the processed selectors.
+ * @internal
  */
 function processCssSelector(cssSelector: CssSelectorForParsing, collection: string[]): void {
   // Add the full original selector
@@ -89,7 +108,11 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
 }
 
 /**
- * Gets Angular elements by selector
+ * Retrieves Angular elements that match a given selector.
+ *
+ * @param selector The selector to search for.
+ * @param indexer An instance of the AngularIndexer to search for elements.
+ * @returns An array of `AngularElementData` that match the selector.
  */
 export function getAngularElements(selector: string, indexer: AngularIndexer): AngularElementData[] {
   if (!selector || typeof selector !== "string") {
@@ -173,27 +196,12 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
 }
 
 /**
- * Gets Angular element by selector (compatibility with existing code)
+ * Asynchronously gets the best matching Angular element for a given selector.
+ * This function uses the Angular `SelectorMatcher` for precise matching.
  *
- * Uses Angular SelectorMatcher for precise selector matching.
- */
-// export function getAngularElement(selector: string, indexer: AngularIndexer): AngularElementData | undefined {
-//   const elements = getAngularElements(selector, indexer);
-
-//   if (elements.length === 0) {
-//     return undefined;
-//   }
-
-//   if (elements.length === 1) {
-//     return elements[0];
-//   }
-
-//   // Return the first element for synchronous compatibility
-//   return elements[0];
-// }
-
-/**
- * Asynchronous version to get the best match using Angular SelectorMatcher
+ * @param selector The selector to find the best match for.
+ * @param indexer An instance of the AngularIndexer to search for elements.
+ * @returns A promise that resolves to the best matching `AngularElementData` or `undefined` if no match is found.
  */
 export async function getAngularElementAsync(
   selector: string,
@@ -214,8 +222,12 @@ export async function getAngularElementAsync(
 }
 
 /**
- * Uses Angular SelectorMatcher to select the most appropriate element
- * Based on the logic from DiagnosticProvider.checkElement for proper selector matching
+ * Uses the Angular SelectorMatcher to select the most appropriate element from a list of candidates.
+ *
+ * @param selector The selector to match against.
+ * @param candidates A list of candidate `AngularElementData` to choose from.
+ * @returns A promise that resolves to the best matching `AngularElementData` or `undefined`.
+ * @internal
  */
 async function getBestMatchUsingAngularMatcher(
   selector: string,
@@ -309,7 +321,10 @@ async function getBestMatchUsingAngularMatcher(
 }
 
 /**
- * Checks if a file is an Angular file
+ * Checks if a file path corresponds to an Angular file type (component, directive, or pipe).
+ *
+ * @param filePath The path of the file to check.
+ * @returns `true` if the file is an Angular file, `false` otherwise.
  */
 export function isAngularFile(filePath: string): boolean {
   if (!filePath || typeof filePath !== "string") {
@@ -320,14 +335,22 @@ export function isAngularFile(filePath: string): boolean {
 }
 
 /**
- * Generates an import statement
+ * Generates an import statement for a given symbol and path.
+ *
+ * @param name The name of the symbol to import (e.g., 'MyComponent').
+ * @param path The path to import from (e.g., './my-component').
+ * @returns The generated import statement.
  */
 export function generateImportStatement(name: string, path: string): string {
   return `import { ${name} } from '${path}';`;
 }
 
 /**
- * Resolves the relative path between files
+ * Resolves the relative path from one file to another.
+ *
+ * @param from The absolute path of the file to import from.
+ * @param to The absolute path of the file to import to.
+ * @returns The relative path from `from` to `to`.
  */
 export function resolveRelativePath(from: string, to: string): string {
   if (!from || !to) {

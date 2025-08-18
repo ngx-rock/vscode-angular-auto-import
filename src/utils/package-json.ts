@@ -1,18 +1,25 @@
 /**
- * Утилиты для работы с `package.json` файлами.
+ * Utilities for working with `package.json` files.
+ * @module
  */
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
 /**
- * Информация о зависимостях Angular, найденных в `node_modules`.
+ * Information about an Angular dependency found in `node_modules`.
  */
 export interface AngularDependency {
+  /** The name of the dependency (e.g., '@angular/core'). */
   name: string;
-  path: string; // Реальный путь к папке библиотеки
+  /** The real path to the library's folder. */
+  path: string;
 }
 
+/**
+ * Represents the structure of a `package.json` file.
+ * @internal
+ */
 interface PackageJson {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
@@ -22,12 +29,19 @@ interface PackageJson {
   typings?: string;
 }
 
+/**
+ * Represents an export target in `package.json`.
+ * @internal
+ */
 interface ExportTarget {
   types?: string;
 }
 
 /**
- * Находит и читает корневой `package.json` проекта.
+ * Finds and reads the root `package.json` of the project.
+ * @param projectRootPath The root path of the project.
+ * @returns The parsed `package.json` object or `null` if not found.
+ * @internal
  */
 async function getRootPackageJson(projectRootPath: string): Promise<PackageJson | null> {
   const packageJsonPath = path.join(projectRootPath, "package.json");
@@ -41,9 +55,10 @@ async function getRootPackageJson(projectRootPath: string): Promise<PackageJson 
 }
 
 /**
- * Находит все Angular-библиотеки в зависимостях проекта.
- * @param projectRootPath - Путь к корню проекта.
- * @returns Список Angular-библиотек.
+ * Finds all Angular libraries in the project's dependencies.
+ *
+ * @param projectRootPath The root path of the project.
+ * @returns A list of Angular libraries.
  */
 export async function findAngularDependencies(projectRootPath: string): Promise<AngularDependency[]> {
   const rootPackageJson = await getRootPackageJson(projectRootPath);
@@ -67,7 +82,7 @@ export async function findAngularDependencies(projectRootPath: string): Promise<
 
     try {
       const depPath = path.join(projectRootPath, "node_modules", depName);
-      const realDepPath = await fs.realpath(depPath); // xử lý symlinks cho pnpm
+      const realDepPath = await fs.realpath(depPath); // handle symlinks for pnpm
       const depPackageJsonPath = path.join(realDepPath, "package.json");
       const depPackageJsonContent = await fs.readFile(depPackageJsonPath, "utf-8");
       const depPackageJson = JSON.parse(depPackageJsonContent) as PackageJson;
@@ -89,9 +104,10 @@ export async function findAngularDependencies(projectRootPath: string): Promise<
 }
 
 /**
- * Получает точки входа для библиотеки из `package.json`.
- * @param library - Информация о библиотеке.
- * @returns Map, где ключ - путь импорта, а значение - абсолютный путь к `.d.ts` файлу.
+ * Gets the entry points for a library from its `package.json`.
+ *
+ * @param library Information about the library.
+ * @returns A map where the key is the import path and the value is the absolute path to the `.d.ts` file.
  */
 export async function getLibraryEntryPoints(library: AngularDependency): Promise<Map<string, string>> {
   const entryPoints = new Map<string, string>();
@@ -101,7 +117,7 @@ export async function getLibraryEntryPoints(library: AngularDependency): Promise
     const packageJson = JSON.parse(packageJsonContent) as PackageJson;
 
     if (packageJson.exports) {
-      // Обработка поля "exports"
+      // Process the "exports" field
       for (const [exportPath, target] of Object.entries(packageJson.exports)) {
         if (typeof target === "string" && target.endsWith(".d.ts")) {
           const importPath = path.join(library.name, exportPath).replace(/\\/g, "/");
@@ -115,7 +131,7 @@ export async function getLibraryEntryPoints(library: AngularDependency): Promise
         }
       }
     } else if (packageJson.types || packageJson.typings) {
-      // Фоллбэк на "types" или "typings"
+      // Fallback to "types" or "typings"
       const typesFile = packageJson.types || packageJson.typings;
       if (typeof typesFile === "string" && typesFile.endsWith(".d.ts")) {
         entryPoints.set(library.name, path.resolve(library.path, typesFile));

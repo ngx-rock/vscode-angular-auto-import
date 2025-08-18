@@ -2,6 +2,7 @@
  * =================================================================================================
  * Angular Auto-Import Completion Provider
  * =================================================================================================
+ * @module
  */
 
 import * as path from "node:path";
@@ -19,6 +20,14 @@ import type { ProviderContext } from "./index";
 export class CompletionProvider implements vscode.CompletionItemProvider {
   constructor(private context: ProviderContext) {}
 
+  /**
+   * Provides completion items for the given document and position.
+   * @param document The document to provide completions for.
+   * @param position The position at which to provide completions.
+   * @param _token A cancellation token.
+   * @param _context The context of the completion request.
+   * @returns A list of completion items.
+   */
   async provideCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
@@ -429,6 +438,12 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     return new vscode.CompletionList(finalSuggestions, true);
   }
 
+  /**
+   * Gets the project context for a given document.
+   * @param document The document to get the context for.
+   * @returns The project context or `undefined` if not found.
+   * @internal
+   */
   private getProjectContextForDocument(document: vscode.TextDocument) {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
     if (workspaceFolder) {

@@ -1,6 +1,7 @@
 /**
  * TypeScript Configuration Helper Service
  * Responsible for handling tsconfig.json and resolving path aliases.
+ * @module
  */
 
 import * as fs from "node:fs";
@@ -8,6 +9,10 @@ import * as path from "node:path";
 import type { ProcessedTsConfig } from "../types";
 import { getRelativeFilePath, normalizePath, switchFileType } from "../utils";
 
+/**
+ * Represents a node in a Trie data structure for storing path aliases.
+ * @internal
+ */
 class TrieNode {
   public children: Map<string, TrieNode> = new Map();
   /** The alias corresponding to the path to this node (e.g., '@app'). */
@@ -19,6 +24,7 @@ class TrieNode {
 /**
  * A prefix tree for efficiently finding the longest path prefix,
  * which allows finding the most specific (and shortest) alias.
+ * @internal
  */
 class PathAliasTrie {
   private root: TrieNode = new TrieNode();
@@ -222,6 +228,10 @@ class PathAliasTrie {
 const tsConfigCache: Map<string, ProcessedTsConfig | null> = new Map();
 const trieCache: Map<string, PathAliasTrie | null> = new Map();
 
+/**
+ * Clears the tsconfig and trie caches.
+ * @param projectRoot If provided, only clears the cache for that project.
+ */
 export function clearCache(projectRoot?: string) {
   if (projectRoot) {
     tsConfigCache.delete(projectRoot);
@@ -234,6 +244,11 @@ export function clearCache(projectRoot?: string) {
   }
 }
 
+/**
+ * Finds and parses the `tsconfig.json` or `tsconfig.base.json` file for a given project.
+ * @param projectRoot The root directory of the project.
+ * @returns A processed tsconfig object or `null` if not found.
+ */
 export async function findAndParseTsConfig(projectRoot: string): Promise<ProcessedTsConfig | null> {
   const cacheKey = projectRoot;
   console.log(`[TsConfigHelper] Looking for tsconfig in project: ${projectRoot}`);
@@ -248,7 +263,7 @@ export async function findAndParseTsConfig(projectRoot: string): Promise<Process
   try {
     let tsconfigResult: { path: string; config: unknown } | null = null;
 
-    // Сначала ищем tsconfig.json в указанной директории
+    // First, look for tsconfig.json in the specified directory
     const tsconfigPath = path.join(projectRoot, "tsconfig.json");
     if (fs.existsSync(tsconfigPath)) {
       try {
@@ -263,7 +278,7 @@ export async function findAndParseTsConfig(projectRoot: string): Promise<Process
       }
     }
 
-    // Если стандартный tsconfig не найден, попробуем tsconfig.base.json (часто используется в Nx)
+    // If standard tsconfig is not found, try tsconfig.base.json (often used in Nx)
     if (!tsconfigResult) {
       console.log(`[TsConfigHelper] Standard tsconfig not found, trying tsconfig.base.json...`);
       const baseTsconfigPath = path.join(projectRoot, "tsconfig.base.json");
@@ -310,7 +325,7 @@ export async function findAndParseTsConfig(projectRoot: string): Promise<Process
     };
     tsConfigCache.set(cacheKey, processedConfig);
 
-    // Создаём и кэшируем Trie для резолвинга алиасов
+    // Create and cache a Trie for resolving aliases
     console.log(`[TsConfigHelper] Creating PathAliasTrie for ${projectRoot}`);
     const trie = new PathAliasTrie(processedConfig);
     trieCache.set(cacheKey, trie);

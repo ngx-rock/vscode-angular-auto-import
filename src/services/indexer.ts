@@ -1,6 +1,7 @@
 /**
  * Angular Indexer Service
  * Responsible for indexing Angular components, directives, and pipes.
+ * @module
  */
 
 import * as fs from "node:fs";
@@ -22,11 +23,19 @@ import * as vscode from "vscode";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
 import { findAngularDependencies, getLibraryEntryPoints, parseAngularSelector } from "../utils";
 
+/**
+ * Represents a node in a Trie data structure for storing selectors.
+ * @internal
+ */
 class TrieNode {
   public children: Map<string, TrieNode> = new Map();
   public elements: AngularElementData[] = [];
 }
 
+/**
+ * A Trie-based data structure for efficient searching of Angular selectors.
+ * @internal
+ */
 class SelectorTrie {
   private root: TrieNode = new TrieNode();
 
@@ -219,17 +228,35 @@ class SelectorTrie {
   }
 }
 
+/**
+ * The main class responsible for indexing Angular elements in a project.
+ */
 export class AngularIndexer {
-  project: Project; // Made public for access in importElementToFile
+  /**
+   * The ts-morph project instance.
+   */
+  project: Project;
   private fileCache: Map<string, FileElementsInfo> = new Map();
   private selectorTrie: SelectorTrie = new SelectorTrie();
   private projectModuleMap: Map<string, { moduleName: string; importPath: string }> = new Map();
+  /**
+   * The file watcher for the project.
+   */
   public fileWatcher: vscode.FileSystemWatcher | null = null;
   private projectRootPath: string = "";
   private isIndexing: boolean = false;
 
+  /**
+   * The cache key for the file cache in the workspace state.
+   */
   public workspaceFileCacheKey: string = "";
+  /**
+   * The cache key for the selector index in the workspace state.
+   */
   public workspaceIndexCacheKey: string = "";
+  /**
+   * The cache key for the module map in the workspace state.
+   */
   public workspaceModulesCacheKey: string = "";
 
   constructor() {
@@ -241,6 +268,10 @@ export class AngularIndexer {
     });
   }
 
+  /**
+   * Sets the root path of the project to be indexed.
+   * @param projectPath The absolute path to the project root.
+   */
   public setProjectRoot(projectPath: string) {
     this.projectRootPath = projectPath;
     // Re-creating the project instance is a simple approach.
@@ -260,6 +291,10 @@ export class AngularIndexer {
     );
   }
 
+  /**
+   * Initializes the file watcher for the project to keep the index up-to-date.
+   * @param context The extension context.
+   */
   initializeWatcher(context: vscode.ExtensionContext) {
     if (this.fileWatcher) {
       this.fileWatcher.dispose();
@@ -296,6 +331,12 @@ export class AngularIndexer {
     console.log(`AngularIndexer: File watcher initialized for ${this.projectRootPath} with pattern ${pattern.pattern}`);
   }
 
+  /**
+   * Generates a hash for a given string.
+   * @param content The string to hash.
+   * @returns The hash of the string.
+   * @internal
+   */
   private generateHash(content: string): string {
     let hash = 0;
     for (let i = 0; i < content.length; i++) {
@@ -306,6 +347,13 @@ export class AngularIndexer {
     return hash.toString();
   }
 
+  /**
+   * Parses a TypeScript file to find Angular elements.
+   * @param filePath The path to the file.
+   * @param content The content of the file.
+   * @returns An array of `ComponentInfo` objects.
+   * @internal
+   */
   private parseAngularElementsWithTsMorph(filePath: string, content: string): ComponentInfo[] {
     if (!this.projectRootPath) {
       console.error("AngularIndexer.parseAngularElementsWithTsMorph: projectRootPath is not set.");
@@ -349,6 +397,14 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Extracts information about an Angular element from a class declaration.
+   * @param classDeclaration The class declaration to extract information from.
+   * @param filePath The path to the file.
+   * @param fileContent The content of the file.
+   * @returns A `ComponentInfo` object or `null` if the class is not an Angular element.
+   * @internal
+   */
   private extractAngularElementInfo(
     classDeclaration: ClassDeclaration,
     filePath: string,
@@ -409,6 +465,12 @@ export class AngularIndexer {
     return null;
   }
 
+  /**
+   * Extracts the selector and standalone flag from a `@Component` decorator.
+   * @param decorator The decorator to extract information from.
+   * @returns An object containing the selector and standalone flag.
+   * @internal
+   */
   private extractComponentDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
     let selector: string | undefined;
     let standalone = false;
@@ -443,6 +505,12 @@ export class AngularIndexer {
     return { selector, standalone };
   }
 
+  /**
+   * Extracts the selector and standalone flag from a `@Directive` decorator.
+   * @param decorator The decorator to extract information from.
+   * @returns An object containing the selector and standalone flag.
+   * @internal
+   */
   private extractDirectiveDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
     let selector: string | undefined;
     let standalone = false;
@@ -473,6 +541,12 @@ export class AngularIndexer {
     return { selector, standalone };
   }
 
+  /**
+   * Extracts the name and standalone flag from a `@Pipe` decorator.
+   * @param decorator The decorator to extract information from.
+   * @returns An object containing the name and standalone flag.
+   * @internal
+   */
   private extractPipeDecoratorData(decorator: Decorator): { name?: string; standalone: boolean } {
     let name: string | undefined;
     let standalone = false;
@@ -503,6 +577,13 @@ export class AngularIndexer {
     return { name, standalone };
   }
 
+  /**
+   * Parses a TypeScript file using regex to find Angular elements. This is a fallback for when ts-morph fails.
+   * @param filePath The path to the file.
+   * @param content The content of the file.
+   * @returns A `ComponentInfo` object or `null` if no element is found.
+   * @internal
+   */
   private parseAngularElementWithRegex(filePath: string, content: string): ComponentInfo | null {
     // This is a fallback, ensure it's robust enough or log clearly when it's used.
     // Note: This regex approach only finds the first element, unlike the ts-morph approach
@@ -551,6 +632,12 @@ export class AngularIndexer {
     return null;
   }
 
+  /**
+   * Updates the index for a single file.
+   * @param filePath The path to the file.
+   * @param context The extension context.
+   * @internal
+   */
   private async updateFileIndex(filePath: string, context: vscode.ExtensionContext): Promise<void> {
     try {
       if (!fs.existsSync(filePath)) {
@@ -665,6 +752,12 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Removes a file from the index.
+   * @param filePath The path to the file.
+   * @param context The extension context.
+   * @internal
+   */
   private async removeFromIndex(filePath: string, context: vscode.ExtensionContext): Promise<void> {
     // Remove from file cache
     const fileInfo = this.fileCache.get(filePath);
@@ -690,6 +783,11 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Generates a full index of the project.
+   * @param context The extension context.
+   * @returns A map of selectors to `AngularElementData` objects.
+   */
   async generateFullIndex(context: vscode.ExtensionContext): Promise<Map<string, AngularElementData>> {
     if (this.isIndexing) {
       console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): Already indexing, skipping...`);
@@ -745,6 +843,11 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Loads the index from the workspace state.
+   * @param context The extension context.
+   * @returns `true` if the index was loaded successfully, `false` otherwise.
+   */
   async loadFromWorkspace(context: vscode.ExtensionContext): Promise<boolean> {
     if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey) {
       console.error("AngularIndexer.loadFromWorkspace: projectRootPath or cache keys not set. Cannot load.");
@@ -820,6 +923,11 @@ export class AngularIndexer {
     return false;
   }
 
+  /**
+   * Saves the index to the workspace state.
+   * @param context The extension context.
+   * @internal
+   */
   private async saveIndexToWorkspace(context: vscode.ExtensionContext): Promise<void> {
     if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey) {
       console.error("AngularIndexer.saveIndexToWorkspace: projectRootPath or cache keys not set. Cannot save.");
@@ -839,6 +947,10 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Clears the index from memory and the workspace state.
+   * @param context The extension context.
+   */
   public async clearCache(context: vscode.ExtensionContext): Promise<void> {
     if (
       !this.projectRootPath ||
@@ -867,6 +979,11 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Gets all elements for a given selector.
+   * @param selector The selector to search for.
+   * @returns An array of `AngularElementData` objects.
+   */
   getElements(selector: string): AngularElementData[] {
     if (typeof selector !== "string" || !selector) {
       return [];
@@ -874,6 +991,10 @@ export class AngularIndexer {
     return this.selectorTrie.findAll(selector);
   }
 
+  /**
+   * Indexes all Angular libraries in `node_modules`.
+   * @param context The extension context.
+   */
   public async indexNodeModules(context: vscode.ExtensionContext): Promise<void> {
     await vscode.window.withProgress(
       {
@@ -918,6 +1039,11 @@ export class AngularIndexer {
     );
   }
 
+  /**
+   * Indexes a library from its entry points.
+   * @param entryPoints A map of import paths to file paths.
+   * @internal
+   */
   private async _indexLibrary(entryPoints: Map<string, string>): Promise<void> {
     const libraryFiles: { importPath: string; sourceFile: SourceFile }[] = [];
     for (const [importPath, filePath] of entryPoints.entries()) {
@@ -972,6 +1098,10 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Indexes all NgModules in the project.
+   * @internal
+   */
   private async indexProjectModules(): Promise<void> {
     if (!this.projectRootPath) {
       return;
@@ -1005,6 +1135,11 @@ export class AngularIndexer {
     console.log(`[Indexer] Found ${this.projectModuleMap.size} component-to-module mappings in project.`);
   }
 
+  /**
+   * Processes a single project module file.
+   * @param sourceFile The source file to process.
+   * @internal
+   */
   private _processProjectModuleFile(sourceFile: SourceFile) {
     const classDeclarations = sourceFile.getClasses();
     for (const classDecl of classDeclarations) {
@@ -1045,6 +1180,12 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Gets the names of identifiers in an array property.
+   * @param prop The property assignment to get the identifiers from.
+   * @returns An array of identifier names.
+   * @internal
+   */
   private _getIdentifierNamesFromArrayProp(prop: PropertyAssignment | undefined): string[] {
     if (!prop) {
       return [];
@@ -1058,6 +1199,15 @@ export class AngularIndexer {
     return arr.getElements().map((el) => el.getText());
   }
 
+  /**
+   * Builds a map of components to the modules that export them.
+   * @param sourceFile The source file to process.
+   * @param importPath The import path of the source file.
+   * @param componentToModuleMap The map to store the component-to-module mappings.
+   * @param allLibraryClasses A map of all classes in the library.
+   * @param typeChecker The type checker to use.
+   * @internal
+   */
   private _buildComponentToModuleMap(
     sourceFile: SourceFile,
     importPath: string,
@@ -1110,6 +1260,16 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Processes the exports of a module.
+   * @param exportsTuple The tuple of exported elements.
+   * @param moduleName The name of the module.
+   * @param importPath The import path of the module.
+   * @param componentToModuleMap The map to store the component-to-module mappings.
+   * @param allLibraryClasses A map of all classes in the library.
+   * @param typeChecker The type checker to use.
+   * @internal
+   */
   private _processModuleExports(
     exportsTuple: import("ts-morph").TupleTypeNode,
     moduleName: string,
@@ -1175,6 +1335,13 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Indexes the declarations in a file.
+   * @param sourceFile The source file to process.
+   * @param importPath The import path of the source file.
+   * @param componentToModuleMap A map of components to the modules that export them.
+   * @internal
+   */
   private async _indexDeclarationsInFile(
     sourceFile: SourceFile,
     importPath: string,
@@ -1342,14 +1509,28 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Gets all indexed selectors.
+   * @returns An array of selectors.
+   */
   getAllSelectors(): string[] {
     return this.selectorTrie.getAllSelectors();
   }
 
+  /**
+   * Searches for selectors with a given prefix.
+   * @param prefix The prefix to search for.
+   * @returns An array of objects containing the selector and the corresponding `AngularElementData`.
+   */
   searchWithSelectors(prefix: string): { selector: string; element: AngularElementData }[] {
     return this.selectorTrie.searchWithSelectors(prefix);
   }
 
+  /**
+   * Gets all Angular files in the project using the VS Code API.
+   * @returns An array of file paths.
+   * @internal
+   */
   private async getAngularFilesUsingVsCode(): Promise<string[]> {
     try {
       const patterns = ["**/*.ts"];
@@ -1370,6 +1551,12 @@ export class AngularIndexer {
     }
   }
 
+  /**
+   * Gets all Angular files in the project using a fallback method.
+   * @param basePath The base path of the project.
+   * @returns An array of file paths.
+   * @internal
+   */
   private getAngularFilesFallback(basePath: string): string[] {
     // Fallback to manual file discovery (simplified, consider enhancing .gitignore handling if this is frequently used)
     const angularFiles: string[] = [];
@@ -1408,6 +1595,9 @@ export class AngularIndexer {
     return angularFiles;
   }
 
+  /**
+   * Disposes the file watcher and clears the caches.
+   */
   dispose() {
     if (this.fileWatcher) {
       this.fileWatcher.dispose();

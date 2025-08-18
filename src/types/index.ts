@@ -1,5 +1,6 @@
 /**
- * Центральный экспорт всех типов
+ * Central export for all types.
+ * @module
  */
 
 export * from "./angular";

@@ -1,10 +1,10 @@
 /**
  * Manages extension settings and configuration.
- * 
+ *
  * This module provides utilities for reading and monitoring VS Code extension settings,
  * specifically for the Angular Auto-Import extension configuration.
- * 
- * @module Configuration management for Angular Auto-Import extension
+ *
+ * @module
  */
 import * as vscode from "vscode";
 
