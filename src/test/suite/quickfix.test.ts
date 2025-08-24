@@ -663,7 +663,7 @@ describe("QuickfixImportProvider", function () {
 
       const action = result[0] as vscode.CodeAction;
       assert.ok(action.title.includes("TestModule"), "Should include module name in title");
-      assert.ok(action.title.includes("★ Import TestModule"), "Should have import title for module");
+      assert.ok(action.title.includes("⟐ Import TestModule"), "Should have import title for module");
     });
   });
 });
