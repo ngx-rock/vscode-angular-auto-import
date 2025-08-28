@@ -15,6 +15,7 @@ import {
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
+import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { AngularElementData, ParsedHtmlElement } from "../types";
 import { getAngularElements, switchFileType } from "../utils";
@@ -135,16 +136,12 @@ export class DiagnosticProvider {
       try {
         const htmlDocument = await vscode.workspace.openTextDocument(htmlUri);
         this.updateDiagnostics(htmlDocument);
-        console.log(
-          `Updated diagnostics for ${path.basename(
-            htmlFilePath
-          )} due to changes in ${path.basename(tsDocument.fileName)}`
-        );
+        // Updated diagnostics for related HTML file
       } catch (error) {
-        console.error(`Error opening HTML document ${htmlFilePath}:`, error);
+        logger.error(`Error opening HTML document ${htmlFilePath}:`, error as Error);
       }
     } catch (error) {
-      console.error("[DiagnosticProvider] Error updating related HTML diagnostics:", error);
+      logger.error("[DiagnosticProvider] Error updating related HTML diagnostics:", error as Error);
     }
   }
 
@@ -176,16 +173,16 @@ export class DiagnosticProvider {
 
         // Use the active document directly
         this.updateDiagnostics(activeDocument);
-        console.log(`Force updated diagnostics for active document: ${path.basename(filePath)}`);
+        // Force updated diagnostics for active document
       } else {
         // Fallback to opening the document
         const uri = vscode.Uri.file(filePath);
         const document = await vscode.workspace.openTextDocument(uri);
         this.updateDiagnostics(document);
-        console.log(`Force updated diagnostics for document: ${path.basename(filePath)}`);
+        // Force updated diagnostics for document
       }
     } catch (error) {
-      console.error(`Error force updating diagnostics for ${filePath}:`, error);
+      logger.error(`Error force updating diagnostics for ${filePath}:`, error as Error);
     }
   }
 
@@ -290,7 +287,7 @@ export class DiagnosticProvider {
             elements.push({ ...pipe, isAttribute: false, attributes: [] });
           }
         } catch (e) {
-          console.error("[DiagnosticProvider] Error extracting pipes from expression:", e);
+          logger.error("[DiagnosticProvider] Error extracting pipes from expression:", e as Error);
         }
       };
 
@@ -489,7 +486,7 @@ export class DiagnosticProvider {
 
       visit(nodes);
     } catch (e) {
-      console.error(`[DiagnosticProvider] Failed to parse template: ${document.uri.fsPath}`, e);
+      logger.error(`[DiagnosticProvider] Failed to parse template: ${document.uri.fsPath}`, e as Error);
     }
     return elements;
   }
@@ -685,7 +682,7 @@ export class DiagnosticProvider {
     try {
       return await vscode.workspace.openTextDocument(tsDocUri);
     } catch (error) {
-      console.error(`Could not open TS document for diagnostics: ${componentPath}`, error);
+      logger.error(`Could not open TS document for diagnostics: ${componentPath}`, error as Error);
       return null;
     }
   }
@@ -727,7 +724,7 @@ export class DiagnosticProvider {
       }
       return false;
     } catch (error) {
-      console.error("[DiagnosticProvider] Error checking element import with ts-morph:", error);
+      logger.error("[DiagnosticProvider] Error checking element import with ts-morph:", error as Error);
       return false;
     }
   }

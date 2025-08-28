@@ -1,5 +1,3 @@
-import type * as vscode from "vscode";
-
 export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL";
 
 export type LogOutputFormat = "plain" | "json";
@@ -42,5 +40,5 @@ export interface ILogPoint {
 
 export interface PerformanceMetrics {
     memoryUsage: NodeJS.MemoryUsage;
-    cpuUsage: NodeJS.CPUUsage;
+    cpuUsage: NodeJS.CpuUsage;
 }

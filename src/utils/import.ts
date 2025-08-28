@@ -36,6 +36,7 @@ import {
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
+import { logger } from "../logger";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
 import { switchFileType } from "./path";
@@ -86,7 +87,7 @@ export async function importElementToFile(
 ): Promise<boolean> {
   try {
     if (!indexerProject) {
-      console.error("ts-morph Project instance is required for importElementToFile");
+      logger.error("ts-morph Project instance is required for importElementToFile");
       return false;
     }
 
@@ -97,13 +98,11 @@ export async function importElementToFile(
     if (activeDocument) {
       // Use content from active VSCode document (includes unsaved changes)
       currentContent = activeDocument.getText();
-      console.log(
-        `[importElementToFile] Using content from active VSCode document: ${path.basename(componentFilePathAbs)}`
-      );
+      // Using content from active VSCode document
     } else {
       // Fallback to reading from disk
       currentContent = fs.readFileSync(componentFilePathAbs, "utf-8");
-      console.log(`[importElementToFile] Using content from disk: ${path.basename(componentFilePathAbs)}`);
+      // Using content from disk
     }
 
     // Ensure ts-morph SourceFile is synchronized with current content
@@ -111,11 +110,11 @@ export async function importElementToFile(
     if (sourceFile) {
       if (sourceFile.getFullText() !== currentContent) {
         sourceFile.replaceWithText(currentContent);
-        console.log(`[importElementToFile] Synchronized ts-morph SourceFile with current content`);
+        // Synchronized ts-morph SourceFile
       }
     } else {
       sourceFile = indexerProject.createSourceFile(componentFilePathAbs, currentContent, { overwrite: true });
-      console.log(`[importElementToFile] Created new ts-morph SourceFile`);
+      // Created new ts-morph SourceFile
     }
 
     // Determine if the element is from an external package or local project file.
@@ -123,13 +122,12 @@ export async function importElementToFile(
     // If the path is not absolute and does not start with a dot, it's a module specifier.
     if (!path.isAbsolute(element.path) && !element.path.startsWith(".")) {
       importPathString = element.path;
-      console.log(`[importElementToFile] Using module import path: ${importPathString}`);
+      // Using module import path
     } else {
       // For project elements, resolve import path using tsconfig
       const absoluteTargetModulePath = path.join(projectRootPath, element.path);
       const absoluteTargetModulePathNoExt = switchFileType(absoluteTargetModulePath, "");
-      console.log(`[importElementToFile] Absolute target path: ${absoluteTargetModulePath}`);
-      console.log(`[importElementToFile] Absolute target path (no ext): ${absoluteTargetModulePathNoExt}`);
+      // Resolving absolute target path
 
       importPathString = await TsConfigHelper.resolveImportPath(
         absoluteTargetModulePathNoExt,
@@ -138,11 +136,7 @@ export async function importElementToFile(
       );
     }
 
-    console.log(`[importElementToFile] Component file: ${componentFilePathAbs}`);
-    console.log(`[importElementToFile] Project root: ${projectRootPath}`);
-    console.log(
-      `[importElementToFile] 🎯 FINAL IMPORT PATH for ${element.type} '${element.name}': '${importPathString}'`
-    );
+    logger.debug(`Final import path for ${element.type} '${element.name}': '${importPathString}'`);
 
     let importStatementModified = false;
     let annotationModified = false;
@@ -168,9 +162,9 @@ export async function importElementToFile(
         if (!alreadyImported) {
           existingImportFromSameModule.addNamedImport(element.name);
           importStatementModified = true;
-          console.log(`Added ${element.name} to existing import from ${importPathString}.`);
+          // Added to existing import
         } else {
-          console.log(`${element.name} already imported from ${importPathString}.`);
+          // Already imported
         }
       } else {
         // Check if imported with the same name but different path
@@ -179,11 +173,7 @@ export async function importElementToFile(
           .find((d) => d.getNamedImports().some((ni) => ni.getName() === element.name));
 
         if (existingImportWithName) {
-          console.log(
-            `${
-              element.name
-            } is already imported from '${existingImportWithName.getModuleSpecifierValue()}'. Adding to annotations if necessary.`
-          );
+          // Already imported from different path
         } else {
           // Add new import declaration
           sourceFile.addImportDeclaration({
@@ -191,15 +181,15 @@ export async function importElementToFile(
             moduleSpecifier: importPathString,
           });
           importStatementModified = true;
-          console.log(`Added new import statement for ${element.name} from ${importPathString}.`);
+          logger.info(`Added new import statement for ${element.name}`);
         }
       }
     } else {
-      console.log(`${element.name} already imported correctly from ${importPathString}.`);
+      // Already imported correctly
     }
 
     // Add to @Component imports array
-    console.log(`[importElementToFile] Adding ${element.type} '${element.name}' to @Component imports array...`);
+    // Adding to @Component imports array
     annotationModified = addImportToAnnotationTsMorph(element.exportingModuleName || element.name, sourceFile);
 
     if (importStatementModified || annotationModified) {
@@ -219,26 +209,20 @@ export async function importElementToFile(
           // Since the edit was applied, the document is dirty.
           // We must save it to trigger other extensions and update state.
           await activeDocument.save();
-          console.log(
-            `[importElementToFile] Applied edits and saved active document: ${path.basename(componentFilePathAbs)}`
-          );
+          logger.info(`Applied edits and saved document: ${path.basename(componentFilePathAbs)}`);
         } else {
-          console.error(`Failed to apply WorkspaceEdit to ${path.basename(componentFilePathAbs)}`);
+          logger.error(`Failed to apply WorkspaceEdit to ${path.basename(componentFilePathAbs)}`);
           return false;
         }
       } else {
         // Fallback to direct file write if document is not active
         fs.writeFileSync(componentFilePathAbs, newContent);
-        console.log(`Successfully updated file ${path.basename(componentFilePathAbs)} for ${element.name}.`);
+        logger.info(`Successfully updated file ${path.basename(componentFilePathAbs)} for ${element.name}`);
       }
 
       // Force-refresh diagnostics to prevent race conditions with other providers.
       if (globalDiagnosticProvider) {
-        console.log(
-          `[importElementToFile] Forcing diagnostics update for ${path.basename(
-            componentFilePathAbs
-          )} and related HTML file.`
-        );
+        // Forcing diagnostics update
         await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(componentFilePathAbs);
 
         const htmlFilePath = switchFileType(componentFilePathAbs, ".html");
@@ -247,20 +231,16 @@ export async function importElementToFile(
         }
       }
 
-      console.log(`Successfully updated active document ${path.basename(componentFilePathAbs)} for ${element.name}.`);
+      logger.info(`Successfully updated document ${path.basename(componentFilePathAbs)} for ${element.name}`);
 
       return true;
     } else {
-      console.log(
-        `No changes needed for ${element.name} in ${path.basename(
-          componentFilePathAbs
-        )} (already imported and in annotations).`
-      );
+      // No changes needed - already imported
       return true;
     }
   } catch (e) {
     const error = e instanceof Error ? e : new Error(String(e));
-    console.error("Error importing element:", error);
+    logger.error("Error importing element:", error);
     vscode.window.showErrorMessage(`Error importing ${element.name}: ${error.message}`);
     return false;
   }
@@ -292,12 +272,12 @@ function addImportToAnnotationTsMorph(importName: string, sourceFile: SourceFile
             if (!existingImportNames.includes(importName)) {
               importsArray.addElement(importName);
               modified = true;
-              console.log(`Added ${importName} to @Component imports array.`);
+              // Added to imports array
             } else {
-              console.log(`${importName} already in @Component imports array.`);
+              // Already in imports array
             }
           } else {
-            console.warn(
+            logger.warn(
               `@Component 'imports' property in ${sourceFile.getBaseName()} is not an array. Manual update needed for ${importName}.`
             );
           }
@@ -310,7 +290,7 @@ function addImportToAnnotationTsMorph(importName: string, sourceFile: SourceFile
 
           objectLiteral.addPropertyAssignment(newPropertyAssignment);
           modified = true;
-          console.log(`Added 'imports: [${importName}]' to @Component decorator.`);
+          // Added imports property to @Component decorator
         }
       }
       break; // Assuming one @Component decorator per file

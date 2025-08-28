@@ -247,11 +247,11 @@ export class Logger {
  * ```
  */
 export function LogMethod(level: LogLevel = 'DEBUG') {
-    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    return function (target: object, propertyKey: string, descriptor: PropertyDescriptor) {
         const originalMethod = descriptor.value;
         const className = target.constructor.name;
 
-        descriptor.value = function (...args: any[]) {
+        descriptor.value = function (...args: unknown[]) {
             const logger = Logger.getInstance();
             const lowerCaseLevel = level.toLowerCase() as 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 

@@ -76,8 +76,8 @@ export class FileTransport implements ITransport {
             }
         } catch (error) {
             // If file doesn't exist, it's fine.
-            if (error.code !== 'ENOENT') {
-                console.error('FileTransport: Error checking log file stats.', error);
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+                console.error('FileTransport: Error checking log file stats.', error as Error);
             }
         }
     }
@@ -94,7 +94,7 @@ export class FileTransport implements ITransport {
             try {
                 await fs.unlink(oldestLogFile);
             } catch(e) {
-                if (e.code !== 'ENOENT') throw e;
+                if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
             }
 
             // Shift all other log files up by one
@@ -104,7 +104,7 @@ export class FileTransport implements ITransport {
                 try {
                     await fs.rename(currentFile, newFile);
                 } catch(e) {
-                    if (e.code !== 'ENOENT') throw e;
+                    if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
                 }
             }
         } catch (error) {

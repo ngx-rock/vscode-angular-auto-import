@@ -123,10 +123,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
     // Use the Trie-based search for indexed elements
     let searchResults = indexer.searchWithSelectors(filterText);
-    console.log(`[CompletionProvider] Searching for "${filterText}", found ${searchResults.length} results.`);
-    if (searchResults.length > 0) {
-      console.log("[CompletionProvider] Search results:", JSON.stringify(searchResults.slice(0, 10), null, 2)); // Log first 10 results
-    }
+    // Searching for completion results
 
     searchResults = searchResults.slice(0, 10);
 

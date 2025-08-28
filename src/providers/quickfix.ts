@@ -6,6 +6,7 @@
  */
 
 import * as vscode from "vscode";
+import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 
 import type { AngularElementData } from "../types";
@@ -72,7 +73,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
             actions.push(...quickFixes);
           }
         } catch (error) {
-          console.error("QuickfixImportProvider: Error processing diagnostic:", error);
+          logger.error("QuickfixImportProvider: Error processing diagnostic:", error as Error);
         }
       }
 
@@ -108,7 +109,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
       return uniqueActions;
     } catch (error) {
-      console.error("QuickfixImportProvider: Critical error in provideCodeActions:", error);
+      logger.error("QuickfixImportProvider: Critical error in provideCodeActions:", error as Error);
       return [];
     }
   }
@@ -147,7 +148,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         }
       }
     } catch (error) {
-      console.error("QuickfixImportProvider: Error creating quick fixes:", error);
+      logger.error("QuickfixImportProvider: Error creating quick fixes:", error as Error);
     }
 
     return actions;
@@ -181,7 +182,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
       return action;
     } catch (error) {
-      console.error("Error creating code action:", error);
+      logger.error("Error creating code action:", error as Error);
       return null;
     }
   }

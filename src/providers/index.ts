@@ -6,6 +6,7 @@
  */
 
 import * as vscode from "vscode";
+import { logger } from "../logger";
 import type { ExtensionConfig } from "../config";
 import type { AngularIndexer } from "../services";
 import type { ProcessedTsConfig } from "../types";
@@ -42,7 +43,7 @@ export interface ProviderContext {
  * @param providerContext The context to be shared among providers.
  */
 export function registerProviders(context: vscode.ExtensionContext, providerContext: ProviderContext): void {
-  console.log("🔌 Registering VSCode providers...");
+  logger.info("🔌 Registering VSCode providers...");
 
   // Completion Provider
   const completionProvider = new CompletionProvider(providerContext);
@@ -91,5 +92,5 @@ export function registerProviders(context: vscode.ExtensionContext, providerCont
     });
   }
 
-  console.log("✅ All providers registered successfully");
+  logger.info("✅ All providers registered successfully");
 }
