@@ -26,5 +26,7 @@
   },
   "[json]": {
     "editor.defaultFormatter": "biomejs.biome"
-  }
+  },
+  "angular.log": "verbose",
+  "angular.trace.server": "verbose"
 }
