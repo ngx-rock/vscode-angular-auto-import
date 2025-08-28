@@ -1,0 +1,269 @@
+import * as vscode from "vscode";
+import * as path from "node:path";
+import * as os from "node:os";
+import * as process from "node:process";
+import { getLoggerConfig } from "./config";
+import type {
+  LoggerConfig,
+  LogLevel,
+  ITransport,
+  LogEntry,
+  ILogPoint,
+  PerformanceMetrics,
+} from "./types";
+import { ChannelTransport } from "./channel-transport";
+import { FileTransport } from "./file-transport";
+
+export class Logger {
+  private static instance: Logger;
+  private config!: LoggerConfig;
+  private transports: ITransport[] = [];
+  private readonly sessionId: string;
+  private extensionVersion: string;
+  private context: vscode.ExtensionContext | null = null;
+  private logPoints = new Map<string, ILogPoint>();
+
+  private readonly logLevelMap: Record<LogLevel, number> = {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3,
+    FATAL: 4,
+  };
+
+  private constructor() {
+    this.sessionId = vscode.env.sessionId;
+    this.extensionVersion = "0.0.0"; // Placeholder, will be updated on initialize
+  }
+
+  public static getInstance(): Logger {
+    if (!Logger.instance) {
+      Logger.instance = new Logger();
+    }
+    return Logger.instance;
+  }
+
+  public initialize(context: vscode.ExtensionContext) {
+    this.context = context;
+    const extensionPackageJson = context.extension.packageJSON;
+    this.extensionVersion = extensionPackageJson.version ?? '0.0.0';
+
+    this.config = getLoggerConfig();
+    this.setupTransports();
+
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("angular-auto-import.logging")) {
+        this.updateConfig();
+      }
+    });
+  }
+
+  private updateConfig() {
+    this.info("Logging configuration changed. Reloading...");
+    this.config = getLoggerConfig();
+
+    this.transports.forEach((transport) => transport.dispose());
+    this.transports = [];
+
+    this.setupTransports();
+    this.info("Logger re-initialized with new configuration.");
+  }
+
+  private setupTransports() {
+    if (!this.config.enabled) {
+      this.transports.forEach(t => t.dispose());
+      this.transports = [];
+      return;
+    }
+
+    if (this.context) {
+        this.transports.push(new ChannelTransport(this.config));
+        if (this.config.fileLoggingEnabled) {
+            this.transports.push(new FileTransport(this.config, this.context));
+        }
+    }
+  }
+
+  public debug(message: string, context?: Record<string, unknown>) {
+    this.log("DEBUG", message, context);
+  }
+
+  public info(message: string, context?: Record<string, unknown>) {
+    this.log("INFO", message, context);
+  }
+
+  public warn(message: string, context?: Record<string, unknown>) {
+    this.log("WARN", message, context);
+  }
+
+  public error(message: string, error?: Error, context?: Record<string, unknown>) {
+    const errorContext = { ...context };
+    if (error) {
+        errorContext.error = {
+            message: error.message,
+            stack: error.stack,
+        };
+    }
+    this.log("ERROR", message, errorContext);
+  }
+
+  public fatal(message: string, error?: Error, context?: Record<string, unknown>) {
+    const errorContext = { ...context };
+    if (error) {
+        errorContext.error = {
+            message: error.message,
+            stack: error.stack,
+        };
+    }
+    this.log("FATAL", message, errorContext);
+    vscode.window.showErrorMessage(`A fatal error occurred in Angular Auto Import: ${message}. See logs for details.`);
+  }
+
+  private log(level: LogLevel, message: string, context?: Record<string, unknown>) {
+    if (!this.config) {
+        this.config = getLoggerConfig();
+    }
+
+    const isDev = this.context?.extensionMode === vscode.ExtensionMode.Development;
+    const effectiveLevel = isDev ? 'DEBUG' : this.config.level;
+
+    if (!this.config.enabled || this.logLevelMap[level] < this.logLevelMap[effectiveLevel]) {
+      return;
+    }
+
+    const logEntry: LogEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      context,
+      metadata: this.getMetadata(isDev),
+    };
+
+    this.transports.forEach(transport => {
+        Promise.resolve().then(() => transport.log(logEntry)).catch(console.error);
+    });
+  }
+
+  private getMetadata(isDev: boolean): LogEntry['metadata'] {
+    const metadata: LogEntry['metadata'] = {
+      sessionId: this.sessionId,
+      extensionVersion: this.extensionVersion,
+      vscodeVersion: vscode.version,
+      platform: os.platform(),
+      nodeVersion: process.version,
+    };
+
+    if (isDev) {
+      const { fileName, lineNumber } = this.getCallerLocation();
+      metadata.fileName = fileName;
+      metadata.lineNumber = lineNumber;
+    }
+
+    return metadata;
+  }
+
+  private getCallerLocation(): { fileName?: string; lineNumber?: number } {
+    const error = new Error();
+    const stack = error.stack?.split('\n');
+
+    if (stack && stack.length > 4) {
+      const callerLine = stack[4];
+      if (callerLine) {
+        const match = callerLine.match(/(?:at\s.*?\s)?\(?(.*?):(\d+):\d+\)?$/);
+        if (match && match[1] && match[2]) {
+          const filePath = this.anonymizeFilePath(match[1]);
+          return { fileName: filePath, lineNumber: Number.parseInt(match[2], 10) };
+        }
+      }
+    }
+    return {};
+  }
+
+  private anonymizeFilePath(filePath: string): string {
+    const homeDir = os.homedir();
+    if (filePath.startsWith(homeDir)) {
+      return filePath.replace(homeDir, '~');
+    }
+    if (this.context) {
+        for (const folder of vscode.workspace.workspaceFolders || []) {
+            const workspacePath = folder.uri.fsPath;
+            if (filePath.startsWith(workspacePath)) {
+                return path.join('${workspaceRoot}', path.relative(workspacePath, filePath));
+            }
+        }
+    }
+    return filePath;
+  }
+
+  public startTimer(name: string) {
+    if (!this.config.enabled) return;
+    this.logPoints.set(name, { name, startTime: Date.now() });
+  }
+
+  public stopTimer(name: string) {
+    if (!this.config.enabled) return;
+    const logPoint = this.logPoints.get(name);
+    if (logPoint) {
+      const duration = Date.now() - logPoint.startTime;
+      this.info(`Execution time for '${name}': ${duration}ms`);
+      this.logPoints.delete(name);
+    } else {
+      this.warn(`Timer with name '${name}' was stopped but never started.`);
+    }
+  }
+
+  public getPerformanceMetrics(): PerformanceMetrics {
+      return {
+          memoryUsage: process.memoryUsage(),
+          cpuUsage: process.cpuUsage(),
+      };
+  }
+
+  public logException(error: Error, context?: Record<string, unknown>) {
+    this.fatal("An unhandled exception occurred", error, context);
+  }
+
+  public dispose() {
+    this.transports.forEach((transport) => transport.dispose());
+    this.transports = [];
+    this.logPoints.clear();
+  }
+}
+
+/**
+ * Decorator to automatically log method entry and exit.
+ * @param level The log level to use for the trace messages.
+ *
+ * @example
+ * ```typescript
+ * import { LogMethod } from '../logger';
+ *
+ * class MyClass {
+ *   @LogMethod('INFO')
+ *   myMethod(arg1: string) {
+ *     // ...
+ *   }
+ * }
+ * ```
+ */
+export function LogMethod(level: LogLevel = 'DEBUG') {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        const originalMethod = descriptor.value;
+        const className = target.constructor.name;
+
+        descriptor.value = function (...args: any[]) {
+            const logger = Logger.getInstance();
+            const lowerCaseLevel = level.toLowerCase() as 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+
+            if (typeof logger[lowerCaseLevel] === 'function') {
+                logger[lowerCaseLevel](`Entering method ${className}.${propertyKey}`);
+                const result = originalMethod.apply(this, args);
+                logger[lowerCaseLevel](`Exiting method ${className}.${propertyKey}`);
+                return result;
+            } else {
+                return originalMethod.apply(this, args);
+            }
+        };
+        return descriptor;
+    };
+}
