@@ -8,7 +8,7 @@ import * as path from "node:path";
 
 export function run(): Promise<void> {
   // Create the mocha test
-  const { Mocha } = require("mocha");
+  const Mocha = require("mocha");
   const { glob } = require("glob");
 
   const mocha = new Mocha({

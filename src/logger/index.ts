@@ -1,4 +1,4 @@
-import { Logger, LogMethod } from "./logger";
+import { Logger } from "./logger";
 
 /**
  * The singleton logger instance for the extension.
@@ -12,21 +12,3 @@ import { Logger, LogMethod } from "./logger";
  * ```
  */
 export const logger = Logger.getInstance();
-
-/**
- * Decorator to automatically log method entry and exit.
- * @param level The log level to use for the trace messages.
- *
- * @example
- * ```typescript
- * import { LogMethod } from '../logger';
- *
- * class MyClass {
- *   @LogMethod('INFO')
- *   myMethod(arg1: string) {
- *     // ...
- *   }
- * }
- * ```
- */
-export { LogMethod };

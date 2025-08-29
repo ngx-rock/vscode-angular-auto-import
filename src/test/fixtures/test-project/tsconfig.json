@@ -1,0 +1,63 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist/out-tsc",
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "noFallthroughCasesInSwitch": true,
+    "sourceMap": true,
+    "declaration": false,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "bundler",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noImplicitReturns": false,
+    "isolatedModules": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "lib": [
+      "ES2022",
+      "dom"
+    ],
+    "paths": {
+      "~/*": [
+        "./src/*"
+      ],
+      "@shared/*": [
+        "./src/app/project/shared/*"
+      ],
+      "@utils/*": [
+        "./src/app/project/utils/*"
+      ],
+      "@domain/*": [
+        "./src/app/project/domain/*"
+      ],
+      "@core/*": [
+        "./src/app/project/core/*"
+      ],
+      "@repository/*": [
+        "./src/app/project/repository/*"
+      ]
+    },
+    "useDefineForClassFields": false,
+    "types": ["jest"]
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true,
+    "extendedDiagnostics": {
+      "checks": {
+        "unusedStandaloneImports": "error"
+      }
+    }
+  }
+}
