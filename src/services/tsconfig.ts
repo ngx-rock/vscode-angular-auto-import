@@ -195,6 +195,26 @@ const tsConfigCache: Map<string, ProcessedTsConfig | null> = new Map();
 const trieCache: Map<string, PathAliasTrie | null> = new Map();
 
 /**
+ * Parses a tsconfig file and handles potential errors.
+ * @param filePath The full path to the tsconfig file.
+ * @returns The parsed tsconfig object or null if an error occurs.
+ * @private
+ */
+function _parseConfigFile(filePath: string): ReturnType<typeof getTsconfig> {
+  try {
+    const parseResult = parseTsconfig(filePath);
+    return parseResult ? { path: filePath, config: parseResult } : null;
+  } catch (parseError) {
+    logger.warn(
+      `[TsConfigHelper] Failed to parse ${filePath}: ${
+        (parseError as Error).message
+      }`,
+    );
+    return null;
+  }
+}
+
+/**
  * Clears the tsconfig and trie caches.
  * @param projectRoot If provided, only clears the cache for that project.
  */
@@ -235,35 +255,11 @@ export async function findAndParseTsConfig(projectRoot: string): Promise<Process
     
     // Check for existing files and try to parse them
     if (fs.existsSync(tsconfigPath)) {
-      try {
-        // Check if the file appears to be malformed (for test scenarios)
-        const content = fs.readFileSync(tsconfigPath, 'utf-8').trim();
-        if (content.includes("{ invalid json content }")) {
-          throw new Error("Malformed tsconfig detected");
-        }
-        
-        const parseResult = parseTsconfig(tsconfigPath);
-        tsconfigResult = parseResult ? { path: tsconfigPath, config: parseResult } : null;
-        actualTsconfigPath = tsconfigPath;
-      } catch (parseError) {
-        logger.warn(`[TsConfigHelper] Failed to parse ${tsconfigPath}: ${(parseError as Error).message}`);
-        tsconfigResult = null;
-      }
+      tsconfigResult = _parseConfigFile(tsconfigPath);
+      actualTsconfigPath = tsconfigPath;
     } else if (fs.existsSync(tsconfigBasePath)) {
-      try {
-        // Check if the file appears to be malformed (for test scenarios)
-        const content = fs.readFileSync(tsconfigBasePath, 'utf-8').trim();
-        if (content.includes("{ invalid json content }")) {
-          throw new Error("Malformed tsconfig detected");
-        }
-        
-        const parseResult = parseTsconfig(tsconfigBasePath);
-        tsconfigResult = parseResult ? { path: tsconfigBasePath, config: parseResult } : null;
-        actualTsconfigPath = tsconfigBasePath;
-      } catch (parseError) {
-        logger.warn(`[TsConfigHelper] Failed to parse ${tsconfigBasePath}: ${(parseError as Error).message}`);
-        tsconfigResult = null;
-      }
+      tsconfigResult = _parseConfigFile(tsconfigBasePath);
+      actualTsconfigPath = tsconfigBasePath;
     }
     
     // Validate that the found tsconfig is actually within our project directory
