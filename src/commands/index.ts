@@ -8,6 +8,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { logger } from "../logger";
 import type { ExtensionConfig } from "../config";
 import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
@@ -58,7 +59,7 @@ export interface CommandContext {
 export function registerCommands(context: vscode.ExtensionContext, commandContext: CommandContext): void {
   // Re-index command
   const reindexCommand = vscode.commands.registerCommand("angular-auto-import.reindex", async () => {
-    console.log("REINDEX_COMMAND: Invoked by user.");
+    logger.info("Reindex command invoked by user");
     const activeEditor = vscode.window.activeTextEditor;
     const projectsToReindex: string[] = [];
 
@@ -66,7 +67,7 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
       const projCtx = getProjectContextForDocument(activeEditor.document, commandContext);
       if (projCtx) {
         projectsToReindex.push(projCtx.projectRootPath);
-        console.log(`REINDEX_COMMAND: Targeting active editor's project: ${projCtx.projectRootPath}`);
+        // Targeting active editor's project
       }
     }
 
@@ -74,7 +75,7 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
       // If no active editor or not in a known project, reindex all
       commandContext.projectIndexers.forEach((_, projectRootPath) => projectsToReindex.push(projectRootPath));
       if (projectsToReindex.length > 0) {
-        console.log(`REINDEX_COMMAND: Targeting all known projects: ${projectsToReindex.join(", ")}`);
+        // Targeting all known projects
       }
     }
 
@@ -126,7 +127,7 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
 
   // Clear cache command
   const clearCacheCommand = vscode.commands.registerCommand("angular-auto-import.clearCache", async () => {
-    console.log("CLEAR_CACHE_COMMAND: Invoked by user.");
+    logger.info("Clear cache command invoked by user");
     if (commandContext.projectIndexers.size === 0) {
       vscode.window.showInformationMessage("Angular Auto-Import: No active project to clear cache for.");
       return;
@@ -167,15 +168,15 @@ async function generateIndexForProject(
   indexer: AngularIndexer,
   context: vscode.ExtensionContext
 ): Promise<void> {
-  console.log(`GENERATE_INDEX: For project ${projectRootPath}`);
+  // Generating index for project
   if (indexer.workspaceFileCacheKey === "" || indexer.workspaceIndexCacheKey === "") {
-    console.warn(`generateIndexForProject: Cache keys not set for ${projectRootPath}, attempting to set them now.`);
+    logger.warn(`Cache keys not set for ${projectRootPath}, attempting to set them now`);
     indexer.setProjectRoot(projectRootPath);
   }
   await indexer.generateFullIndex(context);
 
   if (!indexer.fileWatcher) {
-    console.log(`Watcher for ${projectRootPath} was not active, initializing.`);
+    // Watcher was not active, initializing
     indexer.initializeWatcher(context);
   }
 }
@@ -222,7 +223,7 @@ function getProjectContextForDocument(
     if (indexer) {
       return { projectRootPath, indexer, tsConfig };
     } else {
-      console.warn(`No indexer found for project: ${projectRootPath} (document: ${document.uri.fsPath})`);
+      logger.warn(`No indexer found for project: ${projectRootPath} (document: ${document.uri.fsPath})`);
     }
   } else {
     // Fallback for files not directly in a workspace folder but within a known project root
@@ -235,7 +236,7 @@ function getProjectContextForDocument(
         }
       }
     }
-    console.warn(`Document ${document.uri.fsPath} does not belong to any known workspace folder or project root.`);
+    logger.warn(`Document ${document.uri.fsPath} does not belong to any known workspace folder or project root`);
   }
   return undefined;
 }
@@ -266,7 +267,7 @@ function getProjectContextForDocument(
  *   indexer
  * );
  * if (success) {
- *   console.log('Import completed successfully');
+ *   logger.info('Import completed successfully');
  * }
  * ```
  */

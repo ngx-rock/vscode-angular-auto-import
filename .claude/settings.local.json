@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm run:*)",
+      "Bash(sed:*)",
+      "Bash(npx mocha test:*)",
+      "Bash(pnpm test:*)",
+      "Bash(node:*)",
+      "Bash(pnpm install:*)",
+      "Bash(./node_modules/.bin/mocha:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

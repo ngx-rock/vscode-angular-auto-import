@@ -15,7 +15,7 @@ Responsible for handling tsconfig.json and resolving path aliases.
 
 > **clearCache**(`projectRoot?`): `void`
 
-Defined in: [services/tsconfig.ts:235](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/tsconfig.ts#L235)
+Defined in: [services/tsconfig.ts:221](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/tsconfig.ts#L221)
 
 Clears the tsconfig and trie caches.
 
@@ -35,7 +35,7 @@ Clears the tsconfig and trie caches.
 
 > **findAndParseTsConfig**(`projectRoot`): `Promise`\<`null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig)\>
 
-Defined in: [services/tsconfig.ts:252](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/tsconfig.ts#L252)
+Defined in: [services/tsconfig.ts:238](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/tsconfig.ts#L238)
 
 Finds and parses the `tsconfig.json` or `tsconfig.base.json` file for a given project.
 
@@ -57,7 +57,7 @@ A processed tsconfig object or `null` if not found.
 
 > **resolveImportPath**(`absoluteTargetModulePathNoExt`, `absoluteCurrentFilePath`, `projectRoot`): `Promise`\<`string`\>
 
-Defined in: [services/tsconfig.ts:351](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/tsconfig.ts#L351)
+Defined in: [services/tsconfig.ts:319](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/tsconfig.ts#L319)
 
 Resolves an absolute module path to an import path, using a
 tsconfig alias (via the Trie) or falling back to a relative path.

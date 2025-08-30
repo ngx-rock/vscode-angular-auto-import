@@ -64,8 +64,6 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 
 > While Angular Auto Import aims to simplify your development experience, there are some limitations to be aware of:
 
-**File Naming Convention**: The extension only detects and indexes Angular components, directives, and pipes whose filenames include a specific suffix (`.component.ts`, `.directive.ts`, `.pipe.ts`). Files that do not follow this convention will be ignored during indexing.
-
 **Standalone Projects Only**: This extension is designed to work exclusively with standalone Angular projects. Traditional NgModule-based projects are not supported.
 
 --- 

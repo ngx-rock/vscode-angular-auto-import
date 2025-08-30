@@ -12,7 +12,7 @@ Angular Auto-Import Diagnostic Provider
 
 ### DiagnosticProvider
 
-Defined in: [providers/diagnostics.ts:26](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L26)
+Defined in: [providers/diagnostics.ts:27](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L27)
 
 Provides diagnostics for Angular elements.
 
@@ -22,7 +22,7 @@ Provides diagnostics for Angular elements.
 
 > **new DiagnosticProvider**(`context`): [`DiagnosticProvider`](#diagnosticprovider)
 
-Defined in: [providers/diagnostics.ts:31](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L31)
+Defined in: [providers/diagnostics.ts:32](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L32)
 
 ###### Parameters
 
@@ -38,10 +38,10 @@ Defined in: [providers/diagnostics.ts:31](https://github.com/ngx-rock/vscode-ang
 
 | Property | Modifier | Type | Default value | Defined in |
 | ------ | ------ | ------ | ------ | ------ |
-| <a id="candidatediagnostics"></a> `candidateDiagnostics` | `private` | `Map`\<`string`, `Diagnostic`[]\> | `undefined` | [providers/diagnostics.ts:29](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L29) |
-| <a id="context"></a> `context` | `private` | [`ProviderContext`](../providers.md#providercontext) | `undefined` | [providers/diagnostics.ts:31](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L31) |
-| <a id="diagnosticcollection"></a> `diagnosticCollection` | `private` | `DiagnosticCollection` | `undefined` | [providers/diagnostics.ts:27](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L27) |
-| <a id="disposables"></a> `disposables` | `private` | `Disposable`[] | `[]` | [providers/diagnostics.ts:28](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L28) |
+| <a id="candidatediagnostics"></a> `candidateDiagnostics` | `private` | `Map`\<`string`, `Diagnostic`[]\> | `undefined` | [providers/diagnostics.ts:30](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L30) |
+| <a id="context"></a> `context` | `private` | [`ProviderContext`](../providers.md#providercontext) | `undefined` | [providers/diagnostics.ts:32](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L32) |
+| <a id="diagnosticcollection"></a> `diagnosticCollection` | `private` | `DiagnosticCollection` | `undefined` | [providers/diagnostics.ts:28](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L28) |
+| <a id="disposables"></a> `disposables` | `private` | `Disposable`[] | `[]` | [providers/diagnostics.ts:29](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L29) |
 
 #### Methods
 
@@ -49,7 +49,7 @@ Defined in: [providers/diagnostics.ts:31](https://github.com/ngx-rock/vscode-ang
 
 > `private` **\_findPipesInExpression**(`expressionText`, `document`, `baseOffset`, `valueOffset`): [`ParsedHtmlElement`](../types/angular.md#parsedhtmlelement)[]
 
-Defined in: [providers/diagnostics.ts:634](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L634)
+Defined in: [providers/diagnostics.ts:631](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L631)
 
 ###### Parameters
 
@@ -68,7 +68,7 @@ Defined in: [providers/diagnostics.ts:634](https://github.com/ngx-rock/vscode-an
 
 > **activate**(): `void`
 
-Defined in: [providers/diagnostics.ts:38](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L38)
+Defined in: [providers/diagnostics.ts:39](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L39)
 
 Activates the diagnostic provider.
 
@@ -80,7 +80,7 @@ Activates the diagnostic provider.
 
 > `private` **checkElement**(`element`, `indexer`, `tsDocument`, `severity`): `Promise`\<`Diagnostic`[]\>
 
-Defined in: [providers/diagnostics.ts:497](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L497)
+Defined in: [providers/diagnostics.ts:494](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L494)
 
 ###### Parameters
 
@@ -99,7 +99,7 @@ Defined in: [providers/diagnostics.ts:497](https://github.com/ngx-rock/vscode-an
 
 > `private` **createMissingImportDiagnostic**(`element`, `candidate`, `specificSelector`, `severity`): `Diagnostic`
 
-Defined in: [providers/diagnostics.ts:561](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L561)
+Defined in: [providers/diagnostics.ts:558](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L558)
 
 ###### Parameters
 
@@ -118,7 +118,7 @@ Defined in: [providers/diagnostics.ts:561](https://github.com/ngx-rock/vscode-an
 
 > **deactivate**(): `void`
 
-Defined in: [providers/diagnostics.ts:100](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L100)
+Defined in: [providers/diagnostics.ts:101](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L101)
 
 Deactivates the diagnostic provider.
 
@@ -130,7 +130,7 @@ Deactivates the diagnostic provider.
 
 > `private` **extractInlineTemplate**(`document`): `null` \| \{ `template`: `string`; `templateOffset`: `number`; \}
 
-Defined in: [providers/diagnostics.ts:602](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L602)
+Defined in: [providers/diagnostics.ts:599](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L599)
 
 ###### Parameters
 
@@ -146,7 +146,7 @@ Defined in: [providers/diagnostics.ts:602](https://github.com/ngx-rock/vscode-an
 
 > **forceUpdateDiagnosticsForFile**(`filePath`): `Promise`\<`void`\>
 
-Defined in: [providers/diagnostics.ts:154](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L154)
+Defined in: [providers/diagnostics.ts:151](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L151)
 
 Public method to force-update diagnostics for a file.
 
@@ -164,7 +164,7 @@ Public method to force-update diagnostics for a file.
 
 > `private` **getProjectContextForDocument**(`document`): `undefined` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
 
-Defined in: [providers/diagnostics.ts:654](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L654)
+Defined in: [providers/diagnostics.ts:651](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L651)
 
 ###### Parameters
 
@@ -180,7 +180,7 @@ Defined in: [providers/diagnostics.ts:654](https://github.com/ngx-rock/vscode-an
 
 > `private` **getSeverityFromConfig**(`severityLevel`): `DiagnosticSeverity`
 
-Defined in: [providers/diagnostics.ts:735](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L735)
+Defined in: [providers/diagnostics.ts:732](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L732)
 
 ###### Parameters
 
@@ -196,7 +196,7 @@ Defined in: [providers/diagnostics.ts:735](https://github.com/ngx-rock/vscode-an
 
 > `private` **getSourceFile**(`document`): `undefined` \| `SourceFile`
 
-Defined in: [providers/diagnostics.ts:575](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L575)
+Defined in: [providers/diagnostics.ts:572](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L572)
 
 ###### Parameters
 
@@ -212,7 +212,7 @@ Defined in: [providers/diagnostics.ts:575](https://github.com/ngx-rock/vscode-an
 
 > `private` **getTsDocument**(`document`, `componentPath`): `Promise`\<`null` \| `TextDocument`\>
 
-Defined in: [providers/diagnostics.ts:677](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L677)
+Defined in: [providers/diagnostics.ts:674](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L674)
 
 ###### Parameters
 
@@ -229,7 +229,7 @@ Defined in: [providers/diagnostics.ts:677](https://github.com/ngx-rock/vscode-an
 
 > `private` **isElementImported**(`document`, `element`): `boolean`
 
-Defined in: [providers/diagnostics.ts:693](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L693)
+Defined in: [providers/diagnostics.ts:690](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L690)
 
 ###### Parameters
 
@@ -246,7 +246,7 @@ Defined in: [providers/diagnostics.ts:693](https://github.com/ngx-rock/vscode-an
 
 > `private` **parseCompleteTemplate**(`text`, `document`, `offset`, `indexer`): `Promise`\<`ParsedHtmlFullElement`[]\>
 
-Defined in: [providers/diagnostics.ts:254](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L254)
+Defined in: [providers/diagnostics.ts:251](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L251)
 
 ###### Parameters
 
@@ -265,7 +265,7 @@ Defined in: [providers/diagnostics.ts:254](https://github.com/ngx-rock/vscode-an
 
 > `private` **publishFilteredDiagnostics**(`uri`): `void`
 
-Defined in: [providers/diagnostics.ts:748](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L748)
+Defined in: [providers/diagnostics.ts:745](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L745)
 
 ###### Parameters
 
@@ -281,7 +281,7 @@ Defined in: [providers/diagnostics.ts:748](https://github.com/ngx-rock/vscode-an
 
 > `private` **runDiagnostics**(`templateText`, `document`, `offset`, `componentPath`): `Promise`\<`void`\>
 
-Defined in: [providers/diagnostics.ts:220](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L220)
+Defined in: [providers/diagnostics.ts:217](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L217)
 
 ###### Parameters
 
@@ -300,7 +300,7 @@ Defined in: [providers/diagnostics.ts:220](https://github.com/ngx-rock/vscode-an
 
 > `private` **updateDiagnostics**(`document`): `Promise`\<`void`\>
 
-Defined in: [providers/diagnostics.ts:195](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L195)
+Defined in: [providers/diagnostics.ts:192](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L192)
 
 Updates diagnostics for a document.
 
@@ -318,7 +318,7 @@ Updates diagnostics for a document.
 
 > `private` **updateRelatedHtmlDiagnostics**(`tsDocument`): `Promise`\<`void`\>
 
-Defined in: [providers/diagnostics.ts:110](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L110)
+Defined in: [providers/diagnostics.ts:111](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L111)
 
 Updates diagnostics for related HTML files when a TypeScript file changes.
 

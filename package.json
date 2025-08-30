@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"
@@ -88,6 +88,55 @@
           ],
           "default": "warning",
           "description": "Severity level for missing directive import diagnostics."
+        },
+        "angular-auto-import.logging.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable the logging system."
+        },
+        "angular-auto-import.logging.level": {
+          "type": "string",
+          "enum": [
+            "DEBUG",
+            "INFO",
+            "WARN",
+            "ERROR",
+            "FATAL"
+          ],
+          "default": "INFO",
+          "description": "Set the logging level."
+        },
+        "angular-auto-import.logging.fileLoggingEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable or disable logging to a file."
+        },
+        "angular-auto-import.logging.logDirectory": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "The directory where log files will be stored. If not set, a default directory within the extension's storage path will be used."
+        },
+        "angular-auto-import.logging.rotationMaxSize": {
+          "type": "number",
+          "default": 5,
+          "description": "The maximum size of a log file in megabytes before it is rotated."
+        },
+        "angular-auto-import.logging.rotationMaxFiles": {
+          "type": "number",
+          "default": 5,
+          "description": "The maximum number of log files to keep."
+        },
+        "angular-auto-import.logging.outputFormat": {
+          "type": "string",
+          "enum": [
+            "plain",
+            "json"
+          ],
+          "default": "plain",
+          "description": "The format of the logs in the output channel."
         }
       }
     }
@@ -137,6 +186,7 @@
   },
   "dependencies": {
     "@angular/compiler": "^20.1.1",
+    "get-tsconfig": "^4.10.1",
     "ts-morph": "^26.0.0"
   },
   "packageManager": "pnpm@10.12.3+sha512.467df2c586056165580ad6dfb54ceaad94c5a30f80893ebdec5a44c5aa73c205ae4a5bb9d5ed6bb84ea7c249ece786642bbb49d06a307df218d03da41c317417"

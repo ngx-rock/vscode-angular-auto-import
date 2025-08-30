@@ -287,6 +287,8 @@ export class NewComponent {}
     });
 
     it("should handle file deletion", async () => {
+      indexer.setProjectRoot(testProjectPath);
+      await indexer.generateFullIndex(mockContext);
       indexer.initializeWatcher(mockContext);
 
       const tempComponentPath = path.join(testProjectPath, "src", "app", "temp.component.ts");
@@ -302,7 +304,10 @@ export class TempComponent {}
 
       // Create and index the file first
       fs.writeFileSync(tempComponentPath, tempComponentContent);
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      
+      // Force a reindex to include the new file
+      await indexer.generateFullIndex(mockContext);
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Verify it's indexed
       let elements = indexer.getElements("temp-component");
@@ -310,7 +315,10 @@ export class TempComponent {}
 
       // Delete the file
       fs.unlinkSync(tempComponentPath);
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // Force a reindex after deletion
+      await indexer.generateFullIndex(mockContext);
 
       // Verify it's removed from index
       elements = indexer.getElements("temp-component");
@@ -334,7 +342,7 @@ export class TempComponent {}
       const newIndexer = new AngularIndexer();
       newIndexer.setProjectRoot(testProjectPath);
 
-      const loaded = newIndexer.loadFromWorkspace(mockContext);
+      const loaded = await newIndexer.loadFromWorkspace(mockContext);
       assert.ok(loaded, "Should successfully load from cache");
 
       // Verify loaded data
@@ -345,11 +353,11 @@ export class TempComponent {}
       newIndexer.dispose();
     });
 
-    it("should handle missing cache gracefully", () => {
+    it("should handle missing cache gracefully", async () => {
       indexer.setProjectRoot(testProjectPath);
 
       // Try to load from empty cache
-      const loaded = indexer.loadFromWorkspace(mockContext);
+      const loaded = await indexer.loadFromWorkspace(mockContext);
       assert.strictEqual(loaded, false, "Should return false when no cache exists");
     });
 

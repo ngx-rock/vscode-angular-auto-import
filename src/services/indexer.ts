@@ -20,6 +20,7 @@ import {
   type TypeReferenceNode,
 } from "ts-morph";
 import * as vscode from "vscode";
+import { logger } from "../logger";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
 import { findAngularDependencies, getLibraryEntryPoints, parseAngularSelector } from "../utils";
 
@@ -286,7 +287,7 @@ export class AngularIndexer {
     this.workspaceFileCacheKey = `angularFileCache_${projectHash}`;
     this.workspaceIndexCacheKey = `angularSelectorToDataIndex_${projectHash}`;
     this.workspaceModulesCacheKey = `angularModulesCache_${projectHash}`;
-    console.log(
+    logger.info(
       `AngularIndexer: Project root set to ${projectPath}. Cache keys: ${this.workspaceFileCacheKey}, ${this.workspaceIndexCacheKey}, ${this.workspaceModulesCacheKey}`
     );
   }
@@ -300,7 +301,7 @@ export class AngularIndexer {
       this.fileWatcher.dispose();
     }
     if (!this.projectRootPath) {
-      console.error("AngularIndexer: Cannot initialize watcher, projectRootPath not set.");
+      logger.error("AngularIndexer: Cannot initialize watcher, projectRootPath not set.");
       return;
     }
 
@@ -308,17 +309,17 @@ export class AngularIndexer {
     this.fileWatcher = vscode.workspace.createFileSystemWatcher(pattern);
 
     this.fileWatcher.onDidCreate(async (uri) => {
-      console.log(`Watcher (${path.basename(this.projectRootPath)}): File created: ${uri.fsPath}`);
+      logger.info(`Watcher (${path.basename(this.projectRootPath)}): File created: ${uri.fsPath}`);
       await this.updateFileIndex(uri.fsPath, context);
     });
 
     this.fileWatcher.onDidChange(async (uri) => {
-      console.log(`Watcher (${path.basename(this.projectRootPath)}): File changed: ${uri.fsPath}`);
+      logger.info(`Watcher (${path.basename(this.projectRootPath)}): File changed: ${uri.fsPath}`);
       await this.updateFileIndex(uri.fsPath, context);
     });
 
     this.fileWatcher.onDidDelete(async (uri) => {
-      console.log(`Watcher (${path.basename(this.projectRootPath)}): File deleted: ${uri.fsPath}`);
+      logger.info(`Watcher (${path.basename(this.projectRootPath)}): File deleted: ${uri.fsPath}`);
       await this.removeFromIndex(uri.fsPath, context);
       // Also remove from ts-morph project
       const sourceFile = this.project.getSourceFile(uri.fsPath);
@@ -328,7 +329,7 @@ export class AngularIndexer {
     });
 
     context.subscriptions.push(this.fileWatcher);
-    console.log(`AngularIndexer: File watcher initialized for ${this.projectRootPath} with pattern ${pattern.pattern}`);
+    logger.info(`AngularIndexer: File watcher initialized for ${this.projectRootPath} with pattern ${pattern.pattern}`);
   }
 
   /**
@@ -356,7 +357,7 @@ export class AngularIndexer {
    */
   private parseAngularElementsWithTsMorph(filePath: string, content: string): ComponentInfo[] {
     if (!this.projectRootPath) {
-      console.error("AngularIndexer.parseAngularElementsWithTsMorph: projectRootPath is not set.");
+      logger.error("AngularIndexer.parseAngularElementsWithTsMorph: projectRootPath is not set.");
       const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
       return fallbackResult ? [fallbackResult] : [];
     }
@@ -391,7 +392,7 @@ export class AngularIndexer {
 
       return elements;
     } catch (error) {
-      console.error(`ts-morph parsing error for ${filePath} in project ${this.projectRootPath}:`, error);
+      logger.error(`ts-morph parsing error for ${filePath} in project ${this.projectRootPath}:`, error as Error);
       const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
       return fallbackResult ? [fallbackResult] : [];
     }
@@ -499,7 +500,7 @@ export class AngularIndexer {
         }
       }
     } catch (error) {
-      console.error("Error extracting component data from decorator:", error);
+      logger.error("Error extracting component data from decorator:", error as Error);
     }
 
     return { selector, standalone };
@@ -535,7 +536,7 @@ export class AngularIndexer {
         }
       }
     } catch (error) {
-      console.error("Error extracting directive data from decorator:", error);
+      logger.error("Error extracting directive data from decorator:", error as Error);
     }
 
     return { selector, standalone };
@@ -571,7 +572,7 @@ export class AngularIndexer {
         }
       }
     } catch (error) {
-      console.error("Error extracting pipe data from decorator:", error);
+      logger.error("Error extracting pipe data from decorator:", error as Error);
     }
 
     return { name, standalone };
@@ -588,7 +589,7 @@ export class AngularIndexer {
     // This is a fallback, ensure it's robust enough or log clearly when it's used.
     // Note: This regex approach only finds the first element, unlike the ts-morph approach
     if (!this.projectRootPath) {
-      console.warn(
+      logger.warn(
         "AngularIndexer.parseAngularElementWithRegex: projectRootPath is not set. Regex parsing might be unreliable."
       );
       // Allow to proceed but with caution
@@ -641,15 +642,15 @@ export class AngularIndexer {
   private async updateFileIndex(filePath: string, context: vscode.ExtensionContext): Promise<void> {
     try {
       if (!fs.existsSync(filePath)) {
-        console.warn(`File not found, cannot update index: ${filePath} for project ${this.projectRootPath}`);
+        logger.warn(`File not found, cannot update index: ${filePath} for project ${this.projectRootPath}`);
         return;
       }
       if (!this.projectRootPath) {
-        console.error(`AngularIndexer.updateFileIndex: projectRootPath not set for ${filePath}. Aborting update.`);
+        logger.error(`AngularIndexer.updateFileIndex: projectRootPath not set for ${filePath}. Aborting update.`);
         return;
       }
       if (!filePath.startsWith(this.projectRootPath)) {
-        console.warn(
+        logger.warn(
           `AngularIndexer.updateFileIndex: File ${filePath} is outside of project root ${this.projectRootPath}. Skipping.`
         );
         return;
@@ -728,13 +729,14 @@ export class AngularIndexer {
             parsed.selector, // original selector
             individualSelectors,
             parsed.isStandalone,
+            false, // isExternal
             moduleToImport
           );
 
           // Index the element under each individual selector
           for (const selector of individualSelectors) {
             this.selectorTrie.insert(selector, elementData);
-            console.log(`Updated index for ${this.projectRootPath}: ${selector} (${parsed.type}) -> ${parsed.path}`);
+            logger.info(`Updated index for ${this.projectRootPath}: ${selector} (${parsed.type}) -> ${parsed.path}`);
           }
         }
       } else {
@@ -744,11 +746,11 @@ export class AngularIndexer {
         if (sourceFile) {
           this.project.removeSourceFile(sourceFile); // or sourceFile.forget()
         }
-        console.log(`No Angular elements found in ${filePath} for ${this.projectRootPath}`);
+        logger.info(`No Angular elements found in ${filePath} for ${this.projectRootPath}`);
       }
       await this.saveIndexToWorkspace(context);
     } catch (error) {
-      console.error(`Error updating index for ${filePath} in project ${this.projectRootPath}:`, error);
+      logger.error(`Error updating index for ${filePath} in project ${this.projectRootPath}:`, error as Error);
     }
   }
 
@@ -766,7 +768,7 @@ export class AngularIndexer {
         const individualSelectors = await parseAngularSelector(element.selector);
         for (const selector of individualSelectors) {
           this.selectorTrie.remove(selector, filePath);
-          console.log(`Removed from index for ${this.projectRootPath}: ${selector} from ${filePath}`);
+          logger.info(`Removed from index for ${this.projectRootPath}: ${selector} from ${filePath}`);
         }
       }
       this.fileCache.delete(filePath);
@@ -790,15 +792,15 @@ export class AngularIndexer {
    */
   async generateFullIndex(context: vscode.ExtensionContext): Promise<Map<string, AngularElementData>> {
     if (this.isIndexing) {
-      console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): Already indexing, skipping...`);
+      logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): Already indexing, skipping...`);
       return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
     }
 
     this.isIndexing = true;
     try {
-      console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): Starting full index generation...`);
+      logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): Starting full index generation...`);
       if (!this.projectRootPath) {
-        console.error("AngularIndexer.generateFullIndex: projectRootPath not set. Aborting.");
+        logger.error("AngularIndexer.generateFullIndex: projectRootPath not set. Aborting.");
         return new Map();
       }
 
@@ -811,7 +813,7 @@ export class AngularIndexer {
       await this.indexProjectModules();
 
       const angularFiles = await this.getAngularFilesUsingVsCode();
-      console.log(
+      logger.info(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${angularFiles.length} Angular files.`
       );
 
@@ -824,7 +826,7 @@ export class AngularIndexer {
         }
         // const batchTasks = batch.map(file => this.updateFileIndex(file, context));
         // await Promise.all(batchTasks); // This could be too concurrent for ts-morph project modifications
-        console.log(
+        logger.info(
           `AngularIndexer (${path.basename(
             this.projectRootPath
           )}): Indexed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(angularFiles.length / batchSize)}`
@@ -832,7 +834,7 @@ export class AngularIndexer {
       }
 
       const totalElements = this.selectorTrie.getAllElements().length;
-      console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${totalElements} elements.`);
+      logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${totalElements} elements.`);
 
       await this.indexNodeModules(context);
 
@@ -850,7 +852,7 @@ export class AngularIndexer {
    */
   async loadFromWorkspace(context: vscode.ExtensionContext): Promise<boolean> {
     if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey) {
-      console.error("AngularIndexer.loadFromWorkspace: projectRootPath or cache keys not set. Cannot load.");
+      logger.error("AngularIndexer.loadFromWorkspace: projectRootPath or cache keys not set. Cannot load.");
       return false;
     }
     try {
@@ -892,7 +894,8 @@ export class AngularIndexer {
             value.originalSelector || key,
             await parseAngularSelector(value.originalSelector || key),
             value.isStandalone,
-            value.exportingModuleName
+            value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
+            value.exportingModuleName,
           );
           // Index under all its selectors
           for (const selector of elementData.selectors) {
@@ -906,7 +909,7 @@ export class AngularIndexer {
         if (storedModules) {
           this.projectModuleMap = new Map(Object.entries(storedModules));
         }
-        console.log(
+        logger.info(
           `AngularIndexer (${path.basename(this.projectRootPath)}): Loaded ${
             this.selectorTrie.size
           } elements from workspace cache.`
@@ -914,12 +917,12 @@ export class AngularIndexer {
         return true;
       }
     } catch (error) {
-      console.error(
+      logger.error(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Error loading index from workspace:`,
-        error
+        error as Error
       );
     }
-    console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): No valid cache found in workspace.`);
+    logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): No valid cache found in workspace.`);
     return false;
   }
 
@@ -930,7 +933,7 @@ export class AngularIndexer {
    */
   private async saveIndexToWorkspace(context: vscode.ExtensionContext): Promise<void> {
     if (!this.projectRootPath || !this.workspaceFileCacheKey || !this.workspaceIndexCacheKey) {
-      console.error("AngularIndexer.saveIndexToWorkspace: projectRootPath or cache keys not set. Cannot save.");
+      logger.error("AngularIndexer.saveIndexToWorkspace: projectRootPath or cache keys not set. Cannot save.");
       return;
     }
     try {
@@ -943,7 +946,10 @@ export class AngularIndexer {
       await context.workspaceState.update(this.workspaceIndexCacheKey, serializableTrie);
       await context.workspaceState.update(this.workspaceModulesCacheKey, Object.fromEntries(this.projectModuleMap));
     } catch (error) {
-      console.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`, error);
+      logger.error(
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`,
+        error as Error
+      );
     }
   }
 
@@ -958,7 +964,7 @@ export class AngularIndexer {
       !this.workspaceIndexCacheKey ||
       !this.workspaceModulesCacheKey
     ) {
-      console.error("AngularIndexer.clearCache: projectRootPath or cache keys not set. Cannot clear cache.");
+      logger.error("AngularIndexer.clearCache: projectRootPath or cache keys not set. Cannot clear cache.");
       return;
     }
     try {
@@ -973,9 +979,9 @@ export class AngularIndexer {
       await context.workspaceState.update(this.workspaceIndexCacheKey, undefined);
       await context.workspaceState.update(this.workspaceModulesCacheKey, undefined);
 
-      console.log(`AngularIndexer (${path.basename(this.projectRootPath)}): All caches cleared.`);
+      logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): All caches cleared.`);
     } catch (error) {
-      console.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error clearing cache:`, error);
+      logger.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error clearing cache:`, error as Error);
     }
   }
 
@@ -1005,12 +1011,12 @@ export class AngularIndexer {
       async (progress) => {
         try {
           if (!this.projectRootPath) {
-            console.error("AngularIndexer.indexNodeModules: projectRootPath not set.");
+            logger.error("AngularIndexer.indexNodeModules: projectRootPath not set.");
             return;
           }
           progress.report({ message: "Finding Angular libraries..." });
           const angularDeps = await findAngularDependencies(this.projectRootPath);
-          console.log(`[indexNodeModules] Found ${angularDeps.length} Angular dependencies.`);
+          logger.debug(`[indexNodeModules] Found ${angularDeps.length} Angular dependencies.`);
 
           const totalDeps = angularDeps.length;
           let processedCount = 0;
@@ -1027,13 +1033,13 @@ export class AngularIndexer {
               continue;
             }
 
-            console.log(`[indexNodeModules] Found ${entryPoints.size} entry points for ${dep.name}`);
+            logger.debug(`[indexNodeModules] Found ${entryPoints.size} entry points for ${dep.name}`);
             await this._indexLibrary(entryPoints);
           }
           await this.saveIndexToWorkspace(context);
-          console.log(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
+          logger.debug(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
         } catch (error) {
-          console.error("[indexNodeModules] Error during node_modules indexing:", error);
+          logger.error("[indexNodeModules] Error during node_modules indexing:", error as Error);
         }
       }
     );
@@ -1053,7 +1059,7 @@ export class AngularIndexer {
           libraryFiles.push({ importPath, sourceFile });
         }
       } catch (error) {
-        console.warn(`[Indexer] Could not process library file ${filePath}:`, error);
+        logger.warn(`[Indexer] Could not process library file ${filePath}: ${(error as Error).message}`);
       }
     }
 
@@ -1106,7 +1112,7 @@ export class AngularIndexer {
     if (!this.projectRootPath) {
       return;
     }
-    console.log(`[Indexer] Indexing project NgModules for ${this.projectRootPath}...`);
+    logger.debug(`[Indexer] Indexing project NgModules for ${this.projectRootPath}...`);
     this.projectModuleMap.clear();
 
     const moduleFiles = await vscode.workspace.findFiles(
@@ -1119,7 +1125,7 @@ export class AngularIndexer {
         const sourceFile = this.project.addSourceFileAtPath(file.fsPath);
         this._processProjectModuleFile(sourceFile);
       } catch (error) {
-        console.warn(`[Indexer] Could not process project module file ${file.fsPath}:`, error);
+        logger.warn(`[Indexer] Could not process project module file ${file.fsPath}: ${(error as Error).message}`);
       }
     }
 
@@ -1132,7 +1138,7 @@ export class AngularIndexer {
         this._processProjectModuleFile(sourceFile);
       }
     }
-    console.log(`[Indexer] Found ${this.projectModuleMap.size} component-to-module mappings in project.`);
+    logger.debug(`[Indexer] Found ${this.projectModuleMap.size} component-to-module mappings in project.`);
   }
 
   /**
@@ -1263,7 +1269,7 @@ export class AngularIndexer {
         }
       }
     } catch (error) {
-      console.error(`Error building module map for file ${sourceFile.getFilePath()}:`, error);
+      logger.error(`Error building module map for file ${sourceFile.getFilePath()}:`, error as Error);
     }
   }
 
@@ -1497,6 +1503,7 @@ export class AngularIndexer {
             selector,
             individualSelectors,
             isStandalone,
+            true, // isExternal
             !isStandalone && exportingModule ? exportingModule.moduleName : undefined
           );
 
@@ -1506,13 +1513,13 @@ export class AngularIndexer {
 
           const via = exportingModule ? `via ${exportingModule.moduleName}` : "directly";
           const standaloneTag = isStandalone ? "standalone" : "non-standalone";
-          console.log(
+          logger.info(
             `[NodeModulesIndexer] Indexed ${standaloneTag} ${elementType}: ${className} (${selector}) ${via} from ${finalImportPath}. Import target: ${finalImportName}`
           );
         }
       }
     } catch (error) {
-      console.error(`Error indexing declarations in file ${sourceFile.getFilePath()}:`, error);
+      logger.error(`Error indexing declarations in file ${sourceFile.getFilePath()}:`, error as Error);
     }
   }
 
@@ -1551,7 +1558,7 @@ export class AngularIndexer {
       }
       return allFiles;
     } catch (error) {
-      console.error(`Error finding files using VS Code API: ${error}`);
+      logger.error(`Error finding files using VS Code API: ${error}`);
       return this.getAngularFilesFallback(this.projectRootPath).map((relPath) =>
         path.join(this.projectRootPath, relPath)
       );
@@ -1593,7 +1600,7 @@ export class AngularIndexer {
           }
         }
       } catch (_err) {
-        // console.warn(`Could not read directory ${currentDirPath}: ${err}`);
+        // logger.warn(`Could not read directory ${currentDirPath}: ${err}`);
       }
     };
     if (fs.existsSync(basePath) && fs.statSync(basePath).isDirectory()) {

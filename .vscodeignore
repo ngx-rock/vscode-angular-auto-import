@@ -15,6 +15,7 @@ vsc-extension-quickstart.md
 .idea
 .cursor
 .vscode
+.claude
 TESTING.md
 pnpm-lock.yaml
 img/demo.gif

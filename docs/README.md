@@ -68,8 +68,6 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 
 > While Angular Auto Import aims to simplify your development experience, there are some limitations to be aware of:
 
-**File Naming Convention**: The extension only detects and indexes Angular components, directives, and pipes whose filenames include a specific suffix (`.component.ts`, `.directive.ts`, `.pipe.ts`). Files that do not follow this convention will be ignored during indexing.
-
 **Standalone Projects Only**: This extension is designed to work exclusively with standalone Angular projects. Traditional NgModule-based projects are not supported.
 
 --- 
@@ -86,6 +84,12 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 | [config](config.md) | Central export for configuration files. |
 | [config/angular-elements](config/angular-elements.md) | Configuration for standard Angular directives and pipes. |
 | [config/settings](config/settings.md) | Manages extension settings and configuration. |
+| [logger](logger.md) | - |
+| [logger/channel-transport](logger/channel-transport.md) | - |
+| [logger/config](logger/config.md) | - |
+| [logger/file-transport](logger/file-transport.md) | - |
+| [logger/logger](logger/logger-1.md) | - |
+| [logger/types](logger/types.md) | - |
 | [Main extension entry point for Angular Auto-Import](Main-extension-entry-point-for-Angular-Auto-Import.md) | VSCode Extension: Angular Auto-Import |
 | [providers](providers.md) | VSCode Providers Registration |
 | [providers/completion](providers/completion.md) | Angular Auto-Import Completion Provider |

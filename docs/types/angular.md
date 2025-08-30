@@ -20,7 +20,7 @@ Represents data for an Angular element to be indexed.
 
 ##### Constructor
 
-> **new AngularElementData**(`path`, `name`, `type`, `originalSelector`, `selectors`, `isStandalone`, `exportingModuleName?`): [`AngularElementData`](#angularelementdata)
+> **new AngularElementData**(`path`, `name`, `type`, `originalSelector`, `selectors`, `isStandalone`, `isExternal`, `exportingModuleName?`): [`AngularElementData`](#angularelementdata)
 
 Defined in: [types/angular.ts:56](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L56)
 
@@ -34,6 +34,7 @@ Defined in: [types/angular.ts:56](https://github.com/ngx-rock/vscode-angular-aut
 | `originalSelector` | `string` | The original selector of the element. |
 | `selectors` | `string`[] | An array of possible selectors for the element. |
 | `isStandalone` | `boolean` | Indicates if the element is standalone. |
+| `isExternal` | `boolean` | - |
 | `exportingModuleName?` | `string` | The name of the module that exports this element, if applicable. |
 
 ###### Returns
@@ -44,7 +45,8 @@ Defined in: [types/angular.ts:56](https://github.com/ngx-rock/vscode-angular-aut
 
 | Property | Modifier | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ | ------ |
-| <a id="exportingmodulename"></a> `exportingModuleName?` | `readonly` | `string` | The name of the module that exports this element, if applicable. | [types/angular.ts:63](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L63) |
+| <a id="exportingmodulename"></a> `exportingModuleName?` | `readonly` | `string` | The name of the module that exports this element, if applicable. | [types/angular.ts:64](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L64) |
+| <a id="isexternal"></a> `isExternal` | `readonly` | `boolean` | - | [types/angular.ts:63](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L63) |
 | <a id="isstandalone"></a> `isStandalone` | `readonly` | `boolean` | Indicates if the element is standalone. | [types/angular.ts:62](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L62) |
 | <a id="name"></a> `name` | `readonly` | `string` | The name of the element's class. | [types/angular.ts:58](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L58) |
 | <a id="originalselector"></a> `originalSelector` | `readonly` | `string` | The original selector of the element. | [types/angular.ts:60](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L60) |
@@ -76,7 +78,7 @@ Represents information about an Angular component, directive, or pipe.
 
 ### FileElementsInfo
 
-Defined in: [types/angular.ts:70](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L70)
+Defined in: [types/angular.ts:71](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L71)
 
 Information about Angular elements found in a single file.
 
@@ -84,16 +86,16 @@ Information about Angular elements found in a single file.
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| <a id="elements"></a> `elements` | [`ComponentInfo`](#componentinfo)[] | An array of component information found in the file. | [types/angular.ts:86](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L86) |
-| <a id="filepath"></a> `filePath` | `string` | The path to the file. | [types/angular.ts:74](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L74) |
-| <a id="hash-1"></a> `hash` | `string` | A hash of the file content. | [types/angular.ts:82](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L82) |
-| <a id="lastmodified-1"></a> `lastModified` | `number` | The timestamp of the last modification of the file. | [types/angular.ts:78](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L78) |
+| <a id="elements"></a> `elements` | [`ComponentInfo`](#componentinfo)[] | An array of component information found in the file. | [types/angular.ts:87](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L87) |
+| <a id="filepath"></a> `filePath` | `string` | The path to the file. | [types/angular.ts:75](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L75) |
+| <a id="hash-1"></a> `hash` | `string` | A hash of the file content. | [types/angular.ts:83](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L83) |
+| <a id="lastmodified-1"></a> `lastModified` | `number` | The timestamp of the last modification of the file. | [types/angular.ts:79](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L79) |
 
 ***
 
 ### ParsedHtmlElement
 
-Defined in: [types/angular.ts:110](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L110)
+Defined in: [types/angular.ts:111](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L111)
 
 A base interface for HTML elements found in a template.
 
@@ -101,16 +103,16 @@ A base interface for HTML elements found in a template.
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| <a id="name-2"></a> `name` | `string` | The name of the element. | [types/angular.ts:118](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L118) |
-| <a id="range"></a> `range` | `Range` | The range of the element in the document. | [types/angular.ts:122](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L122) |
-| <a id="tagname"></a> `tagName` | `string` | The tag name of the HTML element. | [types/angular.ts:126](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L126) |
-| <a id="type-2"></a> `type` | `"pipe"` \| `"component"` \| `"attribute"` \| `"structural-directive"` \| `"property-binding"` \| `"template-reference"` | The type of the parsed HTML element. | [types/angular.ts:114](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L114) |
+| <a id="name-2"></a> `name` | `string` | The name of the element. | [types/angular.ts:119](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L119) |
+| <a id="range"></a> `range` | `Range` | The range of the element in the document. | [types/angular.ts:123](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L123) |
+| <a id="tagname"></a> `tagName` | `string` | The tag name of the HTML element. | [types/angular.ts:127](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L127) |
+| <a id="type-2"></a> `type` | `"pipe"` \| `"component"` \| `"attribute"` \| `"structural-directive"` \| `"property-binding"` \| `"template-reference"` | The type of the parsed HTML element. | [types/angular.ts:115](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L115) |
 
 ***
 
 ### ProjectContext
 
-Defined in: [types/angular.ts:92](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L92)
+Defined in: [types/angular.ts:93](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L93)
 
 The project context to be passed to providers.
 
@@ -118,6 +120,6 @@ The project context to be passed to providers.
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| <a id="indexer"></a> `indexer` | [`AngularIndexer`](../services/indexer.md#angularindexer) | An instance of the Angular indexer. | [types/angular.ts:100](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L100) |
-| <a id="projectrootpath"></a> `projectRootPath` | `string` | The root path of the Angular project. | [types/angular.ts:96](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L96) |
-| <a id="tsconfig"></a> `tsConfig` | `null` \| [`ProcessedTsConfig`](tsconfig.md#processedtsconfig) | The processed tsconfig for the project. | [types/angular.ts:104](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L104) |
+| <a id="indexer"></a> `indexer` | [`AngularIndexer`](../services/indexer.md#angularindexer) | An instance of the Angular indexer. | [types/angular.ts:101](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L101) |
+| <a id="projectrootpath"></a> `projectRootPath` | `string` | The root path of the Angular project. | [types/angular.ts:97](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L97) |
+| <a id="tsconfig"></a> `tsConfig` | `null` \| [`ProcessedTsConfig`](tsconfig.md#processedtsconfig) | The processed tsconfig for the project. | [types/angular.ts:105](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L105) |

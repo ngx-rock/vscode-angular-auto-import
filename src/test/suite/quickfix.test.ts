@@ -48,7 +48,8 @@ describe("QuickfixImportProvider", function () {
               "component",
               "test-component",
               ["test-component"],
-              false
+              false,
+              false // isExternal
             ),
           ],
           [
@@ -59,7 +60,8 @@ describe("QuickfixImportProvider", function () {
               "component",
               "standalone-component",
               ["standalone-component"],
-              true // standalone
+              true, // standalone
+              false // isExternal
             ),
           ],
           [
@@ -70,12 +72,13 @@ describe("QuickfixImportProvider", function () {
               "component", // Modules are treated as components for the purpose of this test
               "test-module",
               ["test-module"],
-              false
+              false,
+              false // isExternal
             ),
           ],
           [
             "testPipe",
-            new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false),
+            new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false, false), // isExternal
           ],
           [
             "[testDirective]",
@@ -85,7 +88,8 @@ describe("QuickfixImportProvider", function () {
               "directive",
               "[testDirective]",
               ["testDirective", "[testDirective]"],
-              false
+              false,
+              false // isExternal
             ),
           ],
           [
@@ -96,7 +100,8 @@ describe("QuickfixImportProvider", function () {
               "directive",
               "[testDirective]",
               ["testDirective", "[testDirective]"],
-              false
+              false,
+              false // isExternal
             ),
           ],
           [
@@ -107,7 +112,8 @@ describe("QuickfixImportProvider", function () {
               "directive",
               "[ngIf]",
               ["ngIf", "*ngIf", "[ngIf]"],
-              false
+              false,
+              true // isExternal
             ),
           ],
         ]);
@@ -124,7 +130,8 @@ describe("QuickfixImportProvider", function () {
                 "component",
                 "test-component",
                 ["test-component"],
-                false
+                false,
+                false // isExternal
               ),
             ],
           ],
@@ -137,7 +144,8 @@ describe("QuickfixImportProvider", function () {
                 "component",
                 "standalone-component",
                 ["standalone-component"],
-                true
+                true,
+                false // isExternal
               ),
             ],
           ],
@@ -150,13 +158,14 @@ describe("QuickfixImportProvider", function () {
                 "component",
                 "test-module",
                 ["test-module"],
-                false
+                false,
+                false // isExternal
               ),
             ],
           ],
           [
             "testPipe",
-            [new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false)],
+            [new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false, false)], // isExternal
           ],
           [
             "[testDirective]",
@@ -167,7 +176,8 @@ describe("QuickfixImportProvider", function () {
                 "directive",
                 "[testDirective]",
                 ["testDirective", "[testDirective]"],
-                false
+                false,
+                false // isExternal
               ),
             ],
           ],
@@ -180,7 +190,8 @@ describe("QuickfixImportProvider", function () {
                 "directive",
                 "[testDirective]",
                 ["testDirective", "[testDirective]"],
-                false
+                false,
+                false // isExternal
               ),
             ],
           ],
@@ -193,7 +204,8 @@ describe("QuickfixImportProvider", function () {
                 "directive",
                 "[ngIf]",
                 ["ngIf", "*ngIf", "[ngIf]"],
-                false
+                false,
+                true // isExternal
               ),
             ],
           ],
@@ -663,7 +675,7 @@ describe("QuickfixImportProvider", function () {
 
       const action = result[0] as vscode.CodeAction;
       assert.ok(action.title.includes("TestModule"), "Should include module name in title");
-      assert.ok(action.title.includes("★ Import TestModule"), "Should have import title for module");
+      assert.ok(action.title.includes("⟐ Import TestModule"), "Should have import title for module");
     });
   });
 });

@@ -52,7 +52,7 @@ Defined in: [providers/completion.ts:21](https://github.com/ngx-rock/vscode-angu
 
 > `private` **getProjectContextForDocument**(`document`): `undefined` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
 
-Defined in: [providers/completion.ts:442](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L442)
+Defined in: [providers/completion.ts:440](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L440)
 
 **`Internal`**
 

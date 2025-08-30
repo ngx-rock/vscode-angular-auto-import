@@ -4,6 +4,7 @@
  */
 
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
+import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import { AngularElementData } from "../types";
 
@@ -24,7 +25,7 @@ export async function parseAngularSelector(selectorString: string): Promise<stri
     return [];
   }
 
-  console.log(`[parseAngularSelector] Parsing selector: "${selectorString}"`);
+  // Parsing selector
 
   // We are now confident in the primary async parser.
   return parseAngularSelectorSync(selectorString);
@@ -50,7 +51,7 @@ async function parseAngularSelectorSync(selectorString: string): Promise<string[
   }
 
   const uniqueSelectors = [...new Set(parsedSelectors.filter((s) => s && s.length > 0))];
-  console.log(`[parseAngularSelector] Final unique selectors: [${uniqueSelectors.join(", ")}]`);
+  // Final unique selectors processed
 
   return uniqueSelectors;
 }
@@ -168,7 +169,8 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
           std.type,
           std.originalSelector,
           std.selectors,
-          !std.name.endsWith("Module") // Heuristic for standard elements
+          !std.name.endsWith("Module"), // Heuristic for standard elements
+          true // isExternal - standard Angular elements are always external
         );
         foundElements.push(element);
         seenElements.add(key);
@@ -188,7 +190,7 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
         }
       }
     } catch (error) {
-      console.warn(`Error getting element from indexer for selector '${sel}':`, error);
+      logger.warn(`Error getting element from indexer for selector '${sel}': ${(error as Error).message}`);
     }
   }
 
@@ -239,7 +241,7 @@ async function getBestMatchUsingAngularMatcher(
     // Parse the incoming selector using Angular compiler
     const templateCssSelectors = CssSelector.parse(selector);
     if (templateCssSelectors.length === 0) {
-      console.warn(`[getBestMatchUsingAngularMatcher] Could not parse selector: "${selector}"`);
+      logger.warn(`Could not parse selector: "${selector}"`);
       return candidates[0];
     }
 
@@ -315,7 +317,7 @@ async function getBestMatchUsingAngularMatcher(
 
     return bestMatches[0];
   } catch (error) {
-    console.error("Error using Angular SelectorMatcher:", error);
+    logger.error("Error using Angular SelectorMatcher:", error as Error);
     return candidates[0];
   }
 }
