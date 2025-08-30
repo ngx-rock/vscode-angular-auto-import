@@ -376,18 +376,17 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           const item = new vscode.CompletionItem(stdSelector, itemKind);
           item.insertText = insertText;
 
-          const attrName = stdSelector.startsWith("[")
-            ? stdSelector.slice(1, -1)
-            : stdSelector.startsWith("*")
-              ? stdSelector.slice(1)
-              : stdSelector;
-          item.filterText = attrName;
+          item.filterText = stdSelector.startsWith("[")
+              ? stdSelector.slice(1, -1)
+              : stdSelector.startsWith("*")
+                  ? stdSelector.slice(1)
+                  : stdSelector;
 
           if (replacementRange) {
             item.range = replacementRange;
           }
-          const isModuleImport = stdElement.name.endsWith("Module");
-          item.detail = `Angular Auto-Import: ${stdElement.type}${isModuleImport ? ` (requires ${stdElement.name})` : " (standalone)"}`;
+          // Standard Angular elements are always standalone and don't require module imports
+          item.detail = `Angular Auto-Import: ${stdElement.type} (standalone)`;
           item.documentation = new vscode.MarkdownString(`Import from \`${stdElement.importPath}\`.`);
           const elementDataForCommand = new AngularElementData(
             stdElement.importPath,
@@ -395,9 +394,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             stdElement.type,
             stdSelector, // Use the matched selector as the original selector
             stdElement.selectors ?? [stdSelector], // Ensure selectors is an array
-            !isModuleImport,
+            true, // isStandalone - standard Angular elements are always standalone
             true, // isExternal - standard Angular elements are always external
-            isModuleImport ? stdElement.name : undefined
+            undefined // No exporting module needed for standard elements
           );
           item.command = {
             title: `Import ${stdElement.name}`,
