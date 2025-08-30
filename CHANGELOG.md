@@ -4,6 +4,20 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.9.0] - 2025-08-30
+
+### Added
+- Comprehensive logging system with configurable levels (DEBUG, INFO, WARN, ERROR, FATAL)
+- File logging support with rotation and customizable output formats
+- External library tracking with `isExternal` property on AngularElementData
+- Enhanced tsconfig parsing with robust error handling using `get-tsconfig` library
+
+### Configuration
+- `angular-auto-import.logging.enabled` - Enable/disable logging (default: true)
+- `angular-auto-import.logging.level` - Set logging level (default: INFO)
+- `angular-auto-import.logging.fileLoggingEnabled` - Enable file logging (default: false)
+- `angular-auto-import.logging.outputFormat` - Log format: plain or json (default: plain)
+
 ## [1.8.0] - 2025-08-18
 
 ### Changed
