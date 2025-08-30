@@ -396,6 +396,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             stdSelector, // Use the matched selector as the original selector
             stdElement.selectors ?? [stdSelector], // Ensure selectors is an array
             !isModuleImport,
+            true, // isExternal - standard Angular elements are always external
             isModuleImport ? stdElement.name : undefined
           );
           item.command = {

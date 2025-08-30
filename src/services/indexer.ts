@@ -946,7 +946,10 @@ export class AngularIndexer {
       await context.workspaceState.update(this.workspaceIndexCacheKey, serializableTrie);
       await context.workspaceState.update(this.workspaceModulesCacheKey, Object.fromEntries(this.projectModuleMap));
     } catch (error) {
-      logger.error(`AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`, error as Error);
+      logger.error(
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`,
+        error as Error
+      );
     }
   }
 

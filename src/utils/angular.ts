@@ -3,8 +3,8 @@
  * @module
  */
 
-import { logger } from "../logger";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
+import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import { AngularElementData } from "../types";
 
@@ -169,7 +169,8 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
           std.type,
           std.originalSelector,
           std.selectors,
-          !std.name.endsWith("Module") // Heuristic for standard elements
+          !std.name.endsWith("Module"), // Heuristic for standard elements
+          true // isExternal - standard Angular elements are always external
         );
         foundElements.push(element);
         seenElements.add(key);

@@ -6,7 +6,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getTsconfig, parseTsconfig } from "get-tsconfig";
+import { type getTsconfig, parseTsconfig } from "get-tsconfig";
 import { logger } from "../logger";
 import type { ProcessedTsConfig } from "../types";
 import { getRelativeFilePath, normalizePath, switchFileType } from "../utils";
@@ -60,7 +60,7 @@ class PathAliasTrie {
       const pathArraySafe = Array.isArray(pathArray) ? (pathArray as string[]) : [];
 
       if (pathArraySafe.length > 0) {
-        let originalPath = pathArraySafe[0];
+        const originalPath = pathArraySafe[0];
         // Normalize paths that start with "./" to remove the prefix
         // if (originalPath.startsWith('./')) {
         //   originalPath = originalPath.substring(2);
