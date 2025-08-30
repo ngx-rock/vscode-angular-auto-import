@@ -156,12 +156,8 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
   private createCodeAction(element: AngularElementData, diagnostic: vscode.Diagnostic): vscode.CodeAction | null {
     try {
-      const isModule = element.name.endsWith("Module");
-
       let title: string;
-      if (isModule) {
-        title = `⟐ Import ${element.name}`;
-      } else if (element.isStandalone) {
+      if (element.isStandalone) {
         title = `⟐ Import ${element.name} (standalone)`;
       } else if (element.exportingModuleName) {
         title = `⟐ Import ${element.name} (via ${element.exportingModuleName})`;
