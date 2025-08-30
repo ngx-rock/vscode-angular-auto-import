@@ -60,6 +60,7 @@ export class AngularElementData {
     public readonly originalSelector: string,
     public readonly selectors: string[],
     public readonly isStandalone: boolean,
+    public readonly isExternal: boolean,
     public readonly exportingModuleName?: string
   ) {}
 }

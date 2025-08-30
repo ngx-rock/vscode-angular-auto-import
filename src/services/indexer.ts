@@ -729,6 +729,7 @@ export class AngularIndexer {
             parsed.selector, // original selector
             individualSelectors,
             parsed.isStandalone,
+            false, // isExternal
             moduleToImport
           );
 
@@ -893,6 +894,7 @@ export class AngularIndexer {
             value.originalSelector || key,
             await parseAngularSelector(value.originalSelector || key),
             value.isStandalone,
+            value.path.includes("node_modules"), // Best guess for deserialized data
             value.exportingModuleName
           );
           // Index under all its selectors
@@ -1498,6 +1500,7 @@ export class AngularIndexer {
             selector,
             individualSelectors,
             isStandalone,
+            true, // isExternal
             !isStandalone && exportingModule ? exportingModule.moduleName : undefined
           );
 

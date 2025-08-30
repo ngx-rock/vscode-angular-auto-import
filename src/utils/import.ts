@@ -119,15 +119,13 @@ export async function importElementToFile(
 
     // Determine if the element is from an external package or local project file.
     let importPathString: string;
-    // If the path is not absolute and does not start with a dot, it's a module specifier.
-    if (!path.isAbsolute(element.path) && !element.path.startsWith(".")) {
+    if (element.isExternal) {
+      // Use the path directly as it's a module specifier (e.g., '@angular/core').
       importPathString = element.path;
-      // Using module import path
     } else {
-      // For project elements, resolve import path using tsconfig
+      // For project elements, resolve the path using tsconfig aliases or relative paths.
       const absoluteTargetModulePath = path.join(projectRootPath, element.path);
       const absoluteTargetModulePathNoExt = switchFileType(absoluteTargetModulePath, "");
-      // Resolving absolute target path
 
       importPathString = await TsConfigHelper.resolveImportPath(
         absoluteTargetModulePathNoExt,
