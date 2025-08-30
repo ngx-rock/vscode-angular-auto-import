@@ -386,7 +386,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             item.range = replacementRange;
           }
           // Standard Angular elements are always standalone and don't require module imports
-          item.detail = `Angular Auto-Import: ${stdElement.type} (standalone)`;
+          item.detail = `Angular Auto-Import: ${stdElement.type} (standalone)`; // todo 
           item.documentation = new vscode.MarkdownString(`Import from \`${stdElement.importPath}\`.`);
           const elementDataForCommand = new AngularElementData(
             stdElement.importPath,
