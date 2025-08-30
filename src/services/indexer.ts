@@ -894,8 +894,8 @@ export class AngularIndexer {
             value.originalSelector || key,
             await parseAngularSelector(value.originalSelector || key),
             value.isStandalone,
-            value.path.includes("node_modules"), // Best guess for deserialized data
-            value.exportingModuleName
+            value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
+            value.exportingModuleName,
           );
           // Index under all its selectors
           for (const selector of elementData.selectors) {
