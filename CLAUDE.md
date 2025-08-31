@@ -21,10 +21,7 @@ pnpm run package
 pnpm run check-types
 
 # Linting and formatting
-pnpm run lint          # Full lint check (biome + knip + types)
-pnpm run lint:fix      # Auto-fix biome issues
-pnpm run format:fix    # Auto-format code
-pnpm run check:fix     # Check and fix all issues
+pnpm run lint          # Full lint check (biome + knip + types) 
 
 # Testing
 pnpm run test          # Run VS Code extension tests

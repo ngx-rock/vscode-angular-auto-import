@@ -14,7 +14,7 @@ Defined in: [logger/file-transport.ts:6](https://github.com/ngx-rock/vscode-angu
 
 #### Implements
 
-- [`ITransport`](types.md#itransport)
+- [`Transport`](types.md#transport)
 
 #### Constructors
 
@@ -53,7 +53,7 @@ Defined in: [logger/file-transport.ts:15](https://github.com/ngx-rock/vscode-ang
 
 > `private` **checkRotation**(): `Promise`\<`void`\>
 
-Defined in: [logger/file-transport.ts:69](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/file-transport.ts#L69)
+Defined in: [logger/file-transport.ts:70](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/file-transport.ts#L70)
 
 ###### Returns
 
@@ -63,7 +63,7 @@ Defined in: [logger/file-transport.ts:69](https://github.com/ngx-rock/vscode-ang
 
 > **dispose**(): `Promise`\<`void`\>
 
-Defined in: [logger/file-transport.ts:115](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/file-transport.ts#L115)
+Defined in: [logger/file-transport.ts:120](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/file-transport.ts#L120)
 
 ###### Returns
 
@@ -71,13 +71,13 @@ Defined in: [logger/file-transport.ts:115](https://github.com/ngx-rock/vscode-an
 
 ###### Implementation of
 
-[`ITransport`](types.md#itransport).[`dispose`](types.md#dispose)
+[`Transport`](types.md#transport).[`dispose`](types.md#dispose)
 
 ##### flush()
 
 > `private` **flush**(): `Promise`\<`void`\>
 
-Defined in: [logger/file-transport.ts:48](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/file-transport.ts#L48)
+Defined in: [logger/file-transport.ts:49](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/file-transport.ts#L49)
 
 ###### Returns
 
@@ -111,13 +111,13 @@ Defined in: [logger/file-transport.ts:41](https://github.com/ngx-rock/vscode-ang
 
 ###### Implementation of
 
-[`ITransport`](types.md#itransport).[`log`](types.md#log)
+[`Transport`](types.md#transport).[`log`](types.md#log)
 
 ##### rotate()
 
 > `private` **rotate**(): `Promise`\<`void`\>
 
-Defined in: [logger/file-transport.ts:85](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/file-transport.ts#L85)
+Defined in: [logger/file-transport.ts:86](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/file-transport.ts#L86)
 
 ###### Returns
 

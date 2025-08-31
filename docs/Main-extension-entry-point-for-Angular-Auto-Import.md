@@ -97,7 +97,7 @@ deactivate();
 
 > **getProjectContextForDocument**(`document`): `undefined` \| [`ProjectContext`](types/angular.md#projectcontext)
 
-Defined in: [extension.ts:458](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L458)
+Defined in: [extension.ts:462](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L462)
 
 Retrieves the project context for a given VS Code document.
 

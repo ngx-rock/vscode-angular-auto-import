@@ -8,53 +8,6 @@
 
 ## Interfaces
 
-### ILogPoint
-
-Defined in: [logger/types.ts:36](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L36)
-
-#### Properties
-
-| Property | Type | Defined in |
-| ------ | ------ | ------ |
-| <a id="name"></a> `name` | `string` | [logger/types.ts:37](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L37) |
-| <a id="starttime"></a> `startTime` | `number` | [logger/types.ts:38](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L38) |
-
-***
-
-### ITransport
-
-Defined in: [logger/types.ts:31](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L31)
-
-#### Methods
-
-##### dispose()
-
-> **dispose**(): `void`
-
-Defined in: [logger/types.ts:33](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L33)
-
-###### Returns
-
-`void`
-
-##### log()
-
-> **log**(`entry`): `void`
-
-Defined in: [logger/types.ts:32](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L32)
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `entry` | [`LogEntry`](#logentry) |
-
-###### Returns
-
-`void`
-
-***
-
 ### LogEntry
 
 Defined in: [logger/types.ts:15](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L15)
@@ -96,6 +49,19 @@ Defined in: [logger/types.ts:5](https://github.com/ngx-rock/vscode-angular-auto-
 
 ***
 
+### LogPoint
+
+Defined in: [logger/types.ts:36](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L36)
+
+#### Properties
+
+| Property | Type | Defined in |
+| ------ | ------ | ------ |
+| <a id="name"></a> `name` | `string` | [logger/types.ts:37](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L37) |
+| <a id="starttime"></a> `startTime` | `number` | [logger/types.ts:38](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L38) |
+
+***
+
 ### PerformanceMetrics
 
 Defined in: [logger/types.ts:41](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L41)
@@ -106,6 +72,40 @@ Defined in: [logger/types.ts:41](https://github.com/ngx-rock/vscode-angular-auto
 | ------ | ------ | ------ |
 | <a id="cpuusage"></a> `cpuUsage` | `CpuUsage` | [logger/types.ts:43](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L43) |
 | <a id="memoryusage"></a> `memoryUsage` | `MemoryUsage` | [logger/types.ts:42](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L42) |
+
+***
+
+### Transport
+
+Defined in: [logger/types.ts:31](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L31)
+
+#### Methods
+
+##### dispose()
+
+> **dispose**(): `void`
+
+Defined in: [logger/types.ts:33](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L33)
+
+###### Returns
+
+`void`
+
+##### log()
+
+> **log**(`entry`): `void`
+
+Defined in: [logger/types.ts:32](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L32)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `entry` | [`LogEntry`](#logentry) |
+
+###### Returns
+
+`void`
 
 ## Type Aliases
 

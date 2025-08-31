@@ -12,7 +12,7 @@ Angular Auto-Import QuickFix Provider
 
 ### QuickfixImportProvider
 
-Defined in: [providers/quickfix.ts:20](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L20)
+Defined in: [providers/quickfix.ts:22](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L22)
 
 Provides QuickFix actions for Angular elements.
 
@@ -26,7 +26,7 @@ Provides QuickFix actions for Angular elements.
 
 > **new QuickfixImportProvider**(`context`): [`QuickfixImportProvider`](#quickfiximportprovider)
 
-Defined in: [providers/quickfix.ts:23](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L23)
+Defined in: [providers/quickfix.ts:25](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L25)
 
 ###### Parameters
 
@@ -42,16 +42,16 @@ Defined in: [providers/quickfix.ts:23](https://github.com/ngx-rock/vscode-angula
 
 | Property | Modifier | Type | Defined in |
 | ------ | ------ | ------ | ------ |
-| <a id="context"></a> `context` | `private` | [`ProviderContext`](../providers.md#providercontext) | [providers/quickfix.ts:23](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L23) |
-| <a id="providedcodeactionkinds"></a> `providedCodeActionKinds` | `readonly` | `CodeActionKind`[] | [providers/quickfix.ts:21](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L21) |
+| <a id="context"></a> `context` | `private` | [`ProviderContext`](../providers.md#providercontext) | [providers/quickfix.ts:25](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L25) |
+| <a id="providedcodeactionkinds"></a> `providedCodeActionKinds` | `readonly` | `CodeActionKind`[] | [providers/quickfix.ts:23](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L23) |
 
 #### Methods
 
 ##### createCodeAction()
 
-> `private` **createCodeAction**(`element`, `diagnostic`): `null` \| `CodeAction`
+> `private` **createCodeAction**(`element`, `diagnostic`, `document`): `Promise`\<`null` \| `CodeAction`\>
 
-Defined in: [providers/quickfix.ts:157](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L157)
+Defined in: [providers/quickfix.ts:160](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L160)
 
 ###### Parameters
 
@@ -59,16 +59,17 @@ Defined in: [providers/quickfix.ts:157](https://github.com/ngx-rock/vscode-angul
 | ------ | ------ |
 | `element` | [`AngularElementData`](../types/angular.md#angularelementdata) |
 | `diagnostic` | `Diagnostic` |
+| `document` | `TextDocument` |
 
 ###### Returns
 
-`null` \| `CodeAction`
+`Promise`\<`null` \| `CodeAction`\>
 
 ##### createQuickFixesForDiagnostic()
 
-> `private` **createQuickFixesForDiagnostic**(`diagnostic`, `indexer`): `Promise`\<`CodeAction`[]\>
+> `private` **createQuickFixesForDiagnostic**(`diagnostic`, `indexer`, `document`): `Promise`\<`CodeAction`[]\>
 
-Defined in: [providers/quickfix.ts:122](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L122)
+Defined in: [providers/quickfix.ts:124](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L124)
 
 ###### Parameters
 
@@ -76,16 +77,34 @@ Defined in: [providers/quickfix.ts:122](https://github.com/ngx-rock/vscode-angul
 | ------ | ------ |
 | `diagnostic` | `Diagnostic` |
 | `indexer` | [`AngularIndexer`](../services/indexer.md#angularindexer) |
+| `document` | `TextDocument` |
 
 ###### Returns
 
 `Promise`\<`CodeAction`[]\>
 
+##### getImportPathInfo()
+
+> `private` **getImportPathInfo**(`element`, `document`): `Promise`\<`string`\>
+
+Defined in: [providers/quickfix.ts:187](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L187)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `element` | [`AngularElementData`](../types/angular.md#angularelementdata) |
+| `document` | `TextDocument` |
+
+###### Returns
+
+`Promise`\<`string`\>
+
 ##### getProjectContextForDocument()
 
 > `private` **getProjectContextForDocument**(`document`): `null` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `undefined` \| `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
 
-Defined in: [providers/quickfix.ts:190](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L190)
+Defined in: [providers/quickfix.ts:210](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L210)
 
 ###### Parameters
 
@@ -101,7 +120,7 @@ Defined in: [providers/quickfix.ts:190](https://github.com/ngx-rock/vscode-angul
 
 > `private` **isFixableDiagnostic**(`diagnostic`): `boolean`
 
-Defined in: [providers/quickfix.ts:117](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L117)
+Defined in: [providers/quickfix.ts:119](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L119)
 
 ###### Parameters
 
@@ -117,7 +136,7 @@ Defined in: [providers/quickfix.ts:117](https://github.com/ngx-rock/vscode-angul
 
 > **provideCodeActions**(`document`, `range`, `context`, `token`): `Promise`\<(`Command` \| `CodeAction`)[]\>
 
-Defined in: [providers/quickfix.ts:25](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L25)
+Defined in: [providers/quickfix.ts:27](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L27)
 
 Get code actions for a given range in a document.
 
