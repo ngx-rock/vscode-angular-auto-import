@@ -22,7 +22,7 @@ import {
 import * as vscode from "vscode";
 import { logger } from "../logger";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
-import { findAngularDependencies, getLibraryEntryPoints, parseAngularSelector } from "../utils";
+import { findAngularDependencies, getLibraryEntryPoints, isStandalone, parseAngularSelector } from "../utils";
 
 /**
  * Represents a node in a Trie data structure for storing selectors.
@@ -425,28 +425,25 @@ export class AngularIndexer {
       const decoratorName = decorator.getName();
       let elementType: "component" | "directive" | "pipe" | null = null;
       let selector: string | undefined;
-      let isStandalone = false;
+      const isStandaloneElement = isStandalone(classDeclaration);
 
       switch (decoratorName) {
         case "Component": {
           elementType = "component";
           const componentData = this.extractComponentDecoratorData(decorator);
           selector = componentData.selector;
-          isStandalone = componentData.standalone;
           break;
         }
         case "Directive": {
           elementType = "directive";
           const directiveData = this.extractDirectiveDecoratorData(decorator);
           selector = directiveData.selector;
-          isStandalone = directiveData.standalone;
           break;
         }
         case "Pipe": {
           elementType = "pipe";
           const pipeData = this.extractPipeDecoratorData(decorator);
           selector = pipeData.name;
-          isStandalone = pipeData.standalone;
           break;
         }
       }
@@ -459,7 +456,7 @@ export class AngularIndexer {
           lastModified: fs.statSync(filePath).mtime.getTime(), // Ok, but content hash is better
           hash: this.generateHash(fileContent), // Use content for hash
           type: elementType,
-          isStandalone: isStandalone,
+          isStandalone: isStandaloneElement,
         };
       }
     }
@@ -467,37 +464,13 @@ export class AngularIndexer {
   }
 
   /**
-   * Extracts the standalone flag from a decorator's arguments.
-   * @param decorator The decorator to extract the flag from.
-   * @returns `true` if the element is standalone, `false` otherwise.
-   * @internal
-   */
-  private _extractStandaloneFlagFromDecorator(decorator: Decorator): boolean {
-    try {
-      const args = decorator.getArguments();
-      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-        const objectLiteral = args[0] as ObjectLiteralExpression;
-        const standaloneProperty = objectLiteral.getProperty("standalone");
-        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = standaloneProperty.getInitializer();
-          return initializer?.isKind(SyntaxKind.TrueKeyword) ?? false;
-        }
-      }
-    } catch (error) {
-      logger.error("Error extracting standalone flag from decorator:", error as Error);
-    }
-    return false;
-  }
-
-  /**
-   * Extracts the selector and standalone flag from a `@Component` decorator.
+   * Extracts the selector from a `@Component` decorator.
    * @param decorator The decorator to extract information from.
-   * @returns An object containing the selector and standalone flag.
+   * @returns An object containing the selector.
    * @internal
    */
-  private extractComponentDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
+  private extractComponentDecoratorData(decorator: Decorator): { selector?: string } {
     let selector: string | undefined;
-    const standalone = this._extractStandaloneFlagFromDecorator(decorator);
 
     try {
       const args = decorator.getArguments();
@@ -517,18 +490,17 @@ export class AngularIndexer {
       logger.error("Error extracting component selector from decorator:", error as Error);
     }
 
-    return { selector, standalone };
+    return { selector };
   }
 
   /**
-   * Extracts the selector and standalone flag from a `@Directive` decorator.
+   * Extracts the selector from a `@Directive` decorator.
    * @param decorator The decorator to extract information from.
-   * @returns An object containing the selector and standalone flag.
+   * @returns An object containing the selector.
    * @internal
    */
-  private extractDirectiveDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
+  private extractDirectiveDecoratorData(decorator: Decorator): { selector?: string } {
     let selector: string | undefined;
-    const standalone = this._extractStandaloneFlagFromDecorator(decorator);
 
     try {
       const args = decorator.getArguments();
@@ -547,18 +519,17 @@ export class AngularIndexer {
       logger.error("Error extracting directive selector from decorator:", error as Error);
     }
 
-    return { selector, standalone };
+    return { selector };
   }
 
   /**
-   * Extracts the name and standalone flag from a `@Pipe` decorator.
+   * Extracts the name from a `@Pipe` decorator.
    * @param decorator The decorator to extract information from.
-   * @returns An object containing the name and standalone flag.
+   * @returns An object containing the name.
    * @internal
    */
-  private extractPipeDecoratorData(decorator: Decorator): { name?: string; standalone: boolean } {
+  private extractPipeDecoratorData(decorator: Decorator): { name?: string } {
     let name: string | undefined;
-    const standalone = this._extractStandaloneFlagFromDecorator(decorator);
 
     try {
       const args = decorator.getArguments();
@@ -577,7 +548,7 @@ export class AngularIndexer {
       logger.error("Error extracting pipe name from decorator:", error as Error);
     }
 
-    return { name, standalone };
+    return { name };
   }
 
   /**

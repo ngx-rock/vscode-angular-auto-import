@@ -18,7 +18,7 @@ import * as vscode from "vscode";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { AngularElementData, ParsedHtmlElement } from "../types";
-import { getAngularElements, switchFileType } from "../utils";
+import { getAngularElements, isStandalone, switchFileType } from "../utils";
 import type { ProviderContext } from "./index";
 
 /**
@@ -232,6 +232,16 @@ export class DiagnosticProvider {
     const tsDocument = await this.getTsDocument(document, componentPath);
     if (!tsDocument) {
       return;
+    }
+
+    const sourceFile = this.getSourceFile(tsDocument);
+    if (sourceFile) {
+      const classDeclaration = sourceFile.getClasses()[0];
+      if (classDeclaration && !isStandalone(classDeclaration)) {
+        this.candidateDiagnostics.delete(document.uri.toString());
+        this.diagnosticCollection.delete(document.uri);
+        return;
+      }
     }
 
     // Parse the template to get all elements and their full context

@@ -3,6 +3,10 @@
  * @module
  */
 
+import type { ClassDeclaration } from "ts-morph";
+import { SyntaxKind } from "ts-morph";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
@@ -376,4 +380,102 @@ export function resolveRelativePath(from: string, to: string): string {
   } catch (_error) {
     return "";
   }
+}
+
+function readAngularCoreMajorFromFilePath(filePath: string): number | null {
+  try {
+    // Walk up to find a node_modules/@angular/core/package.json or nearest package.json with @angular/core dep
+    let currentDir: string | undefined = path.dirname(filePath);
+    const visited = new Set<string>();
+    for (let i = 0; i < 10 && currentDir && !visited.has(currentDir); i++) {
+      visited.add(currentDir);
+
+      const corePkgPath = path.join(currentDir, "node_modules", "@angular", "core", "package.json");
+      if (fs.existsSync(corePkgPath)) {
+        const json = JSON.parse(fs.readFileSync(corePkgPath, "utf-8")) as { version?: string };
+        const major = parseSemverMajor(json.version ?? "");
+        if (typeof major === "number") return major;
+      }
+
+      const pkgPath = path.join(currentDir, "package.json");
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as {
+          dependencies?: Record<string, string>;
+          devDependencies?: Record<string, string>;
+        };
+        const ver =
+          pkg.dependencies?.["@angular/core"] ||
+          pkg.devDependencies?.["@angular/core"] ||
+          "";
+        const major = parseSemverMajor(ver);
+        if (typeof major === "number") return major;
+      }
+
+      const parent = path.dirname(currentDir);
+      if (!parent || parent === currentDir) break;
+      currentDir = parent;
+    }
+  } catch (err) {
+    // noop
+  }
+  return null;
+}
+
+function parseSemverMajor(version: string): number | null {
+  // Examples: ^19.0.0, ~19.1.2, 19.2.3, 19, ">=19.0.0", "19.0.0-next.0"
+  if (!version) return null;
+  const match = version.match(/(\d{1,3})/);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Checks if an Angular component, directive, or pipe class is standalone.
+ * Applies Angular v19+ default: if `standalone` flag is omitted, treats as standalone for Angular >= 19.
+ * @param classDeclaration The ts-morph ClassDeclaration to check.
+ * @returns `true` if the class is standalone, `false` otherwise.
+ */
+export function isStandalone(classDeclaration: ClassDeclaration): boolean {
+  // 1) Explicit flag in decorator wins
+  for (const decorator of classDeclaration.getDecorators()) {
+    const decoratorName = decorator.getName();
+    if (decoratorName === "Component" || decoratorName === "Directive" || decoratorName === "Pipe") {
+      try {
+        const args = decorator.getArguments();
+        if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+          const objectLiteral = args[0].asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+          const standaloneProperty = objectLiteral.getProperty("standalone");
+          if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+            const initializer = standaloneProperty.getInitializer();
+            if (initializer?.isKind(SyntaxKind.TrueKeyword)) {
+              return true;
+            }
+            if (initializer?.isKind(SyntaxKind.FalseKeyword)) {
+              return false;
+            }
+          }
+        }
+      } catch (error) {
+        logger.error(
+          `Error checking standalone flag for ${classDeclaration.getName() ?? "unknown class"}:`,
+          error as Error
+        );
+      }
+    }
+  }
+
+  // 2) Angular >= 19 default: standalone if flag omitted
+  try {
+    const filePath = classDeclaration.getSourceFile().getFilePath();
+    const major = readAngularCoreMajorFromFilePath(filePath);
+    if (typeof major === "number" && major >= 19) {
+      return true;
+    }
+  } catch (_err) {
+    // noop (fallback below)
+  }
+
+  // 3) Fallback: non-standalone if nothing else inferred
+  return false;
 }
