@@ -377,16 +377,16 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           item.insertText = insertText;
 
           item.filterText = stdSelector.startsWith("[")
-              ? stdSelector.slice(1, -1)
-              : stdSelector.startsWith("*")
-                  ? stdSelector.slice(1)
-                  : stdSelector;
+            ? stdSelector.slice(1, -1)
+            : stdSelector.startsWith("*")
+              ? stdSelector.slice(1)
+              : stdSelector;
 
           if (replacementRange) {
             item.range = replacementRange;
           }
           // Standard Angular elements are always standalone and don't require module imports
-          item.detail = `Angular Auto-Import: ${stdElement.type} (standalone)`; // todo 
+          item.detail = `Angular Auto-Import: ${stdElement.type} (standalone)`; // todo
           item.documentation = new vscode.MarkdownString(`Import from \`${stdElement.importPath}\`.`);
           const elementDataForCommand = new AngularElementData(
             stdElement.importPath,

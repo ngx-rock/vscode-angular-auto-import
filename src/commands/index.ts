@@ -8,8 +8,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { logger } from "../logger";
 import type { ExtensionConfig } from "../config";
+import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";

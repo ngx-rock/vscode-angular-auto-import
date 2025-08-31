@@ -165,7 +165,17 @@ describe("QuickfixImportProvider", function () {
           ],
           [
             "testPipe",
-            [new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false, false)], // isExternal
+            [
+              new AngularElementData(
+                "src/app/test.pipe.ts",
+                "TestPipe",
+                "pipe",
+                "testPipe",
+                ["testPipe"],
+                false,
+                false
+              ),
+            ], // isExternal
           ],
           [
             "[testDirective]",

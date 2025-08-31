@@ -304,7 +304,7 @@ export class TempComponent {}
 
       // Create and index the file first
       fs.writeFileSync(tempComponentPath, tempComponentContent);
-      
+
       // Force a reindex to include the new file
       await indexer.generateFullIndex(mockContext);
       await new Promise((resolve) => setTimeout(resolve, 200));

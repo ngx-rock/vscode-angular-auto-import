@@ -153,7 +153,7 @@
     "copy-test-fixtures": "cp -r src/test/fixtures out/test/",
     "pretest": "pnpm run compile-tests && pnpm run copy-test-fixtures && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
-    "lint": "pnpm run lint:biome && pnpm run lint:knip && pnpm run check-types",
+    "lint": "pnpm run check:fix && pnpm run lint:knip && pnpm run check-types",
     "lint:biome": "biome lint --diagnostic-level=error --no-errors-on-unmatched src",
     "lint:knip": "knip",
     "lint:fix": "biome lint --write src",

@@ -1,35 +1,37 @@
-import * as vscode from "vscode";
-import * as path from "node:path";
 import * as os from "node:os";
+import * as path from "node:path";
 import * as process from "node:process";
-import { getLoggerConfig } from "./config";
-import type {
-  LoggerConfig,
-  LogLevel,
-  ITransport,
-  LogEntry,
-  ILogPoint,
-  PerformanceMetrics,
-} from "./types";
+import * as vscode from "vscode";
 import { ChannelTransport } from "./channel-transport";
+import { getLoggerConfig } from "./config";
 import { FileTransport } from "./file-transport";
+import type { LogEntry, LoggerConfig, LogLevel, LogPoint, PerformanceMetrics, Transport } from "./types";
 
 export class Logger {
   private static instance: Logger;
   private config!: LoggerConfig;
-  private transports: ITransport[] = [];
+  private transports: Transport[] = [];
   private readonly sessionId: string;
   private extensionVersion: string;
   private context: vscode.ExtensionContext | null = null;
-  private logPoints = new Map<string, ILogPoint>();
+  private logPoints = new Map<string, LogPoint>();
 
-  private readonly logLevelMap: Record<LogLevel, number> = {
-    DEBUG: 0,
-    INFO: 1,
-    WARN: 2,
-    ERROR: 3,
-    FATAL: 4,
-  };
+  private getLogLevelValue(level: LogLevel): number {
+    switch (level) {
+      case "DEBUG":
+        return 0;
+      case "INFO":
+        return 1;
+      case "WARN":
+        return 2;
+      case "ERROR":
+        return 3;
+      case "FATAL":
+        return 4;
+      default:
+        return 0;
+    }
+  }
 
   private constructor() {
     this.sessionId = vscode.env.sessionId;
@@ -46,7 +48,7 @@ export class Logger {
   public initialize(context: vscode.ExtensionContext) {
     this.context = context;
     const extensionPackageJson = context.extension.packageJSON;
-    this.extensionVersion = extensionPackageJson.version ?? '0.0.0';
+    this.extensionVersion = extensionPackageJson.version ?? "0.0.0";
 
     this.config = getLoggerConfig();
     this.setupTransports();
@@ -71,16 +73,16 @@ export class Logger {
 
   private setupTransports() {
     if (!this.config.enabled) {
-      this.transports.forEach(t => t.dispose());
+      this.transports.forEach((t) => t.dispose());
       this.transports = [];
       return;
     }
 
     if (this.context) {
-        this.transports.push(new ChannelTransport(this.config));
-        if (this.config.fileLoggingEnabled) {
-            this.transports.push(new FileTransport(this.config, this.context));
-        }
+      this.transports.push(new ChannelTransport(this.config));
+      if (this.config.fileLoggingEnabled) {
+        this.transports.push(new FileTransport(this.config, this.context));
+      }
     }
   }
 
@@ -99,10 +101,10 @@ export class Logger {
   public error(message: string, error?: Error, context?: Record<string, unknown>) {
     const errorContext = { ...context };
     if (error) {
-        errorContext.error = {
-            message: error.message,
-            stack: error.stack,
-        };
+      errorContext.error = {
+        message: error.message,
+        stack: error.stack,
+      };
     }
     this.log("ERROR", message, errorContext);
   }
@@ -110,10 +112,10 @@ export class Logger {
   public fatal(message: string, error?: Error, context?: Record<string, unknown>) {
     const errorContext = { ...context };
     if (error) {
-        errorContext.error = {
-            message: error.message,
-            stack: error.stack,
-        };
+      errorContext.error = {
+        message: error.message,
+        stack: error.stack,
+      };
     }
     this.log("FATAL", message, errorContext);
     vscode.window.showErrorMessage(`A fatal error occurred in Angular Auto Import: ${message}. See logs for details.`);
@@ -121,13 +123,13 @@ export class Logger {
 
   private log(level: LogLevel, message: string, context?: Record<string, unknown>) {
     if (!this.config) {
-        this.config = getLoggerConfig();
+      this.config = getLoggerConfig();
     }
 
     const isDev = this.context?.extensionMode === vscode.ExtensionMode.Development;
-    const effectiveLevel = isDev ? 'DEBUG' : this.config.level;
+    const effectiveLevel = isDev ? "DEBUG" : this.config.level;
 
-    if (!this.config.enabled || this.logLevelMap[level] < this.logLevelMap[effectiveLevel]) {
+    if (!this.config.enabled || this.getLogLevelValue(level) < this.getLogLevelValue(effectiveLevel)) {
       return;
     }
 
@@ -139,13 +141,15 @@ export class Logger {
       metadata: this.getMetadata(isDev),
     };
 
-    this.transports.forEach(transport => {
-        Promise.resolve().then(() => transport.log(logEntry)).catch(console.error);
+    this.transports.forEach((transport) => {
+      Promise.resolve()
+        .then(() => transport.log(logEntry))
+        .catch(console.error);
     });
   }
 
-  private getMetadata(isDev: boolean): LogEntry['metadata'] {
-    const metadata: LogEntry['metadata'] = {
+  private getMetadata(isDev: boolean): LogEntry["metadata"] {
+    const metadata: LogEntry["metadata"] = {
       sessionId: this.sessionId,
       extensionVersion: this.extensionVersion,
       vscodeVersion: vscode.version,
@@ -164,13 +168,13 @@ export class Logger {
 
   private getCallerLocation(): { fileName?: string; lineNumber?: number } {
     const error = new Error();
-    const stack = error.stack?.split('\n');
+    const stack = error.stack?.split("\n");
 
     if (stack && stack.length > 4) {
       const callerLine = stack[4];
       if (callerLine) {
         const match = callerLine.match(/(?:at\s.*?\s)?\(?(.*?):(\d+):\d+\)?$/);
-        if (match && match[1] && match[2]) {
+        if (match?.[1] && match[2]) {
           const filePath = this.anonymizeFilePath(match[1]);
           return { fileName: filePath, lineNumber: Number.parseInt(match[2], 10) };
         }
@@ -182,26 +186,30 @@ export class Logger {
   private anonymizeFilePath(filePath: string): string {
     const homeDir = os.homedir();
     if (filePath.startsWith(homeDir)) {
-      return filePath.replace(homeDir, '~');
+      return filePath.replace(homeDir, "~");
     }
     if (this.context) {
-        for (const folder of vscode.workspace.workspaceFolders || []) {
-            const workspacePath = folder.uri.fsPath;
-            if (filePath.startsWith(workspacePath)) {
-                return path.join('${workspaceRoot}', path.relative(workspacePath, filePath));
-            }
+      for (const folder of vscode.workspace.workspaceFolders || []) {
+        const workspacePath = folder.uri.fsPath;
+        if (filePath.startsWith(workspacePath)) {
+          return path.join(`\${workspaceRoot}`, path.relative(workspacePath, filePath));
         }
+      }
     }
     return filePath;
   }
 
   public startTimer(name: string) {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {
+      return;
+    }
     this.logPoints.set(name, { name, startTime: Date.now() });
   }
 
   public stopTimer(name: string) {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {
+      return;
+    }
     const logPoint = this.logPoints.get(name);
     if (logPoint) {
       const duration = Date.now() - logPoint.startTime;
@@ -213,10 +221,10 @@ export class Logger {
   }
 
   public getPerformanceMetrics(): PerformanceMetrics {
-      return {
-          memoryUsage: process.memoryUsage(),
-          cpuUsage: process.cpuUsage(),
-      };
+    return {
+      memoryUsage: process.memoryUsage(),
+      cpuUsage: process.cpuUsage(),
+    };
   }
 
   public logException(error: Error, context?: Record<string, unknown>) {
@@ -229,4 +237,3 @@ export class Logger {
     this.logPoints.clear();
   }
 }
-

@@ -5,6 +5,7 @@
  * @module
  */
 
+import * as path from "node:path";
 import * as vscode from "vscode";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
@@ -12,7 +13,6 @@ import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData } from "../types";
 import { getAngularElementAsync } from "../utils";
 import { switchFileType } from "../utils/path";
-import * as path from "path";
 
 import type { ProviderContext } from "./index";
 

@@ -6,8 +6,8 @@
  */
 
 import * as vscode from "vscode";
-import { logger } from "../logger";
 import type { ExtensionConfig } from "../config";
+import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { ProcessedTsConfig } from "../types";
 import { setGlobalDiagnosticProvider } from "../utils";

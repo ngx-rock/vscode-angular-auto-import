@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import type { ITransport, LogEntry, LoggerConfig } from "./types";
+import type { LogEntry, LoggerConfig, Transport } from "./types";
 
-export class ChannelTransport implements ITransport {
+export class ChannelTransport implements Transport {
   private readonly outputChannel: vscode.OutputChannel;
   private readonly config: LoggerConfig;
 
@@ -28,15 +28,18 @@ export class ChannelTransport implements ITransport {
     let formattedMessage = `[${timestamp}][${level}] ${message}`;
 
     if (context) {
-        try {
-            const contextString = JSON.stringify(context, null, 2);
-            // Indent context for better readability
-            const indentedContext = contextString.split('\n').map(line => `  ${line}`).join('\n');
-            formattedMessage += `\n${indentedContext}`;
-        } catch (error) {
-            // Handle circular references in context
-            formattedMessage += `\n  Context: [Could not stringify context: ${error}]`;
-        }
+      try {
+        const contextString = JSON.stringify(context, null, 2);
+        // Indent context for better readability
+        const indentedContext = contextString
+          .split("\n")
+          .map((line) => `  ${line}`)
+          .join("\n");
+        formattedMessage += `\n${indentedContext}`;
+      } catch (error) {
+        // Handle circular references in context
+        formattedMessage += `\n  Context: [Could not stringify context: ${error}]`;
+      }
     }
 
     return formattedMessage;
