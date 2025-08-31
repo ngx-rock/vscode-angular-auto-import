@@ -778,7 +778,9 @@ export class AngularIndexer {
       }
 
       // Clear existing ts-morph project files before full scan to avoid stale data
-      this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
+      this.project.getSourceFiles().forEach((sf) => {
+        this.project.removeSourceFile(sf);
+      });
       this.fileCache.clear();
       this.selectorTrie.clear();
       this.projectModuleMap.clear();
@@ -945,7 +947,9 @@ export class AngularIndexer {
       this.fileCache.clear();
       this.selectorTrie.clear();
       this.projectModuleMap.clear();
-      this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
+      this.project.getSourceFiles().forEach((sf) => {
+        this.project.removeSourceFile(sf);
+      });
 
       // Clear persisted state
       await context.workspaceState.update(this.workspaceFileCacheKey, undefined);
@@ -1620,6 +1624,8 @@ export class AngularIndexer {
     this.fileCache.clear();
     this.selectorTrie.clear();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
-    this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
+    this.project.getSourceFiles().forEach((sf) => {
+      this.project.removeSourceFile(sf);
+    });
   }
 }

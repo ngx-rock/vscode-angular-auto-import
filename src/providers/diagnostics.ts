@@ -83,7 +83,9 @@ export class DiagnosticProvider {
 
     // Listen for changes in any diagnostic collection to handle deduplication
     const onDidChangeDiagnosticsHandler = vscode.languages.onDidChangeDiagnostics((e) => {
-      e.uris.forEach((uri) => this.publishFilteredDiagnostics(uri));
+      e.uris.forEach((uri) => {
+        this.publishFilteredDiagnostics(uri);
+      });
     });
     this.disposables.push(onDidChangeDiagnosticsHandler);
 
@@ -99,7 +101,9 @@ export class DiagnosticProvider {
    * Deactivates the diagnostic provider.
    */
   deactivate(): void {
-    this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposables.forEach((disposable) => {
+      disposable.dispose();
+    });
     this.disposables = [];
     this.candidateDiagnostics.clear();
     this.diagnosticCollection.dispose();

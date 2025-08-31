@@ -64,7 +64,9 @@ export class Logger {
     this.info("Logging configuration changed. Reloading...");
     this.config = getLoggerConfig();
 
-    this.transports.forEach((transport) => transport.dispose());
+    this.transports.forEach((transport) => {
+      transport.dispose();
+    });
     this.transports = [];
 
     this.setupTransports();
@@ -73,7 +75,9 @@ export class Logger {
 
   private setupTransports() {
     if (!this.config.enabled) {
-      this.transports.forEach((t) => t.dispose());
+      this.transports.forEach((t) => {
+        t.dispose();
+      });
       this.transports = [];
       return;
     }
@@ -232,7 +236,9 @@ export class Logger {
   }
 
   public dispose() {
-    this.transports.forEach((transport) => transport.dispose());
+    this.transports.forEach((transport) => {
+      transport.dispose();
+    });
     this.transports = [];
     this.logPoints.clear();
   }

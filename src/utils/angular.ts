@@ -3,10 +3,10 @@
  * @module
  */
 
-import type { ClassDeclaration } from "ts-morph";
-import { SyntaxKind } from "ts-morph";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import type { ClassDeclaration } from "ts-morph";
+import { SyntaxKind } from "ts-morph";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
@@ -394,7 +394,9 @@ function readAngularCoreMajorFromFilePath(filePath: string): number | null {
       if (fs.existsSync(corePkgPath)) {
         const json = JSON.parse(fs.readFileSync(corePkgPath, "utf-8")) as { version?: string };
         const major = parseSemverMajor(json.version ?? "");
-        if (typeof major === "number") return major;
+        if (typeof major === "number") {
+          return major;
+        }
       }
 
       const pkgPath = path.join(currentDir, "package.json");
@@ -403,19 +405,20 @@ function readAngularCoreMajorFromFilePath(filePath: string): number | null {
           dependencies?: Record<string, string>;
           devDependencies?: Record<string, string>;
         };
-        const ver =
-          pkg.dependencies?.["@angular/core"] ||
-          pkg.devDependencies?.["@angular/core"] ||
-          "";
+        const ver = pkg.dependencies?.["@angular/core"] || pkg.devDependencies?.["@angular/core"] || "";
         const major = parseSemverMajor(ver);
-        if (typeof major === "number") return major;
+        if (typeof major === "number") {
+          return major;
+        }
       }
 
       const parent = path.dirname(currentDir);
-      if (!parent || parent === currentDir) break;
+      if (!parent || parent === currentDir) {
+        break;
+      }
       currentDir = parent;
     }
-  } catch (err) {
+  } catch (_err) {
     // noop
   }
   return null;
@@ -423,9 +426,13 @@ function readAngularCoreMajorFromFilePath(filePath: string): number | null {
 
 function parseSemverMajor(version: string): number | null {
   // Examples: ^19.0.0, ~19.1.2, 19.2.3, 19, ">=19.0.0", "19.0.0-next.0"
-  if (!version) return null;
+  if (!version) {
+    return null;
+  }
   const match = version.match(/(\d{1,3})/);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   const n = Number(match[1]);
   return Number.isFinite(n) ? n : null;
 }

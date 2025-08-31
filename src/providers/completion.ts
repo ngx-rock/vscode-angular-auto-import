@@ -485,7 +485,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
   private async getTsDocument(
     document: vscode.TextDocument,
-    componentPath: string,
+    componentPath: string
   ): Promise<vscode.TextDocument | null> {
     if (document.fileName === componentPath) {
       return document;

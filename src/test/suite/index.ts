@@ -27,7 +27,9 @@ export function run(): Promise<void> {
       }
 
       // Add files to the test suite
-      files.forEach((f: string) => mocha.addFile(path.resolve(testsRoot, f)));
+      files.forEach((f: string) => {
+        mocha.addFile(path.resolve(testsRoot, f));
+      });
 
       try {
         // Run the mocha test

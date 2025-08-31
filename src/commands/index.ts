@@ -73,7 +73,9 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
 
     if (projectsToReindex.length === 0) {
       // If no active editor or not in a known project, reindex all
-      commandContext.projectIndexers.forEach((_, projectRootPath) => projectsToReindex.push(projectRootPath));
+      commandContext.projectIndexers.forEach((_, projectRootPath) => {
+        projectsToReindex.push(projectRootPath);
+      });
       if (projectsToReindex.length > 0) {
         // Targeting all known projects
       }
