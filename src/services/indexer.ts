@@ -467,6 +467,29 @@ export class AngularIndexer {
   }
 
   /**
+   * Extracts the standalone flag from a decorator's arguments.
+   * @param decorator The decorator to extract the flag from.
+   * @returns `true` if the element is standalone, `false` otherwise.
+   * @internal
+   */
+  private _extractStandaloneFlagFromDecorator(decorator: Decorator): boolean {
+    try {
+      const args = decorator.getArguments();
+      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+        const objectLiteral = args[0] as ObjectLiteralExpression;
+        const standaloneProperty = objectLiteral.getProperty("standalone");
+        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+          const initializer = standaloneProperty.getInitializer();
+          return initializer?.isKind(SyntaxKind.TrueKeyword) ?? false;
+        }
+      }
+    } catch (error) {
+      logger.error("Error extracting standalone flag from decorator:", error as Error);
+    }
+    return false;
+  }
+
+  /**
    * Extracts the selector and standalone flag from a `@Component` decorator.
    * @param decorator The decorator to extract information from.
    * @returns An object containing the selector and standalone flag.
@@ -474,7 +497,7 @@ export class AngularIndexer {
    */
   private extractComponentDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
     let selector: string | undefined;
-    let standalone = false;
+    const standalone = this._extractStandaloneFlagFromDecorator(decorator);
 
     try {
       const args = decorator.getArguments();
@@ -489,18 +512,9 @@ export class AngularIndexer {
             selector = initializer.getLiteralText();
           }
         }
-
-        // Extract standalone flag
-        const standaloneProperty = objectLiteral.getProperty("standalone");
-        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = standaloneProperty.getInitializer();
-          if (initializer?.isKind(SyntaxKind.TrueKeyword) || initializer?.isKind(SyntaxKind.FalseKeyword)) {
-            standalone = initializer.isKind(SyntaxKind.TrueKeyword);
-          }
-        }
       }
     } catch (error) {
-      logger.error("Error extracting component data from decorator:", error as Error);
+      logger.error("Error extracting component selector from decorator:", error as Error);
     }
 
     return { selector, standalone };
@@ -514,7 +528,7 @@ export class AngularIndexer {
    */
   private extractDirectiveDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
     let selector: string | undefined;
-    let standalone = false;
+    const standalone = this._extractStandaloneFlagFromDecorator(decorator);
 
     try {
       const args = decorator.getArguments();
@@ -528,15 +542,9 @@ export class AngularIndexer {
             selector = initializer.getLiteralText();
           }
         }
-
-        const standaloneProperty = objectLiteral.getProperty("standalone");
-        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = standaloneProperty.getInitializer();
-          standalone = initializer?.isKind(SyntaxKind.TrueKeyword) ?? false;
-        }
       }
     } catch (error) {
-      logger.error("Error extracting directive data from decorator:", error as Error);
+      logger.error("Error extracting directive selector from decorator:", error as Error);
     }
 
     return { selector, standalone };
@@ -550,7 +558,7 @@ export class AngularIndexer {
    */
   private extractPipeDecoratorData(decorator: Decorator): { name?: string; standalone: boolean } {
     let name: string | undefined;
-    let standalone = false;
+    const standalone = this._extractStandaloneFlagFromDecorator(decorator);
 
     try {
       const args = decorator.getArguments();
@@ -564,15 +572,9 @@ export class AngularIndexer {
             name = initializer.getLiteralText();
           }
         }
-
-        const standaloneProperty = objectLiteral.getProperty("standalone");
-        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = standaloneProperty.getInitializer();
-          standalone = initializer?.isKind(SyntaxKind.TrueKeyword) ?? false;
-        }
       }
     } catch (error) {
-      logger.error("Error extracting pipe data from decorator:", error as Error);
+      logger.error("Error extracting pipe name from decorator:", error as Error);
     }
 
     return { name, standalone };
@@ -1349,6 +1351,39 @@ export class AngularIndexer {
   }
 
   /**
+   * Determines if an element is standalone from its compiled type reference.
+   * @param typeRef The type reference node from a static property (e.g., `ɵcmp`).
+   * @param elementType The type of the Angular element.
+   * @returns `true` if the element is standalone, `false` otherwise.
+   * @internal
+   */
+  private _isStandaloneFromTypeReference(
+    typeRef: TypeReferenceNode,
+    elementType: "component" | "directive" | "pipe"
+  ): boolean {
+    const typeArgs = typeRef.getTypeArguments();
+    let standaloneIndex: number;
+
+    switch (elementType) {
+      case "component":
+      case "directive":
+        standaloneIndex = 7;
+        break;
+      case "pipe":
+        standaloneIndex = 2;
+        break;
+      default:
+        return false;
+    }
+
+    if (typeArgs.length > standaloneIndex) {
+      return typeArgs[standaloneIndex].getText() === "true";
+    }
+
+    return false;
+  }
+
+  /**
    * Indexes the declarations in a file.
    * @param sourceFile The source file to process.
    * @param importPath The import path of the source file.
@@ -1435,9 +1470,7 @@ export class AngularIndexer {
                 selector = selectorNode.getText().slice(1, -1);
               }
             }
-            if (typeArgs.length > 7) {
-              isStandalone = typeArgs[7].getText() === "true";
-            }
+            isStandalone = this._isStandaloneFromTypeReference(typeRef, "component");
           }
         } else {
           const { prop: dirDef } = findInheritedStaticProperty(classDecl, "ɵdir");
@@ -1458,9 +1491,7 @@ export class AngularIndexer {
                   selector = selectorNode.getText().slice(1, -1);
                 }
               }
-              if (typeArgs.length > 7) {
-                isStandalone = typeArgs[7].getText() === "true";
-              }
+              isStandalone = this._isStandaloneFromTypeReference(typeRef, "directive");
             }
           } else {
             const { prop: pipeDef } = findInheritedStaticProperty(classDecl, "ɵpipe");
@@ -1476,9 +1507,7 @@ export class AngularIndexer {
                     selector = literal.getLiteralText();
                   }
                 }
-                if (typeArgs.length > 2) {
-                  isStandalone = typeArgs[2].getText() === "true";
-                }
+                isStandalone = this._isStandaloneFromTypeReference(typeRef, "pipe");
               }
             }
           }
