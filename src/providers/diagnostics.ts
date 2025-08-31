@@ -18,7 +18,7 @@ import * as vscode from "vscode";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { AngularElementData, ParsedHtmlElement } from "../types";
-import { getAngularElements, switchFileType } from "../utils";
+import { getAngularElements, isStandalone, switchFileType } from "../utils";
 import type { ProviderContext } from "./index";
 
 /**
@@ -83,7 +83,9 @@ export class DiagnosticProvider {
 
     // Listen for changes in any diagnostic collection to handle deduplication
     const onDidChangeDiagnosticsHandler = vscode.languages.onDidChangeDiagnostics((e) => {
-      e.uris.forEach((uri) => this.publishFilteredDiagnostics(uri));
+      e.uris.forEach((uri) => {
+        this.publishFilteredDiagnostics(uri);
+      });
     });
     this.disposables.push(onDidChangeDiagnosticsHandler);
 
@@ -99,7 +101,9 @@ export class DiagnosticProvider {
    * Deactivates the diagnostic provider.
    */
   deactivate(): void {
-    this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposables.forEach((disposable) => {
+      disposable.dispose();
+    });
     this.disposables = [];
     this.candidateDiagnostics.clear();
     this.diagnosticCollection.dispose();
@@ -232,6 +236,16 @@ export class DiagnosticProvider {
     const tsDocument = await this.getTsDocument(document, componentPath);
     if (!tsDocument) {
       return;
+    }
+
+    const sourceFile = this.getSourceFile(tsDocument);
+    if (sourceFile) {
+      const classDeclaration = sourceFile.getClasses()[0];
+      if (classDeclaration && !isStandalone(classDeclaration)) {
+        this.candidateDiagnostics.delete(document.uri.toString());
+        this.diagnosticCollection.delete(document.uri);
+        return;
+      }
     }
 
     // Parse the template to get all elements and their full context

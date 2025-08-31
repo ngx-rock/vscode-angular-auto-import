@@ -28,17 +28,17 @@ export interface LogEntry {
   };
 }
 
-export interface ITransport {
+export interface Transport {
   log(entry: LogEntry): void;
   dispose(): void;
 }
 
-export interface ILogPoint {
-    name: string;
-    startTime: number;
+export interface LogPoint {
+  name: string;
+  startTime: number;
 }
 
 export interface PerformanceMetrics {
-    memoryUsage: NodeJS.MemoryUsage;
-    cpuUsage: NodeJS.CpuUsage;
+  memoryUsage: NodeJS.MemoryUsage;
+  cpuUsage: NodeJS.CpuUsage;
 }

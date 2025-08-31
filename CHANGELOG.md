@@ -4,6 +4,11 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.10.0] - 2025-08-31
+
+### Removed
+- Removed highlighting of diagnostics and autocomplete for non-standalone components. Extension now only provides diagnostics and autocomplete for standalone Angular components, directives, and pipes.
+ 
 ## [1.9.0] - 2025-08-30
 
 ### Added

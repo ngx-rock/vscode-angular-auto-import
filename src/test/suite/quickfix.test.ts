@@ -165,7 +165,17 @@ describe("QuickfixImportProvider", function () {
           ],
           [
             "testPipe",
-            [new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false, false)], // isExternal
+            [
+              new AngularElementData(
+                "src/app/test.pipe.ts",
+                "TestPipe",
+                "pipe",
+                "testPipe",
+                ["testPipe"],
+                false,
+                false
+              ),
+            ], // isExternal
           ],
           [
             "[testDirective]",
@@ -644,7 +654,7 @@ describe("QuickfixImportProvider", function () {
 
       const action = result[0] as vscode.CodeAction;
       assert.ok(action.title.includes("StandaloneComponent"), "Should include component name in title");
-      assert.ok(action.title.includes("(standalone)"), "Should indicate standalone component");
+      assert.ok(action.title.includes("from"), "Should include import path");
       assert.strictEqual(action.isPreferred, true, "Should be preferred action");
     });
 

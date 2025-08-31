@@ -6,9 +6,11 @@
  */
 
 import * as path from "node:path";
+import type { SourceFile } from "ts-morph";
 import * as vscode from "vscode";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
 import { AngularElementData } from "../types";
+import { isStandalone, switchFileType } from "../utils";
 import { isInsideTemplateString } from "../utils/template-detection";
 import type { ProviderContext } from "./index";
 
@@ -42,6 +44,14 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     // For TypeScript files, ensure we are inside a template string
     if (document.languageId === "typescript" && !isInsideTemplateString(document, position)) {
       return new vscode.CompletionList([], true);
+    }
+
+    const componentFile = await this.getComponentSourceFile(document);
+    if (componentFile) {
+      const classDeclaration = componentFile.getClasses()[0];
+      if (classDeclaration && !isStandalone(classDeclaration)) {
+        return new vscode.CompletionList([], true);
+      }
     }
 
     const { indexer } = projCtx;
@@ -376,18 +386,17 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
           const item = new vscode.CompletionItem(stdSelector, itemKind);
           item.insertText = insertText;
 
-          const attrName = stdSelector.startsWith("[")
+          item.filterText = stdSelector.startsWith("[")
             ? stdSelector.slice(1, -1)
             : stdSelector.startsWith("*")
               ? stdSelector.slice(1)
               : stdSelector;
-          item.filterText = attrName;
 
           if (replacementRange) {
             item.range = replacementRange;
           }
-          const isModuleImport = stdElement.name.endsWith("Module");
-          item.detail = `Angular Auto-Import: ${stdElement.type}${isModuleImport ? ` (requires ${stdElement.name})` : " (standalone)"}`;
+          // Standard Angular elements are always standalone and don't require module imports
+          item.detail = `Angular Auto-Import: ${stdElement.type} (standalone)`; // todo
           item.documentation = new vscode.MarkdownString(`Import from \`${stdElement.importPath}\`.`);
           const elementDataForCommand = new AngularElementData(
             stdElement.importPath,
@@ -395,9 +404,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
             stdElement.type,
             stdSelector, // Use the matched selector as the original selector
             stdElement.selectors ?? [stdSelector], // Ensure selectors is an array
-            !isModuleImport,
+            true, // isStandalone - standard Angular elements are always standalone
             true, // isExternal - standard Angular elements are always external
-            isModuleImport ? stdElement.name : undefined
+            undefined // No exporting module needed for standard elements
           );
           item.command = {
             title: `Import ${stdElement.name}`,
@@ -429,6 +438,66 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
 
     // Return a CompletionList and mark it as incomplete to force re-querying on every keystroke
     return new vscode.CompletionList(finalSuggestions, true);
+  }
+
+  private async getComponentSourceFile(document: vscode.TextDocument): Promise<SourceFile | undefined> {
+    const projCtx = this.getProjectContextForDocument(document);
+    if (!projCtx) {
+      return undefined;
+    }
+
+    let componentPath = document.fileName;
+    if (document.languageId === "html") {
+      componentPath = switchFileType(document.fileName, ".ts");
+    }
+
+    const tsDocument = await this.getTsDocument(document, componentPath);
+    if (!tsDocument) {
+      return undefined;
+    }
+
+    return this.getSourceFile(tsDocument);
+  }
+
+  private getSourceFile(document: vscode.TextDocument): SourceFile | undefined {
+    const projCtx = this.getProjectContextForDocument(document);
+    if (!projCtx) {
+      return undefined;
+    }
+
+    const { project } = projCtx.indexer;
+    const activeDocument = vscode.workspace.textDocuments.find((doc) => doc.fileName === document.fileName);
+    const currentContent = activeDocument ? activeDocument.getText() : document.getText();
+    let sourceFile = project.getSourceFile(document.fileName);
+
+    if (sourceFile) {
+      if (sourceFile.getFullText() !== currentContent) {
+        sourceFile.replaceWithText(currentContent);
+      }
+    } else {
+      sourceFile = project.createSourceFile(document.fileName, currentContent, {
+        overwrite: true,
+      });
+    }
+
+    return sourceFile;
+  }
+
+  private async getTsDocument(
+    document: vscode.TextDocument,
+    componentPath: string
+  ): Promise<vscode.TextDocument | null> {
+    if (document.fileName === componentPath) {
+      return document;
+    }
+    const tsDocUri = vscode.Uri.file(componentPath);
+    try {
+      return await vscode.workspace.openTextDocument(tsDocUri);
+    } catch (error) {
+      // logger is not available here, so we'll just log to the console
+      console.error(`Could not open TS document for completion: ${componentPath}`, error);
+      return null;
+    }
   }
 
   /**

@@ -8,8 +8,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { logger } from "../logger";
 import type { ExtensionConfig } from "../config";
+import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
@@ -73,7 +73,9 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
 
     if (projectsToReindex.length === 0) {
       // If no active editor or not in a known project, reindex all
-      commandContext.projectIndexers.forEach((_, projectRootPath) => projectsToReindex.push(projectRootPath));
+      commandContext.projectIndexers.forEach((_, projectRootPath) => {
+        projectsToReindex.push(projectRootPath);
+      });
       if (projectsToReindex.length > 0) {
         // Targeting all known projects
       }

@@ -64,6 +64,12 @@ Re-exports [isAngularFile](utils/angular.md#isangularfile)
 
 ***
 
+### isStandalone
+
+Re-exports [isStandalone](utils/angular.md#isstandalone)
+
+***
+
 ### normalizePath
 
 Re-exports [normalizePath](utils/path.md#normalizepath)

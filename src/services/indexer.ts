@@ -22,7 +22,7 @@ import {
 import * as vscode from "vscode";
 import { logger } from "../logger";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
-import { findAngularDependencies, getLibraryEntryPoints, parseAngularSelector } from "../utils";
+import { findAngularDependencies, getLibraryEntryPoints, isStandalone, parseAngularSelector } from "../utils";
 
 /**
  * Represents a node in a Trie data structure for storing selectors.
@@ -425,28 +425,25 @@ export class AngularIndexer {
       const decoratorName = decorator.getName();
       let elementType: "component" | "directive" | "pipe" | null = null;
       let selector: string | undefined;
-      let isStandalone = false;
+      const isStandaloneElement = isStandalone(classDeclaration);
 
       switch (decoratorName) {
         case "Component": {
           elementType = "component";
           const componentData = this.extractComponentDecoratorData(decorator);
           selector = componentData.selector;
-          isStandalone = componentData.standalone;
           break;
         }
         case "Directive": {
           elementType = "directive";
           const directiveData = this.extractDirectiveDecoratorData(decorator);
           selector = directiveData.selector;
-          isStandalone = directiveData.standalone;
           break;
         }
         case "Pipe": {
           elementType = "pipe";
           const pipeData = this.extractPipeDecoratorData(decorator);
           selector = pipeData.name;
-          isStandalone = pipeData.standalone;
           break;
         }
       }
@@ -459,7 +456,7 @@ export class AngularIndexer {
           lastModified: fs.statSync(filePath).mtime.getTime(), // Ok, but content hash is better
           hash: this.generateHash(fileContent), // Use content for hash
           type: elementType,
-          isStandalone: isStandalone,
+          isStandalone: isStandaloneElement,
         };
       }
     }
@@ -467,14 +464,13 @@ export class AngularIndexer {
   }
 
   /**
-   * Extracts the selector and standalone flag from a `@Component` decorator.
+   * Extracts the selector from a `@Component` decorator.
    * @param decorator The decorator to extract information from.
-   * @returns An object containing the selector and standalone flag.
+   * @returns An object containing the selector.
    * @internal
    */
-  private extractComponentDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
+  private extractComponentDecoratorData(decorator: Decorator): { selector?: string } {
     let selector: string | undefined;
-    let standalone = false;
 
     try {
       const args = decorator.getArguments();
@@ -489,32 +485,22 @@ export class AngularIndexer {
             selector = initializer.getLiteralText();
           }
         }
-
-        // Extract standalone flag
-        const standaloneProperty = objectLiteral.getProperty("standalone");
-        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = standaloneProperty.getInitializer();
-          if (initializer?.isKind(SyntaxKind.TrueKeyword) || initializer?.isKind(SyntaxKind.FalseKeyword)) {
-            standalone = initializer.isKind(SyntaxKind.TrueKeyword);
-          }
-        }
       }
     } catch (error) {
-      logger.error("Error extracting component data from decorator:", error as Error);
+      logger.error("Error extracting component selector from decorator:", error as Error);
     }
 
-    return { selector, standalone };
+    return { selector };
   }
 
   /**
-   * Extracts the selector and standalone flag from a `@Directive` decorator.
+   * Extracts the selector from a `@Directive` decorator.
    * @param decorator The decorator to extract information from.
-   * @returns An object containing the selector and standalone flag.
+   * @returns An object containing the selector.
    * @internal
    */
-  private extractDirectiveDecoratorData(decorator: Decorator): { selector?: string; standalone: boolean } {
+  private extractDirectiveDecoratorData(decorator: Decorator): { selector?: string } {
     let selector: string | undefined;
-    let standalone = false;
 
     try {
       const args = decorator.getArguments();
@@ -528,29 +514,22 @@ export class AngularIndexer {
             selector = initializer.getLiteralText();
           }
         }
-
-        const standaloneProperty = objectLiteral.getProperty("standalone");
-        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = standaloneProperty.getInitializer();
-          standalone = initializer?.isKind(SyntaxKind.TrueKeyword) ?? false;
-        }
       }
     } catch (error) {
-      logger.error("Error extracting directive data from decorator:", error as Error);
+      logger.error("Error extracting directive selector from decorator:", error as Error);
     }
 
-    return { selector, standalone };
+    return { selector };
   }
 
   /**
-   * Extracts the name and standalone flag from a `@Pipe` decorator.
+   * Extracts the name from a `@Pipe` decorator.
    * @param decorator The decorator to extract information from.
-   * @returns An object containing the name and standalone flag.
+   * @returns An object containing the name.
    * @internal
    */
-  private extractPipeDecoratorData(decorator: Decorator): { name?: string; standalone: boolean } {
+  private extractPipeDecoratorData(decorator: Decorator): { name?: string } {
     let name: string | undefined;
-    let standalone = false;
 
     try {
       const args = decorator.getArguments();
@@ -564,18 +543,12 @@ export class AngularIndexer {
             name = initializer.getLiteralText();
           }
         }
-
-        const standaloneProperty = objectLiteral.getProperty("standalone");
-        if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = standaloneProperty.getInitializer();
-          standalone = initializer?.isKind(SyntaxKind.TrueKeyword) ?? false;
-        }
       }
     } catch (error) {
-      logger.error("Error extracting pipe data from decorator:", error as Error);
+      logger.error("Error extracting pipe name from decorator:", error as Error);
     }
 
-    return { name, standalone };
+    return { name };
   }
 
   /**
@@ -805,7 +778,9 @@ export class AngularIndexer {
       }
 
       // Clear existing ts-morph project files before full scan to avoid stale data
-      this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
+      this.project.getSourceFiles().forEach((sf) => {
+        this.project.removeSourceFile(sf);
+      });
       this.fileCache.clear();
       this.selectorTrie.clear();
       this.projectModuleMap.clear();
@@ -895,7 +870,7 @@ export class AngularIndexer {
             await parseAngularSelector(value.originalSelector || key),
             value.isStandalone,
             value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
-            value.exportingModuleName,
+            value.exportingModuleName
           );
           // Index under all its selectors
           for (const selector of elementData.selectors) {
@@ -972,7 +947,9 @@ export class AngularIndexer {
       this.fileCache.clear();
       this.selectorTrie.clear();
       this.projectModuleMap.clear();
-      this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
+      this.project.getSourceFiles().forEach((sf) => {
+        this.project.removeSourceFile(sf);
+      });
 
       // Clear persisted state
       await context.workspaceState.update(this.workspaceFileCacheKey, undefined);
@@ -1349,6 +1326,39 @@ export class AngularIndexer {
   }
 
   /**
+   * Determines if an element is standalone from its compiled type reference.
+   * @param typeRef The type reference node from a static property (e.g., `ɵcmp`).
+   * @param elementType The type of the Angular element.
+   * @returns `true` if the element is standalone, `false` otherwise.
+   * @internal
+   */
+  private _isStandaloneFromTypeReference(
+    typeRef: TypeReferenceNode,
+    elementType: "component" | "directive" | "pipe"
+  ): boolean {
+    const typeArgs = typeRef.getTypeArguments();
+    let standaloneIndex: number;
+
+    switch (elementType) {
+      case "component":
+      case "directive":
+        standaloneIndex = 7;
+        break;
+      case "pipe":
+        standaloneIndex = 2;
+        break;
+      default:
+        return false;
+    }
+
+    if (typeArgs.length > standaloneIndex) {
+      return typeArgs[standaloneIndex].getText() === "true";
+    }
+
+    return false;
+  }
+
+  /**
    * Indexes the declarations in a file.
    * @param sourceFile The source file to process.
    * @param importPath The import path of the source file.
@@ -1435,9 +1445,7 @@ export class AngularIndexer {
                 selector = selectorNode.getText().slice(1, -1);
               }
             }
-            if (typeArgs.length > 7) {
-              isStandalone = typeArgs[7].getText() === "true";
-            }
+            isStandalone = this._isStandaloneFromTypeReference(typeRef, "component");
           }
         } else {
           const { prop: dirDef } = findInheritedStaticProperty(classDecl, "ɵdir");
@@ -1458,9 +1466,7 @@ export class AngularIndexer {
                   selector = selectorNode.getText().slice(1, -1);
                 }
               }
-              if (typeArgs.length > 7) {
-                isStandalone = typeArgs[7].getText() === "true";
-              }
+              isStandalone = this._isStandaloneFromTypeReference(typeRef, "directive");
             }
           } else {
             const { prop: pipeDef } = findInheritedStaticProperty(classDecl, "ɵpipe");
@@ -1476,9 +1482,7 @@ export class AngularIndexer {
                     selector = literal.getLiteralText();
                   }
                 }
-                if (typeArgs.length > 2) {
-                  isStandalone = typeArgs[2].getText() === "true";
-                }
+                isStandalone = this._isStandaloneFromTypeReference(typeRef, "pipe");
               }
             }
           }
@@ -1620,6 +1624,8 @@ export class AngularIndexer {
     this.fileCache.clear();
     this.selectorTrie.clear();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
-    this.project.getSourceFiles().forEach((sf) => this.project.removeSourceFile(sf));
+    this.project.getSourceFiles().forEach((sf) => {
+      this.project.removeSourceFile(sf);
+    });
   }
 }

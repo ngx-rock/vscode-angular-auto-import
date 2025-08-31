@@ -402,44 +402,67 @@ describe("TsConfigHelper", function () {
   });
 
   describe("Test Project Aliases", () => {
-
     it("should resolve @shared/* aliases correctly", async () => {
       // Ensure tsconfig is loaded first
       await TsConfigHelper.findAndParseTsConfig(testProjectPath);
-      
-      const targetPath = path.join(testProjectPath, "src", "app", "project", "shared", "component", "table", "pagination", "pagination.component");
+
+      const targetPath = path.join(
+        testProjectPath,
+        "src",
+        "app",
+        "project",
+        "shared",
+        "component",
+        "table",
+        "pagination",
+        "pagination.component"
+      );
       const currentFile = path.join(testProjectPath, "src", "app", "some-component.ts");
 
       const result = await TsConfigHelper.resolveImportPath(targetPath, currentFile, testProjectPath);
 
-      assert.strictEqual(result, "@shared/component/table/pagination/pagination.component", 
-        "Should resolve to @shared alias for shared components");
+      assert.strictEqual(
+        result,
+        "@shared/component/table/pagination/pagination.component",
+        "Should resolve to @shared alias for shared components"
+      );
     });
 
     it("should resolve ~/* aliases correctly", async () => {
       // Ensure tsconfig is loaded first
       await TsConfigHelper.findAndParseTsConfig(testProjectPath);
-      
-      const targetPath = path.join(testProjectPath, "src", "app", "project", "mobile", "shared", "pipes", "number-separator.pipe");
+
+      const targetPath = path.join(
+        testProjectPath,
+        "src",
+        "app",
+        "project",
+        "mobile",
+        "shared",
+        "pipes",
+        "number-separator.pipe"
+      );
       const currentFile = path.join(testProjectPath, "src", "app", "some-component.ts");
 
       const result = await TsConfigHelper.resolveImportPath(targetPath, currentFile, testProjectPath);
 
-      assert.strictEqual(result, "~/app/project/mobile/shared/pipes/number-separator.pipe", 
-        "Should resolve to ~/ alias for src paths");
+      assert.strictEqual(
+        result,
+        "~/app/project/mobile/shared/pipes/number-separator.pipe",
+        "Should resolve to ~/ alias for src paths"
+      );
     });
 
     it("should resolve @domain/* aliases correctly", async () => {
       // Ensure tsconfig is loaded first
       await TsConfigHelper.findAndParseTsConfig(testProjectPath);
-      
+
       const targetPath = path.join(testProjectPath, "src", "app", "project", "domain", "models", "user.model");
       const currentFile = path.join(testProjectPath, "src", "app", "components", "user.component.ts");
 
       const result = await TsConfigHelper.resolveImportPath(targetPath, currentFile, testProjectPath);
 
-      assert.strictEqual(result, "@domain/models/user.model", 
-        "Should resolve to @domain alias for domain models");
+      assert.strictEqual(result, "@domain/models/user.model", "Should resolve to @domain alias for domain models");
     });
   });
 

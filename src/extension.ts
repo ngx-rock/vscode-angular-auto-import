@@ -156,11 +156,15 @@ async function isAngularProject(projectRoot: string): Promise<boolean> {
  */
 export function deactivate(): void {
   // Clear intervals
-  projectIntervals.forEach((intervalId) => clearInterval(intervalId));
+  projectIntervals.forEach((intervalId) => {
+    clearInterval(intervalId);
+  });
   projectIntervals.clear();
 
   // Dispose indexers
-  projectIndexers.forEach((indexer) => indexer.dispose());
+  projectIndexers.forEach((indexer) => {
+    indexer.dispose();
+  });
   projectIndexers.clear();
 
   // Clear caches

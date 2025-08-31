@@ -205,11 +205,7 @@ function _parseConfigFile(filePath: string): ReturnType<typeof getTsconfig> {
     const parseResult = parseTsconfig(filePath);
     return parseResult ? { path: filePath, config: parseResult } : null;
   } catch (parseError) {
-    logger.warn(
-      `[TsConfigHelper] Failed to parse ${filePath}: ${
-        (parseError as Error).message
-      }`,
-    );
+    logger.warn(`[TsConfigHelper] Failed to parse ${filePath}: ${(parseError as Error).message}`);
     return null;
   }
 }
@@ -244,15 +240,15 @@ export async function findAndParseTsConfig(projectRoot: string): Promise<Process
       return cached;
     }
   }
-  
+
   try {
     // Look for tsconfig.json or tsconfig.base.json in the project root
     const tsconfigPath = path.join(projectRoot, "tsconfig.json");
     const tsconfigBasePath = path.join(projectRoot, "tsconfig.base.json");
-    
+
     let tsconfigResult: ReturnType<typeof getTsconfig> = null;
     let actualTsconfigPath: string | null = null;
-    
+
     // Check for existing files and try to parse them
     if (fs.existsSync(tsconfigPath)) {
       tsconfigResult = _parseConfigFile(tsconfigPath);
@@ -261,16 +257,18 @@ export async function findAndParseTsConfig(projectRoot: string): Promise<Process
       tsconfigResult = _parseConfigFile(tsconfigBasePath);
       actualTsconfigPath = tsconfigBasePath;
     }
-    
+
     // Validate that the found tsconfig is actually within our project directory
     if (tsconfigResult && !tsconfigResult.path.startsWith(projectRoot)) {
       logger.warn(`[TsConfigHelper] Found tsconfig outside project root: ${tsconfigResult.path}`);
       tsconfigResult = null;
     }
-    
+
     // Ensure the found tsconfig is the expected one
     if (tsconfigResult && actualTsconfigPath && tsconfigResult.path !== actualTsconfigPath) {
-      logger.warn(`[TsConfigHelper] get-tsconfig returned different path than expected: ${tsconfigResult.path} vs ${actualTsconfigPath}`);
+      logger.warn(
+        `[TsConfigHelper] get-tsconfig returned different path than expected: ${tsconfigResult.path} vs ${actualTsconfigPath}`
+      );
       // Only allow if it's still within our project directory
       if (!tsconfigResult.path.startsWith(projectRoot)) {
         tsconfigResult = null;
@@ -339,11 +337,11 @@ export async function resolveImportPath(
   }
 
   let trie = trieCache.get(projectRoot);
-  
+
   if (!trie) {
     // Attempt to load tsconfig and create the trie
     let tsconfig = tsConfigCache.get(projectRoot);
-    
+
     if (!tsconfig) {
       try {
         tsconfig = await findAndParseTsConfig(projectRoot);
