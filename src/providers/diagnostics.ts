@@ -30,9 +30,19 @@ export class DiagnosticProvider {
   private disposables: vscode.Disposable[] = [];
   private candidateDiagnostics: Map<string, vscode.Diagnostic[]> = new Map();
   private templateCache = new Map<string, { version: number; nodes: unknown[] }>();
+  private compiler: any | null = null;
 
   constructor(private context: ProviderContext) {
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection("angular-auto-import");
+    // Pre-load Angular compiler in the background
+    void import("@angular/compiler")
+      .then((compiler) => {
+        this.compiler = compiler;
+        logger.info("[DiagnosticProvider] @angular/compiler pre-loaded.");
+      })
+      .catch((error) => {
+        logger.error("[DiagnosticProvider] Failed to pre-load @angular/compiler:", error as Error);
+      });
   }
 
   /**
@@ -272,7 +282,7 @@ export class DiagnosticProvider {
     }
 
     // Parse the template to get all elements and their full context
-    const parsedElements = await this.parseCompleteTemplate(templateText, document, offset, indexer);
+    const parsedElements = this.parseCompleteTemplate(templateText, document, offset, indexer);
 
     for (const element of parsedElements) {
       const elementDiagnostics = await this.checkElement(element, indexer, severity, sourceFile);
@@ -285,16 +295,21 @@ export class DiagnosticProvider {
     this.publishFilteredDiagnostics(document.uri);
   }
 
-  private async parseCompleteTemplate(
+  private parseCompleteTemplate(
     text: string,
     document: vscode.TextDocument,
     offset: number,
     indexer: AngularIndexer
-  ): Promise<ParsedHtmlFullElement[]> {
+  ): ParsedHtmlFullElement[] {
+    const parseTemplateStartTime = process.hrtime.bigint();
     const elements: ParsedHtmlFullElement[] = [];
     try {
-      const compiler = await import("@angular/compiler");
-      type ParseResult = ReturnType<typeof compiler.parseTemplate>;
+      if (!this.compiler) {
+        logger.warn("[DiagnosticProvider] @angular/compiler not loaded yet, skipping template parsing.");
+        return elements;
+      }
+      const { parseTemplate, TmplAstBoundAttribute, TmplAstBoundEvent, TmplAstElement, TmplAstReference, TmplAstTemplate, TmplAstTextAttribute, TmplAstBoundText } = this.compiler;
+      type ParseResult = ReturnType<typeof parseTemplate>;
       type TemplateNode = ParseResult["nodes"][0];
 
       const currentVersion = document.version;
@@ -307,12 +322,12 @@ export class DiagnosticProvider {
         nodes = cached.nodes as TemplateNode[];
       } else {
         logger.debug(`[DiagnosticProvider] Template cache MISS for ${document.fileName}`);
-        const parsed = compiler.parseTemplate(text, document.uri.fsPath);
+        const parsed = parseTemplate(text, document.uri.fsPath);
         nodes = parsed.nodes;
         this.templateCache.set(cacheKey, { version: currentVersion, nodes });
       }
 
-      type CompilerModule = typeof compiler;
+      type CompilerModule = typeof this.compiler;
       type AttributeLikeNode =
         | InstanceType<CompilerModule["TmplAstTextAttribute"]>
         | InstanceType<CompilerModule["TmplAstBoundAttribute"]>
@@ -409,8 +424,8 @@ export class DiagnosticProvider {
             });
           }
 
-          if (node instanceof compiler.TmplAstElement || node instanceof compiler.TmplAstTemplate) {
-            const isTemplate = node instanceof compiler.TmplAstTemplate;
+          if (node instanceof TmplAstElement || node instanceof TmplAstTemplate) {
+            const isTemplate = node instanceof TmplAstTemplate;
 
             const regularAttrs: AttributeLikeNode[] = [
               ...node.attributes,
@@ -419,7 +434,7 @@ export class DiagnosticProvider {
               ...node.references,
             ];
 
-            const templateAttrs = node instanceof compiler.TmplAstTemplate ? [...node.templateAttrs] : [];
+            const templateAttrs = node instanceof TmplAstTemplate ? [...node.templateAttrs] : [];
 
             const allAttrsList: AttributeLikeNode[] = [...regularAttrs, ...templateAttrs];
 
@@ -460,16 +475,16 @@ export class DiagnosticProvider {
               }
 
               // Skip event bindings, as they are not importable directives.
-              if (attr instanceof compiler.TmplAstBoundEvent) {
+              if (attr instanceof TmplAstBoundEvent) {
                 return;
               }
 
               let type: ParsedHtmlFullElement["type"] = "attribute";
-              if (attr instanceof compiler.TmplAstReference) {
+              if (attr instanceof TmplAstReference) {
                 type = "template-reference";
               } else if (isTemplateAttr || attr.name.startsWith("*")) {
                 type = "structural-directive";
-              } else if (attr instanceof compiler.TmplAstBoundAttribute) {
+              } else if (attr instanceof TmplAstBoundAttribute) {
                 type = "property-binding";
               }
 
@@ -486,7 +501,7 @@ export class DiagnosticProvider {
               });
 
               // Check for pipes in bound attribute values (like *ngIf="expression | pipe")
-              if (attr instanceof compiler.TmplAstBoundAttribute && attr.value) {
+              if (attr instanceof TmplAstBoundAttribute && attr.value) {
                 const valueSpan = attr.valueSpan || attr.sourceSpan;
                 if (valueSpan) {
                   const expressionText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
@@ -506,7 +521,7 @@ export class DiagnosticProvider {
             }
           }
 
-          if (node instanceof compiler.TmplAstBoundText) {
+          if (node instanceof TmplAstBoundText) {
             const pipes = this._findPipesInExpression(
               text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset),
               document,
@@ -537,6 +552,11 @@ export class DiagnosticProvider {
       };
 
       visit(nodes);
+      // Log duration for parsing template
+      const parseTemplateEndTime = process.hrtime.bigint();
+      const parseTemplateDuration = Number(parseTemplateEndTime - parseTemplateStartTime) / 1_000_000;
+      logger.debug(`[DiagnosticProvider] parseCompleteTemplate for ${document.fileName} took ${parseTemplateDuration.toFixed(2)} ms`);
+
     } catch (e) {
       logger.error(`[DiagnosticProvider] Failed to parse template: ${document.uri.fsPath}`, e as Error);
     }
@@ -549,6 +569,7 @@ export class DiagnosticProvider {
     severity: vscode.DiagnosticSeverity,
     sourceFile: SourceFile
   ): Promise<vscode.Diagnostic[]> {
+    const checkElementStartTime = process.hrtime.bigint();
     const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
     const diagnostics: vscode.Diagnostic[] = [];
     const processedCandidatesThisCall = new Set<string>();
@@ -603,6 +624,10 @@ export class DiagnosticProvider {
         }
       }
     }
+
+    const checkElementEndTime = process.hrtime.bigint();
+    const checkElementDuration = Number(checkElementEndTime - checkElementStartTime) / 1_000_000;
+    logger.debug(`[DiagnosticProvider] checkElement for ${element.name} took ${checkElementDuration.toFixed(2)} ms`);
 
     return diagnostics;
   }
