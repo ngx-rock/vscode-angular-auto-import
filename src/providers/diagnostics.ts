@@ -19,6 +19,7 @@ import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { AngularElementData, ParsedHtmlElement } from "../types";
 import { getAngularElements, isStandalone, switchFileType } from "../utils";
+import { debounce } from "../utils/debounce";
 import type { ProviderContext } from "./index";
 
 /**
@@ -38,20 +39,24 @@ export class DiagnosticProvider {
    */
   activate(): void {
     // Update diagnostics when HTML documents change
-    const htmlUpdateHandler = vscode.workspace.onDidChangeTextDocument(async (event) => {
-      if (event.document.languageId === "html") {
-        await this.updateDiagnostics(event.document);
-      }
-    });
+    const htmlUpdateHandler = vscode.workspace.onDidChangeTextDocument(
+      debounce(async (event: vscode.TextDocumentChangeEvent) => {
+        if (event.document.languageId === "html") {
+          await this.updateDiagnostics(event.document);
+        }
+      }, 300)
+    );
     this.disposables.push(htmlUpdateHandler);
 
     // Update diagnostics when TypeScript documents change
-    const tsUpdateHandler = vscode.workspace.onDidChangeTextDocument(async (event) => {
-      if (event.document.languageId === "typescript") {
-        await this.updateDiagnostics(event.document);
-        await this.updateRelatedHtmlDiagnostics(event.document);
-      }
-    });
+    const tsUpdateHandler = vscode.workspace.onDidChangeTextDocument(
+      debounce(async (event: vscode.TextDocumentChangeEvent) => {
+        if (event.document.languageId === "typescript") {
+          await this.updateDiagnostics(event.document);
+          await this.updateRelatedHtmlDiagnostics(event.document);
+        }
+      }, 300)
+    );
     this.disposables.push(tsUpdateHandler);
 
     // Update diagnostics when TypeScript documents are saved
