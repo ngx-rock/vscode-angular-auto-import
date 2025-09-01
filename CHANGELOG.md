@@ -4,6 +4,12 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.10.1] - 2025-08-31
+
+### Added
+- New command "Show Logs" to view extension logs in output channel or log files
+- New command "Show Performance Metrics" with detailed memory usage and indexing statistics 
+
 ## [1.10.0] - 2025-08-31
 
 ### Removed
@@ -12,9 +18,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [1.9.0] - 2025-08-30
 
 ### Added
-- Comprehensive logging system with configurable levels (DEBUG, INFO, WARN, ERROR, FATAL)
-- File logging support with rotation and customizable output formats
-- External library tracking with `isExternal` property on AngularElementData
+- Comprehensive logging system with configurable levels (DEBUG, INFO, WARN, ERROR, FATAL) 
 - Enhanced tsconfig parsing with robust error handling using `get-tsconfig` library
 
 ### Configuration
