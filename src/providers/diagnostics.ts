@@ -29,6 +29,7 @@ export class DiagnosticProvider {
   private diagnosticCollection: vscode.DiagnosticCollection;
   private disposables: vscode.Disposable[] = [];
   private candidateDiagnostics: Map<string, vscode.Diagnostic[]> = new Map();
+  private templateCache = new Map<string, { version: number; nodes: unknown[] }>();
 
   constructor(private context: ProviderContext) {
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection("angular-auto-import");
@@ -111,6 +112,7 @@ export class DiagnosticProvider {
     });
     this.disposables = [];
     this.candidateDiagnostics.clear();
+    this.templateCache.clear();
     this.diagnosticCollection.dispose();
   }
 
@@ -289,10 +291,25 @@ export class DiagnosticProvider {
     const elements: ParsedHtmlFullElement[] = [];
     try {
       const compiler = await import("@angular/compiler");
-      const { nodes } = compiler.parseTemplate(text, document.uri.fsPath);
+      type ParseResult = ReturnType<typeof compiler.parseTemplate>;
+      type TemplateNode = ParseResult["nodes"][0];
+
+      const currentVersion = document.version;
+      const cacheKey = document.uri.toString();
+      const cached = this.templateCache.get(cacheKey);
+      let nodes: TemplateNode[];
+
+      if (cached && cached.version === currentVersion) {
+        logger.debug(`[DiagnosticProvider] Template cache HIT for ${document.fileName}`);
+        nodes = cached.nodes as TemplateNode[];
+      } else {
+        logger.debug(`[DiagnosticProvider] Template cache MISS for ${document.fileName}`);
+        const parsed = compiler.parseTemplate(text, document.uri.fsPath);
+        nodes = parsed.nodes;
+        this.templateCache.set(cacheKey, { version: currentVersion, nodes });
+      }
 
       type CompilerModule = typeof compiler;
-      type TemplateNode = (typeof nodes)[0];
       type AttributeLikeNode =
         | InstanceType<CompilerModule["TmplAstTextAttribute"]>
         | InstanceType<CompilerModule["TmplAstBoundAttribute"]>
