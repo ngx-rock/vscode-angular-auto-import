@@ -259,20 +259,23 @@ export class DiagnosticProvider {
     }
 
     const sourceFile = this.getSourceFile(tsDocument);
-    if (sourceFile) {
-      const classDeclaration = sourceFile.getClasses()[0];
-      if (classDeclaration && !isStandalone(classDeclaration)) {
-        this.candidateDiagnostics.delete(document.uri.toString());
-        this.diagnosticCollection.delete(document.uri);
-        return;
-      }
+    if (!sourceFile) {
+      logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
+      return;
+    }
+
+    const classDeclaration = sourceFile.getClasses()[0];
+    if (classDeclaration && !isStandalone(classDeclaration)) {
+      this.candidateDiagnostics.delete(document.uri.toString());
+      this.diagnosticCollection.delete(document.uri);
+      return;
     }
 
     // Parse the template to get all elements and their full context
     const parsedElements = await this.parseCompleteTemplate(templateText, document, offset, indexer);
 
     for (const element of parsedElements) {
-      const elementDiagnostics = await this.checkElement(element, indexer, tsDocument, severity);
+      const elementDiagnostics = await this.checkElement(element, indexer, severity, sourceFile);
       if (elementDiagnostics.length > 0) {
         diagnostics.push(...elementDiagnostics);
       }
@@ -543,8 +546,8 @@ export class DiagnosticProvider {
   private async checkElement(
     element: ParsedHtmlFullElement,
     indexer: AngularIndexer,
-    tsDocument: vscode.TextDocument,
-    severity: vscode.DiagnosticSeverity
+    severity: vscode.DiagnosticSeverity,
+    sourceFile: SourceFile
   ): Promise<vscode.Diagnostic[]> {
     const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
     const diagnostics: vscode.Diagnostic[] = [];
@@ -589,13 +592,13 @@ export class DiagnosticProvider {
         // Only add to processed after a successful match.
         processedCandidatesThisCall.add(candidate.name);
 
-        if (!this.isElementImported(tsDocument, candidate)) {
+        if (!this.isElementImported(sourceFile, candidate)) {
           diagnostics.push(this.createMissingImportDiagnostic(element, candidate, specificSelector, severity));
         }
       } else {
         // For pipes, the candidate name is the selector
         processedCandidatesThisCall.add(candidate.name);
-        if (!this.isElementImported(tsDocument, candidate)) {
+        if (!this.isElementImported(sourceFile, candidate)) {
           diagnostics.push(this.createMissingImportDiagnostic(element, candidate, element.name, severity));
         }
       }
@@ -736,9 +739,8 @@ export class DiagnosticProvider {
     }
   }
 
-  private isElementImported(document: vscode.TextDocument, element: AngularElementData): boolean {
+  private isElementImported(sourceFile: SourceFile, element: AngularElementData): boolean {
     try {
-      const sourceFile = this.getSourceFile(document);
       if (!sourceFile) {
         return false;
       }
