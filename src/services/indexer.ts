@@ -769,6 +769,13 @@ export class AngularIndexer {
       return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
     }
 
+    const timerName = `generateFullIndex:${path.basename(this.projectRootPath)}`;
+    logger.startTimer(timerName);
+
+    // Log initial memory usage
+    const initialMemory = logger.getPerformanceMetrics();
+    logger.info(`Starting full index - Memory: ${Math.round(initialMemory.memoryUsage.heapUsed / 1024 / 1024)}MB`);
+
     this.isIndexing = true;
     try {
       logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): Starting full index generation...`);
@@ -814,9 +821,18 @@ export class AngularIndexer {
       await this.indexNodeModules(context);
 
       await this.saveIndexToWorkspace(context);
+
+      // Log final memory usage and performance metrics
+      const finalMemory = logger.getPerformanceMetrics();
+      const memoryDelta = finalMemory.memoryUsage.heapUsed - initialMemory.memoryUsage.heapUsed;
+      logger.info(
+        `Full index completed - Memory: ${Math.round(finalMemory.memoryUsage.heapUsed / 1024 / 1024)}MB (Δ${memoryDelta > 0 ? "+" : ""}${Math.round(memoryDelta / 1024 / 1024)}MB)`
+      );
+
       return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
     } finally {
       this.isIndexing = false;
+      logger.stopTimer(timerName);
     }
   }
 
@@ -979,6 +995,15 @@ export class AngularIndexer {
    * @param context The extension context.
    */
   public async indexNodeModules(context: vscode.ExtensionContext): Promise<void> {
+    const timerName = `indexNodeModules:${path.basename(this.projectRootPath)}`;
+    logger.startTimer(timerName);
+
+    // Log initial memory before node_modules indexing
+    const initialMemory = logger.getPerformanceMetrics();
+    logger.info(
+      `Starting node_modules index - Memory: ${Math.round(initialMemory.memoryUsage.heapUsed / 1024 / 1024)}MB`
+    );
+
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -1010,13 +1035,23 @@ export class AngularIndexer {
               continue;
             }
 
-            logger.debug(`[indexNodeModules] Found ${entryPoints.size} entry points for ${dep.name}`);
+            logger.info(`📚 Indexing library: ${dep.name} (${entryPoints.size} entry points)`);
             await this._indexLibrary(entryPoints);
           }
           await this.saveIndexToWorkspace(context);
+
+          // Log final memory usage after node_modules indexing
+          const finalMemory = logger.getPerformanceMetrics();
+          const memoryDelta = finalMemory.memoryUsage.heapUsed - initialMemory.memoryUsage.heapUsed;
+          logger.info(
+            `Node modules index completed - Memory: ${Math.round(finalMemory.memoryUsage.heapUsed / 1024 / 1024)}MB (Δ${memoryDelta > 0 ? "+" : ""}${Math.round(memoryDelta / 1024 / 1024)}MB)`
+          );
+
           logger.debug(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
         } catch (error) {
           logger.error("[indexNodeModules] Error during node_modules indexing:", error as Error);
+        } finally {
+          logger.stopTimer(timerName);
         }
       }
     );

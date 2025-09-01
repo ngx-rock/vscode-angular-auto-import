@@ -144,6 +144,199 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
     vscode.window.showInformationMessage("✅ Angular Auto-Import: All project caches have been cleared.");
   });
   context.subscriptions.push(clearCacheCommand);
+
+  // Show logs command
+  const showLogsCommand = vscode.commands.registerCommand("angular-auto-import.showLogs", async () => {
+    logger.info("Show logs command invoked by user");
+
+    try {
+      // Show the Angular Auto Import output channel
+      const choice = await vscode.window.showInformationMessage(
+        "View Angular Auto Import logs:",
+        { modal: false },
+        "📋 Output Channel",
+        "📁 Log Files"
+      );
+
+      if (choice === "📋 Output Channel") {
+        // Show VS Code Output panel with Angular Auto Import channel
+        await vscode.commands.executeCommand("workbench.action.output.toggleOutput");
+        // The logger's ChannelTransport will ensure the channel is visible
+      } else if (choice === "📁 Log Files") {
+        // Open log directory if file logging is enabled
+        const config = commandContext.extensionConfig;
+        if (config.logging?.fileLoggingEnabled) {
+          const logDir = config.logging.logDirectory || path.join(context.globalStorageUri.fsPath, "logs");
+          if (fs.existsSync(logDir)) {
+            await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(logDir), true);
+          } else {
+            vscode.window.showWarningMessage(
+              "Log directory not found. File logging might be disabled or not initialized yet."
+            );
+          }
+        } else {
+          vscode.window.showInformationMessage("File logging is disabled. Enable it in settings to create log files.");
+        }
+      }
+    } catch (error) {
+      logger.error("Error in showLogs command:", error as Error);
+      vscode.window.showErrorMessage("Failed to show logs. Check the extension output for details.");
+    }
+  });
+  context.subscriptions.push(showLogsCommand);
+
+  // Show performance metrics command
+  const showMetricsCommand = vscode.commands.registerCommand("angular-auto-import.showPerformanceMetrics", async () => {
+    logger.info("Show performance metrics command invoked by user");
+
+    try {
+      const metrics = logger.getPerformanceMetrics();
+      const heapUsedMb = Math.round(metrics.memoryUsage.heapUsed / 1024 / 1024);
+      const heapTotalMb = Math.round(metrics.memoryUsage.heapTotal / 1024 / 1024);
+      const rssMb = Math.round(metrics.memoryUsage.rss / 1024 / 1024);
+      const externalMb = Math.round(metrics.memoryUsage.external / 1024 / 1024);
+
+      // Count indexed elements across all projects
+      let totalElements = 0;
+      let totalProjects = 0;
+      let projectDetails = "";
+
+      for (const [projectPath, indexer] of commandContext.projectIndexers.entries()) {
+        const elements = indexer.getAllSelectors().length;
+        totalElements += elements;
+        totalProjects++;
+        projectDetails += `\n• ${path.basename(projectPath)}: ${elements} elements`;
+      }
+
+      const metricsReport = `🔍 **Angular Auto Import - Performance Metrics**
+
+📊 **Memory Usage:**
+• Heap Used: ${heapUsedMb} MB
+• Heap Total: ${heapTotalMb} MB  
+• RSS: ${rssMb} MB
+• External: ${externalMb} MB
+
+⚡ **CPU Usage:**
+• User: ${Math.round(metrics.cpuUsage.user / 1000)} ms
+• System: ${Math.round(metrics.cpuUsage.system / 1000)} ms
+
+🗂️ **Indexing Stats:**
+• Projects: ${totalProjects}
+• Total Elements: ${totalElements}${projectDetails}
+
+💡 **Tips:**
+• If memory usage is high (>100MB), try clearing cache
+• Check logs for performance timers of slow operations
+• Large projects may need more memory for indexing`;
+
+      const panel = vscode.window.createWebviewPanel(
+        "angularAutoImportMetrics",
+        "Angular Auto Import - Performance Metrics",
+        vscode.ViewColumn.One,
+        {
+          enableScripts: true,
+          retainContextWhenHidden: false,
+          localResourceRoots: [],
+        }
+      );
+
+      // Add disposal handler
+      context.subscriptions.push(panel);
+
+      panel.webview.html = getWebviewContent(metricsReport);
+    } catch (error) {
+      logger.error("Error in showPerformanceMetrics command:", error as Error);
+      vscode.window.showErrorMessage("Failed to show performance metrics. Check the extension output for details.");
+    }
+  });
+  context.subscriptions.push(showMetricsCommand);
+}
+
+/**
+ * Generates secure and rich HTML content for the performance metrics webview.
+ * It transforms a markdown-like report string into a styled HTML document.
+ *
+ * @param metricsReport - The formatted metrics report string
+ * @returns HTML string for the webview
+ */
+function getWebviewContent(metricsReport: string): string {
+  // Sanitize to prevent any accidental HTML injection from metric values
+  const sanitizedReport = metricsReport.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // Convert markdown-like syntax to HTML
+  let htmlContent = sanitizedReport
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") // Bold text
+    .replace(/^🔍 (.*)$/gm, "<h1>$1</h1>") // Main title
+    .replace(/^(📊|⚡|🗂️|💡) (.*)$/gm, "<h2>$1 $2</h2>") // Section headers
+    .replace(/^• (.*)$/gm, "<li>$1</li>"); // List items
+
+  // Wrap consecutive list items in a <ul> tag
+  htmlContent = htmlContent.replace(/(<li>(.|\n)*?<\/li>)/gs, "<ul>$1</ul>").replace(/<\/ul>\s*<ul>/gs, "");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+    <title>Performance Metrics</title>
+    <style>
+        body { 
+            font-family: var(--vscode-font-family), 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: var(--vscode-font-size, 13px);
+            padding: 20px;
+            line-height: 1.6;
+            background: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+            margin: 0;
+        }
+        h1 {
+          font-size: 1.5em;
+          font-weight: 600;
+          border-bottom: 1px solid var(--vscode-separator-foreground);
+          padding-bottom: 8px;
+          margin: 0 0 20px 0;
+        }
+        h2 {
+          font-size: 1.2em;
+          font-weight: 600;
+          margin-top: 25px;
+          margin-bottom: 10px;
+        }
+        ul {
+          list-style-type: none;
+          padding-left: 5px;
+          margin: 0;
+        }
+        li {
+          position: relative;
+          padding-left: 15px;
+          margin-bottom: 5px;
+        }
+        li::before {
+          content: '•';
+          position: absolute;
+          left: 0;
+          color: var(--vscode-focusBorder);
+        }
+        .refresh-info {
+            margin-top: 25px;
+            padding: 10px;
+            background: var(--vscode-textBlockQuote-background);
+            border-radius: 3px;
+            border-left: 3px solid var(--vscode-textBlockQuote-border);
+            font-size: 0.9em;
+            color: var(--vscode-descriptionForeground);
+        }
+    </style>
+</head>
+<body>
+    ${htmlContent}
+    <div class="refresh-info">
+        💡 To refresh metrics, run the command again from the Command Palette (Ctrl/Cmd + Shift + P)
+    </div>
+</body>
+</html>`;
 }
 
 /**
