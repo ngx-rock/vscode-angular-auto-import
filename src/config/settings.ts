@@ -49,6 +49,46 @@ export interface ExtensionConfig {
    * @default 'warning'
    */
   diagnosticsSeverity: string;
+  /**
+   * Logging configuration settings.
+   */
+  logging: {
+    /**
+     * Whether logging is enabled.
+     * @default true
+     */
+    enabled: boolean;
+    /**
+     * Logging level threshold.
+     * @default 'INFO'
+     */
+    level: string;
+    /**
+     * Whether file logging is enabled.
+     * @default false
+     */
+    fileLoggingEnabled: boolean;
+    /**
+     * Directory for log files.
+     * @default null
+     */
+    logDirectory: string | null;
+    /**
+     * Maximum log file size in MB before rotation.
+     * @default 5
+     */
+    rotationMaxSize: number;
+    /**
+     * Maximum number of log files to keep.
+     * @default 5
+     */
+    rotationMaxFiles: number;
+    /**
+     * Log output format.
+     * @default 'plain'
+     */
+    outputFormat: string;
+  };
 }
 
 /**
@@ -75,6 +115,15 @@ export function getConfiguration(): ExtensionConfig {
     indexRefreshInterval: config.get<number>("index.refreshInterval", 60),
     diagnosticsEnabled: config.get<boolean>("diagnostics.enabled", true),
     diagnosticsSeverity: config.get<string>("diagnostics.severity", "warning"),
+    logging: {
+      enabled: config.get<boolean>("logging.enabled", true),
+      level: config.get<string>("logging.level", "INFO"),
+      fileLoggingEnabled: config.get<boolean>("logging.fileLoggingEnabled", false),
+      logDirectory: config.get<string | null>("logging.logDirectory", null),
+      rotationMaxSize: config.get<number>("logging.rotationMaxSize", 5),
+      rotationMaxFiles: config.get<number>("logging.rotationMaxFiles", 5),
+      outputFormat: config.get<string>("logging.outputFormat", "plain"),
+    },
   };
 }
 

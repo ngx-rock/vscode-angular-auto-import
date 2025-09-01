@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"
@@ -56,6 +56,18 @@
         "command": "angular-auto-import.clearCache",
         "title": "Angular Auto Import: Clear Cache",
         "category": "Angular Auto Import"
+      },
+      {
+        "command": "angular-auto-import.showLogs",
+        "title": "Show Logs",
+        "category": "Angular Auto Import",
+        "icon": "$(output)"
+      },
+      {
+        "command": "angular-auto-import.showPerformanceMetrics", 
+        "title": "Show Performance Metrics",
+        "category": "Angular Auto Import",
+        "icon": "$(graph)"
       }
     ],
     "configuration": {
@@ -171,7 +183,7 @@
     "@biomejs/biome": "^2.2.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "~20.19.11",
-    "@types/vscode": "^1.103.0",
+    "@types/vscode": "^1.96.2",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.6.0",
