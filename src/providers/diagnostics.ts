@@ -194,6 +194,8 @@ export class DiagnosticProvider {
    * Updates diagnostics for a document.
    */
   private async updateDiagnostics(document: vscode.TextDocument): Promise<void> {
+    const startTime = process.hrtime.bigint();
+
     if (!this.context.extensionConfig.diagnosticsEnabled) {
       this.diagnosticCollection.clear();
       this.candidateDiagnostics.delete(document.uri.toString());
@@ -203,6 +205,9 @@ export class DiagnosticProvider {
     if (document.languageId === "html") {
       const componentPath = switchFileType(document.fileName, ".ts");
       if (!fs.existsSync(componentPath)) {
+        logger.debug(
+          `[DiagnosticProvider] Skipping diagnostics for HTML file without a corresponding TS component: ${document.fileName}`
+        );
         return; // Not an Angular component's template
       }
       await this.runDiagnostics(document.getText(), document, 0, componentPath);
@@ -214,8 +219,15 @@ export class DiagnosticProvider {
         // Clear both collections when there's no inline template
         this.candidateDiagnostics.delete(document.uri.toString());
         this.diagnosticCollection.delete(document.uri);
+        logger.debug(
+          `[DiagnosticProvider] No inline template found for TS file, clearing diagnostics: ${document.fileName}`
+        );
       }
     }
+
+    const endTime = process.hrtime.bigint();
+    const duration = Number(endTime - startTime) / 1_000_000; // Convert to milliseconds
+    logger.debug(`[DiagnosticProvider] updateDiagnostics for ${document.fileName} took ${duration.toFixed(2)} ms`);
   }
 
   private async runDiagnostics(
@@ -226,6 +238,7 @@ export class DiagnosticProvider {
   ): Promise<void> {
     const projCtx = this.getProjectContextForDocument(document);
     if (!projCtx) {
+      logger.debug(`[DiagnosticProvider] No project context for document: ${document.fileName}`);
       return;
     }
 
