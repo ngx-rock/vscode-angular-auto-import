@@ -32,6 +32,12 @@ export class DiagnosticProvider {
   private templateCache = new Map<string, { version: number; nodes: unknown[] }>();
   // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
   private compiler: any | null = null;
+  /**
+   * Cache for storing whether a specific Angular element (component, directive, pipe) is imported in a given TypeScript component file.
+   * Key: path to the TypeScript component file.
+   * Value: Map where key is the Angular element name (e.g., 'MyComponent') and value is a boolean indicating if it's imported.
+   */
+  private importedElementsCache = new Map<string, Map<string, boolean>>();
 
   constructor(private context: ProviderContext) {
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection("angular-auto-import");
@@ -145,6 +151,9 @@ export class DiagnosticProvider {
         return;
       }
 
+      // Clear cache for the related TS file as its changes might affect diagnostics
+      this.importedElementsCache.delete(tsDocument.fileName);
+
       // Open the HTML document and update diagnostics
       const htmlUri = vscode.Uri.file(htmlFilePath);
       try {
@@ -220,15 +229,50 @@ export class DiagnosticProvider {
         );
         return; // Not an Angular component's template
       }
-      await this.runDiagnostics(document.getText(), document, 0, componentPath);
+      const tsDocument = await this.getTsDocument(document, componentPath);
+      if (!tsDocument) {
+        return;
+      }
+      const sourceFile = this.getSourceFile(tsDocument);
+      if (!sourceFile) {
+        logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
+        return;
+      }
+      const classDeclaration = sourceFile.getClasses()[0];
+      if (classDeclaration && !isStandalone(classDeclaration)) {
+        this.candidateDiagnostics.delete(document.uri.toString());
+        this.diagnosticCollection.delete(document.uri);
+        return;
+      }
+      await this.runDiagnostics(document.getText(), document, 0, componentPath, tsDocument, sourceFile);
     } else if (document.languageId === "typescript") {
-      const componentInfo = this.extractInlineTemplate(document);
+      const tsDocument = document;
+      const sourceFile = this.getSourceFile(tsDocument);
+      if (!sourceFile) {
+        logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
+        return;
+      }
+      const classDeclaration = sourceFile.getClasses()[0];
+      if (classDeclaration && !isStandalone(classDeclaration)) {
+        this.candidateDiagnostics.delete(document.uri.toString());
+        this.diagnosticCollection.delete(document.uri);
+        return;
+      }
+      const componentInfo = this.extractInlineTemplate(tsDocument, sourceFile);
       if (componentInfo) {
-        await this.runDiagnostics(componentInfo.template, document, componentInfo.templateOffset, document.fileName);
+        await this.runDiagnostics(
+          componentInfo.template,
+          document,
+          componentInfo.templateOffset,
+          document.fileName,
+          tsDocument,
+          sourceFile
+        );
       } else {
         // Clear both collections when there's no inline template
         this.candidateDiagnostics.delete(document.uri.toString());
         this.diagnosticCollection.delete(document.uri);
+        this.importedElementsCache.delete(document.fileName); // Clear cache for this TS file
         logger.debug(
           `[DiagnosticProvider] No inline template found for TS file, clearing diagnostics: ${document.fileName}`
         );
@@ -244,7 +288,9 @@ export class DiagnosticProvider {
     templateText: string,
     document: vscode.TextDocument,
     offset: number,
-    componentPath: string
+    _componentPath: string,
+    _tsDocument: vscode.TextDocument,
+    sourceFile: SourceFile
   ): Promise<void> {
     const projCtx = this.getProjectContextForDocument(document);
     if (!projCtx) {
@@ -252,33 +298,29 @@ export class DiagnosticProvider {
       return;
     }
 
+    if (!this.compiler) {
+      logger.warn("[DiagnosticProvider] @angular/compiler not loaded yet, skipping diagnostics.");
+      return;
+    }
+
+    const { CssSelector, SelectorMatcher } = this.compiler;
+
     const { indexer } = projCtx;
     const diagnostics: vscode.Diagnostic[] = [];
     const severity = this.getSeverityFromConfig(this.context.extensionConfig.diagnosticsSeverity);
-
-    const tsDocument = await this.getTsDocument(document, componentPath);
-    if (!tsDocument) {
-      return;
-    }
-
-    const sourceFile = this.getSourceFile(tsDocument);
-    if (!sourceFile) {
-      logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
-      return;
-    }
-
-    const classDeclaration = sourceFile.getClasses()[0];
-    if (classDeclaration && !isStandalone(classDeclaration)) {
-      this.candidateDiagnostics.delete(document.uri.toString());
-      this.diagnosticCollection.delete(document.uri);
-      return;
-    }
 
     // Parse the template to get all elements and their full context
     const parsedElements = this.parseCompleteTemplate(templateText, document, offset, indexer);
 
     for (const element of parsedElements) {
-      const elementDiagnostics = await this.checkElement(element, indexer, severity, sourceFile);
+      const elementDiagnostics = await this.checkElement(
+        element,
+        indexer,
+        severity,
+        sourceFile,
+        CssSelector,
+        SelectorMatcher
+      );
       if (elementDiagnostics.length > 0) {
         diagnostics.push(...elementDiagnostics);
       }
@@ -569,10 +611,13 @@ export class DiagnosticProvider {
     element: ParsedHtmlFullElement,
     indexer: AngularIndexer,
     severity: vscode.DiagnosticSeverity,
-    sourceFile: SourceFile
+    sourceFile: SourceFile,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    CssSelector: any,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    SelectorMatcher: any
   ): Promise<vscode.Diagnostic[]> {
     const checkElementStartTime = process.hrtime.bigint();
-    const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
     const diagnostics: vscode.Diagnostic[] = [];
     const processedCandidatesThisCall = new Set<string>();
 
@@ -601,7 +646,7 @@ export class DiagnosticProvider {
         const matchedSelectors: string[] = [];
         // The callback will be invoked for each selector that matches.
         // We capture them all and will use the most specific one.
-        matcher.match(templateCssSelector, (selector) => {
+        matcher.match(templateCssSelector, (selector: string) => {
           matchedSelectors.push(selector.toString());
         });
 
@@ -675,12 +720,10 @@ export class DiagnosticProvider {
     return sourceFile;
   }
 
-  private extractInlineTemplate(document: vscode.TextDocument): { template: string; templateOffset: number } | null {
-    const sourceFile = this.getSourceFile(document);
-    if (!sourceFile) {
-      return null;
-    }
-
+  private extractInlineTemplate(
+    _document: vscode.TextDocument,
+    sourceFile: SourceFile
+  ): { template: string; templateOffset: number } | null {
     for (const classDeclaration of sourceFile.getClasses()) {
       const componentDecorator = classDeclaration.getDecorator("Component");
       if (componentDecorator) {
@@ -772,6 +815,16 @@ export class DiagnosticProvider {
         return false;
       }
 
+      const cacheKey = sourceFile.getFilePath();
+      let fileCache = this.importedElementsCache.get(cacheKey);
+
+      if (fileCache?.has(element.name)) {
+        // Cache hit
+        return fileCache.get(element.name) ?? false;
+      }
+
+      let isImported = false;
+
       for (const classDeclaration of sourceFile.getClasses()) {
         const componentDecorator = classDeclaration.getDecorator("Component");
         if (componentDecorator) {
@@ -792,7 +845,8 @@ export class DiagnosticProvider {
                     return imp.getNamedImports().some((named) => named.getName() === element.name);
                   });
                   if (hasTopLevelImport) {
-                    return true;
+                    isImported = true;
+                    break; // Found, no need to check further
                   }
                 }
               }
@@ -800,7 +854,15 @@ export class DiagnosticProvider {
           }
         }
       }
-      return false;
+
+      // Store in cache
+      if (!fileCache) {
+        fileCache = new Map();
+        this.importedElementsCache.set(cacheKey, fileCache);
+      }
+      fileCache.set(element.name, isImported);
+
+      return isImported;
     } catch (error) {
       logger.error("[DiagnosticProvider] Error checking element import with ts-morph:", error as Error);
       return false;
