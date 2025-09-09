@@ -23,26 +23,19 @@ import { debounce } from "../utils/debounce";
 import type { ProviderContext } from "./index";
 
 /**
- * Provides diagnostics for Angular elements.
+ * Provides diagnostics for Angular templates.
  */
 export class DiagnosticProvider {
   private diagnosticCollection: vscode.DiagnosticCollection;
   private disposables: vscode.Disposable[] = [];
   private candidateDiagnostics: Map<string, vscode.Diagnostic[]> = new Map();
   private templateCache = new Map<string, { version: number; nodes: unknown[] }>();
+  // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
   private compiler: any | null = null;
 
   constructor(private context: ProviderContext) {
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection("angular-auto-import");
-    // Pre-load Angular compiler in the background
-    void import("@angular/compiler")
-      .then((compiler) => {
-        this.compiler = compiler;
-        logger.info("[DiagnosticProvider] @angular/compiler pre-loaded.");
-      })
-      .catch((error) => {
-        logger.error("[DiagnosticProvider] Failed to pre-load @angular/compiler:", error as Error);
-      });
+    this.loadCompiler();
   }
 
   /**
@@ -308,7 +301,15 @@ export class DiagnosticProvider {
         logger.warn("[DiagnosticProvider] @angular/compiler not loaded yet, skipping template parsing.");
         return elements;
       }
-      const { parseTemplate, TmplAstBoundAttribute, TmplAstBoundEvent, TmplAstElement, TmplAstReference, TmplAstTemplate, TmplAstTextAttribute, TmplAstBoundText } = this.compiler;
+      const {
+        parseTemplate,
+        TmplAstBoundAttribute,
+        TmplAstBoundEvent,
+        TmplAstElement,
+        TmplAstReference,
+        TmplAstTemplate,
+        TmplAstBoundText,
+      } = this.compiler;
       type ParseResult = ReturnType<typeof parseTemplate>;
       type TemplateNode = ParseResult["nodes"][0];
 
@@ -328,8 +329,8 @@ export class DiagnosticProvider {
       }
 
       type CompilerModule = typeof this.compiler;
-      type AttributeLikeNode =
-        | InstanceType<CompilerModule["TmplAstTextAttribute"]>
+
+      type AttributeNode =
         | InstanceType<CompilerModule["TmplAstBoundAttribute"]>
         | InstanceType<CompilerModule["TmplAstBoundEvent"]>
         | InstanceType<CompilerModule["TmplAstReference"]>;
@@ -427,7 +428,7 @@ export class DiagnosticProvider {
           if (node instanceof TmplAstElement || node instanceof TmplAstTemplate) {
             const isTemplate = node instanceof TmplAstTemplate;
 
-            const regularAttrs: AttributeLikeNode[] = [
+            const regularAttrs: AttributeNode[] = [
               ...node.attributes,
               ...node.inputs,
               ...node.outputs,
@@ -436,7 +437,7 @@ export class DiagnosticProvider {
 
             const templateAttrs = node instanceof TmplAstTemplate ? [...node.templateAttrs] : [];
 
-            const allAttrsList: AttributeLikeNode[] = [...regularAttrs, ...templateAttrs];
+            const allAttrsList: AttributeNode[] = [...regularAttrs, ...templateAttrs];
 
             const attributes = allAttrsList.map((attr) => ({
               name: attr.name,
@@ -468,7 +469,7 @@ export class DiagnosticProvider {
             }
 
             // One entry for each attribute or reference
-            const processAttribute = (attr: AttributeLikeNode, isTemplateAttr: boolean) => {
+            const processAttribute = (attr: AttributeNode, isTemplateAttr: boolean) => {
               const keySpan = attr.keySpan ?? attr.sourceSpan;
               if (!keySpan) {
                 return;
@@ -555,8 +556,9 @@ export class DiagnosticProvider {
       // Log duration for parsing template
       const parseTemplateEndTime = process.hrtime.bigint();
       const parseTemplateDuration = Number(parseTemplateEndTime - parseTemplateStartTime) / 1_000_000;
-      logger.debug(`[DiagnosticProvider] parseCompleteTemplate for ${document.fileName} took ${parseTemplateDuration.toFixed(2)} ms`);
-
+      logger.debug(
+        `[DiagnosticProvider] parseCompleteTemplate for ${document.fileName} took ${parseTemplateDuration.toFixed(2)} ms`
+      );
     } catch (e) {
       logger.error(`[DiagnosticProvider] Failed to parse template: ${document.uri.fsPath}`, e as Error);
     }
@@ -829,6 +831,17 @@ export class DiagnosticProvider {
       }
     }
     this.diagnosticCollection.set(uri, candidateDiags);
+  }
+
+  private loadCompiler(): void {
+    void import("@angular/compiler")
+      .then((compiler) => {
+        this.compiler = compiler;
+        logger.info("[DiagnosticProvider] @angular/compiler pre-loaded.");
+      })
+      .catch((error) => {
+        logger.error("[DiagnosticProvider] Failed to pre-load @angular/compiler:", error as Error);
+      });
   }
 }
 
