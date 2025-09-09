@@ -16,7 +16,8 @@ import { AngularElementData } from "../types";
 
 /**
  * Checks if an Angular component, directive, or pipe class is standalone.
- * Applies Angular v19+ default: if `standalone` flag is omitted, treats as standalone for Angular >= 19.
+ * Applies Angular v19+ default: if `standalone` flag is omitted, treats as standalone for Angular >= 19,
+ * and as non-standalone for Angular < 19.
  * @param classDeclaration The ts-morph ClassDeclaration to check.
  * @returns `true` if the class is standalone, `false` otherwise.
  */
@@ -49,18 +50,23 @@ export function isStandalone(classDeclaration: ClassDeclaration): boolean {
     }
   }
 
-  // 2) Angular >= 19 default: standalone if flag omitted
+  // 2) No explicit flag found - apply version-based defaults
   try {
     const filePath = classDeclaration.getSourceFile().getFilePath();
     const major = readAngularCoreMajorFromFilePath(filePath);
-    if (typeof major === "number" && major >= 19) {
-      return true;
+    if (typeof major === "number") {
+      // Angular >= 19: standalone by default
+      if (major >= 19) {
+        return true;
+      }
+      // Angular < 19: non-standalone by default
+      return false;
     }
   } catch (_err) {
     // noop (fallback below)
   }
 
-  // 3) Fallback: non-standalone if nothing else inferred
+  // 3) Fallback: non-standalone if version cannot be determined
   return false;
 }
 
