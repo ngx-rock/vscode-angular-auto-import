@@ -261,6 +261,7 @@ export class DiagnosticProvider {
       }
       const componentInfo = this.extractInlineTemplate(tsDocument, sourceFile);
       if (componentInfo) {
+        this.importedElementsCache.delete(document.fileName);
         await this.runDiagnostics(
           componentInfo.template,
           document,
@@ -893,7 +894,9 @@ export class DiagnosticProvider {
                   }
                 }
               }
-              if (isImported) break;
+              if (isImported) {
+                break;
+              }
             }
           }
         }
