@@ -15,13 +15,13 @@ import {
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
+import { knownTags } from "../consts";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { AngularElementData, ParsedHtmlElement } from "../types";
 import { getAngularElements, isStandalone, switchFileType } from "../utils";
 import { debounce } from "../utils/debounce";
 import type { ProviderContext } from "./index";
-import { knownTags } from "../consts";
 
 /**
  * Provides diagnostics for Angular templates.
