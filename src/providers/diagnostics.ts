@@ -856,6 +856,49 @@ export class DiagnosticProvider {
         }
       }
 
+      // If not found in direct imports, check external modules exports
+      if (!isImported) {
+        // Get project context by finding workspace folder from source file path
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(sourceFile.getFilePath()));
+        if (workspaceFolder) {
+          const projectRootPath = workspaceFolder.uri.fsPath;
+          const indexer = this.context.projectIndexers.get(projectRootPath);
+          if (indexer) {
+            for (const classDeclaration of sourceFile.getClasses()) {
+              const componentDecorator = classDeclaration.getDecorator("Component");
+              if (componentDecorator) {
+                const decoratorArgs = componentDecorator.getArguments();
+                if (decoratorArgs.length > 0 && decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+                  const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
+                  const importsProperty = objectLiteral.getProperty("imports");
+
+                  if (importsProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+                    const initializer = importsProperty.getInitializer();
+                    if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
+                      const importsArray = initializer as ArrayLiteralExpression;
+                      const importedModules = importsArray.getElements().map((el: Expression) => el.getText().trim());
+
+                      // Check if any imported module exports this element
+                      for (const moduleName of importedModules) {
+                        const moduleExports = indexer.getExternalModuleExports(moduleName);
+                        if (moduleExports?.has(element.name)) {
+                          isImported = true;
+                          logger.debug(
+                            `[DiagnosticProvider] Element '${element.name}' found in external module '${moduleName}' exports`
+                          );
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              if (isImported) break;
+            }
+          }
+        }
+      }
+
       // Store in cache
       if (!fileCache) {
         fileCache = new Map();

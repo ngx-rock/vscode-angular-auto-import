@@ -241,6 +241,12 @@ export class AngularIndexer {
   private selectorTrie: SelectorTrie = new SelectorTrie();
   private projectModuleMap: Map<string, { moduleName: string; importPath: string }> = new Map();
   /**
+   * Index of external modules and their exported entities.
+   * Key: module name (e.g., "MatTableModule")
+   * Value: Set of exported entity names (e.g., Set(["MatTable", "MatHeaderCell", ...]))
+   */
+  private externalModuleExportsIndex: Map<string, Set<string>> = new Map();
+  /**
    * The file watcher for the project.
    */
   public fileWatcher: vscode.FileSystemWatcher | null = null;
@@ -259,6 +265,10 @@ export class AngularIndexer {
    * The cache key for the module map in the workspace state.
    */
   public workspaceModulesCacheKey: string = "";
+  /**
+   * The cache key for the external modules exports index in the workspace state.
+   */
+  public workspaceExternalModulesExportsCacheKey: string = "";
 
   constructor() {
     this.project = new Project({
@@ -287,8 +297,9 @@ export class AngularIndexer {
     this.workspaceFileCacheKey = `angularFileCache_${projectHash}`;
     this.workspaceIndexCacheKey = `angularSelectorToDataIndex_${projectHash}`;
     this.workspaceModulesCacheKey = `angularModulesCache_${projectHash}`;
+    this.workspaceExternalModulesExportsCacheKey = `angularExternalModulesExports_${projectHash}`;
     logger.info(
-      `AngularIndexer: Project root set to ${projectPath}. Cache keys: ${this.workspaceFileCacheKey}, ${this.workspaceIndexCacheKey}, ${this.workspaceModulesCacheKey}`
+      `AngularIndexer: Project root set to ${projectPath}. Cache keys: ${this.workspaceFileCacheKey}, ${this.workspaceIndexCacheKey}, ${this.workspaceModulesCacheKey}, ${this.workspaceExternalModulesExportsCacheKey}`
     );
   }
 
@@ -791,6 +802,7 @@ export class AngularIndexer {
       this.fileCache.clear();
       this.selectorTrie.clear();
       this.projectModuleMap.clear();
+      this.externalModuleExportsIndex.clear();
 
       await this.indexProjectModules();
 
@@ -854,6 +866,9 @@ export class AngularIndexer {
       const storedModules = context.workspaceState.get<Record<string, { moduleName: string; importPath: string }>>(
         this.workspaceModulesCacheKey
       );
+      const storedExternalModulesExports = context.workspaceState.get<Record<string, string[]>>(
+        this.workspaceExternalModulesExportsCacheKey
+      );
 
       if (storedCache && storedIndex) {
         // Convert old ComponentInfo format to new FileElementsInfo format if needed
@@ -877,6 +892,7 @@ export class AngularIndexer {
         this.fileCache = convertedCache;
 
         this.selectorTrie.clear();
+        this.externalModuleExportsIndex.clear();
         for (const [key, value] of Object.entries(storedIndex)) {
           const elementData = new AngularElementData(
             value.path,
@@ -899,6 +915,14 @@ export class AngularIndexer {
 
         if (storedModules) {
           this.projectModuleMap = new Map(Object.entries(storedModules));
+        }
+
+        if (storedExternalModulesExports) {
+          // Convert stored string arrays back to Sets
+          this.externalModuleExportsIndex.clear();
+          for (const [moduleName, exports] of Object.entries(storedExternalModulesExports)) {
+            this.externalModuleExportsIndex.set(moduleName, new Set(exports));
+          }
         }
         logger.info(
           `AngularIndexer (${path.basename(this.projectRootPath)}): Loaded ${
@@ -936,6 +960,15 @@ export class AngularIndexer {
 
       await context.workspaceState.update(this.workspaceIndexCacheKey, serializableTrie);
       await context.workspaceState.update(this.workspaceModulesCacheKey, Object.fromEntries(this.projectModuleMap));
+
+      // Serialize external modules exports (convert Sets to arrays)
+      const serializableExternalModules = Object.fromEntries(
+        Array.from(this.externalModuleExportsIndex.entries()).map(([moduleName, exportsSet]) => [
+          moduleName,
+          Array.from(exportsSet),
+        ])
+      );
+      await context.workspaceState.update(this.workspaceExternalModulesExportsCacheKey, serializableExternalModules);
     } catch (error) {
       logger.error(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`,
@@ -953,7 +986,8 @@ export class AngularIndexer {
       !this.projectRootPath ||
       !this.workspaceFileCacheKey ||
       !this.workspaceIndexCacheKey ||
-      !this.workspaceModulesCacheKey
+      !this.workspaceModulesCacheKey ||
+      !this.workspaceExternalModulesExportsCacheKey
     ) {
       logger.error("AngularIndexer.clearCache: projectRootPath or cache keys not set. Cannot clear cache.");
       return;
@@ -963,6 +997,7 @@ export class AngularIndexer {
       this.fileCache.clear();
       this.selectorTrie.clear();
       this.projectModuleMap.clear();
+      this.externalModuleExportsIndex.clear();
       this.project.getSourceFiles().forEach((sf) => {
         this.project.removeSourceFile(sf);
       });
@@ -971,6 +1006,7 @@ export class AngularIndexer {
       await context.workspaceState.update(this.workspaceFileCacheKey, undefined);
       await context.workspaceState.update(this.workspaceIndexCacheKey, undefined);
       await context.workspaceState.update(this.workspaceModulesCacheKey, undefined);
+      await context.workspaceState.update(this.workspaceExternalModulesExportsCacheKey, undefined);
 
       logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): All caches cleared.`);
     } catch (error) {
@@ -988,6 +1024,18 @@ export class AngularIndexer {
       return [];
     }
     return this.selectorTrie.findAll(selector);
+  }
+
+  /**
+   * Gets all exported entities from an external module.
+   * @param moduleName The name of the external module (e.g., "MatTableModule").
+   * @returns A Set of exported entity names or undefined if module not found.
+   */
+  getExternalModuleExports(moduleName: string): Set<string> | undefined {
+    if (typeof moduleName !== "string" || !moduleName) {
+      return undefined;
+    }
+    return this.externalModuleExportsIndex.get(moduleName);
   }
 
   /**
@@ -1268,14 +1316,27 @@ export class AngularIndexer {
 
             if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
               const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+
+              // Create a Set to accumulate exports for this module
+              const moduleExports = new Set<string>();
+
               this._processModuleExports(
                 exportsTuple,
                 className,
                 importPath,
                 componentToModuleMap,
                 allLibraryClasses,
-                typeChecker
+                typeChecker,
+                moduleExports
               );
+
+              // Store the accumulated exports in the external modules index
+              if (moduleExports.size > 0) {
+                this.externalModuleExportsIndex.set(className, moduleExports);
+                logger.debug(
+                  `[ExternalModules] Indexed module ${className} with ${moduleExports.size} exports: ${Array.from(moduleExports).join(", ")}`
+                );
+              }
             }
           }
         }
@@ -1293,6 +1354,7 @@ export class AngularIndexer {
    * @param componentToModuleMap The map to store the component-to-module mappings.
    * @param allLibraryClasses A map of all classes in the library.
    * @param typeChecker The type checker to use.
+   * @param moduleExports Optional Set to accumulate all exports for the module.
    * @internal
    */
   private _processModuleExports(
@@ -1301,7 +1363,8 @@ export class AngularIndexer {
     importPath: string,
     componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
     allLibraryClasses: Map<string, ClassDeclaration>,
-    typeChecker: TypeChecker
+    typeChecker: TypeChecker,
+    moduleExports?: Set<string>
   ) {
     for (const element of exportsTuple.getElements()) {
       let exportedClassName: string | undefined;
@@ -1341,7 +1404,8 @@ export class AngularIndexer {
                   importPath,
                   componentToModuleMap,
                   allLibraryClasses,
-                  typeChecker
+                  typeChecker,
+                  moduleExports
                 );
               }
             }
@@ -1354,6 +1418,11 @@ export class AngularIndexer {
               moduleName: moduleName,
               importPath,
             });
+          }
+
+          // Add to module exports if Set is provided
+          if (moduleExports) {
+            moduleExports.add(exportedClassName);
           }
         }
       }
@@ -1658,6 +1727,7 @@ export class AngularIndexer {
     }
     this.fileCache.clear();
     this.selectorTrie.clear();
+    this.externalModuleExportsIndex.clear();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
     this.project.getSourceFiles().forEach((sf) => {
       this.project.removeSourceFile(sf);
