@@ -1233,6 +1233,14 @@ export class AngularIndexer {
 
       const exportedIdentifiers = this._getIdentifierNamesFromArrayProp(exportsProp as PropertyAssignment);
 
+      // Store module exports in externalModuleExportsIndex for diagnostic provider
+      if (exportedIdentifiers.length > 0) {
+        this.externalModuleExportsIndex.set(moduleName, new Set(exportedIdentifiers));
+        logger.debug(
+          `[ProjectModules] Indexed module ${moduleName} with ${exportedIdentifiers.length} exports: ${exportedIdentifiers.join(", ")}`
+        );
+      }
+
       for (const componentName of exportedIdentifiers) {
         // Simple mapping, assumes component is declared in the same module if exported.
         // A more complex implementation would also check the `declarations` array.
@@ -1257,12 +1265,30 @@ export class AngularIndexer {
       return [];
     }
     const initializer = prop.getInitializer();
-    if (!initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
-      return [];
+    
+    // Handle direct array literals
+    if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
+      const arr = initializer as ArrayLiteralExpression;
+      return arr.getElements().map((el) => el.getText());
     }
-
-    const arr = initializer as ArrayLiteralExpression;
-    return arr.getElements().map((el) => el.getText());
+    
+    // Handle variable references (like EXPORTED_DECLARATIONS)
+    if (initializer?.isKind(SyntaxKind.Identifier)) {
+      const varName = initializer.getText();
+      const sourceFile = prop.getSourceFile();
+      
+      // Find the variable declaration
+      const variableDeclaration = sourceFile.getVariableDeclaration(varName);
+      if (variableDeclaration) {
+        const varInitializer = variableDeclaration.getInitializer();
+        if (varInitializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
+          const arr = varInitializer as ArrayLiteralExpression;
+          return arr.getElements().map((el) => el.getText());
+        }
+      }
+    }
+    
+    return [];
   }
 
   /**
