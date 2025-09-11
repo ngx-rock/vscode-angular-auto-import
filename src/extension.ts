@@ -82,7 +82,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Determine project roots
     const projectRoots = await determineProjectRoots();
     if (projectRoots.length === 0) {
-      vscode.window.showErrorMessage("Angular Auto-Import: No project roots could be determined.");
       return;
     }
 
@@ -209,13 +208,7 @@ async function determineProjectRoots(): Promise<string[]> {
     if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isDirectory()) {
       effectiveProjectRoots.push(resolvedPath);
       logger.info(`Angular Auto-Import: Using configured project path: ${resolvedPath}`);
-    } else {
-      vscode.window.showErrorMessage(`Angular Auto-Import: Configured projectPath "${resolvedPath}" is invalid.`);
     }
-  } else {
-    vscode.window.showErrorMessage(
-      "Angular Auto-Import: No workspace folder found and no valid project path configured."
-    );
   }
 
   return effectiveProjectRoots;
