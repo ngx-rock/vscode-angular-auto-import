@@ -1265,18 +1265,18 @@ export class AngularIndexer {
       return [];
     }
     const initializer = prop.getInitializer();
-    
+
     // Handle direct array literals
     if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
       const arr = initializer as ArrayLiteralExpression;
       return arr.getElements().map((el) => el.getText());
     }
-    
+
     // Handle variable references (like EXPORTED_DECLARATIONS)
     if (initializer?.isKind(SyntaxKind.Identifier)) {
       const varName = initializer.getText();
       const sourceFile = prop.getSourceFile();
-      
+
       // Find the variable declaration
       const variableDeclaration = sourceFile.getVariableDeclaration(varName);
       if (variableDeclaration) {
@@ -1287,7 +1287,7 @@ export class AngularIndexer {
         }
       }
     }
-    
+
     return [];
   }
 

@@ -130,18 +130,26 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
   // Clear cache command
   const clearCacheCommand = vscode.commands.registerCommand("angular-auto-import.clearCache", async () => {
     logger.info("Clear cache command invoked by user");
-    if (commandContext.projectIndexers.size === 0) {
+    const { projectIndexers } = commandContext;
+    const projectCount = projectIndexers.size;
+
+    if (projectCount === 0) {
       vscode.window.showInformationMessage("Angular Auto-Import: No active project to clear cache for.");
       return;
     }
 
-    for (const [projectRootPath, indexer] of commandContext.projectIndexers.entries()) {
+    for (const [, indexer] of projectIndexers) {
       await indexer.clearCache(context);
+    }
+
+    if (projectCount === 1) {
+      const [projectRootPath] = projectIndexers.keys();
       vscode.window.showInformationMessage(
         `✅ Angular Auto-Import: Cache cleared for project ${path.basename(projectRootPath)}.`
       );
+    } else {
+      vscode.window.showInformationMessage(`✅ Angular Auto-Import: Cache cleared for all ${projectCount} projects.`);
     }
-    vscode.window.showInformationMessage("✅ Angular Auto-Import: All project caches have been cleared.");
   });
   context.subscriptions.push(clearCacheCommand);
 
