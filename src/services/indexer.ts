@@ -22,7 +22,13 @@ import {
 import * as vscode from "vscode";
 import { logger } from "../logger";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
-import { findAngularDependencies, getLibraryEntryPoints, isStandalone, parseAngularSelector } from "../utils";
+import {
+  type AngularDependency,
+  findAngularDependencies,
+  getLibraryEntryPoints,
+  isStandalone,
+  parseAngularSelector,
+} from "../utils";
 
 /**
  * Represents a node in a Trie data structure for storing selectors.
@@ -623,7 +629,11 @@ export class AngularIndexer {
    * @param context The extension context.
    * @internal
    */
-  private async updateFileIndex(filePath: string, context: vscode.ExtensionContext): Promise<void> {
+  private async updateFileIndex(
+    filePath: string,
+    context: vscode.ExtensionContext,
+    isExternal: boolean = false
+  ): Promise<void> {
     try {
       if (!fs.existsSync(filePath)) {
         logger.warn(`File not found, cannot update index: ${filePath} for project ${this.projectRootPath}`);
@@ -713,7 +723,7 @@ export class AngularIndexer {
             parsed.selector, // original selector
             individualSelectors,
             parsed.isStandalone,
-            false, // isExternal
+            isExternal, // isExternal
             moduleToImport
           );
 
@@ -774,7 +784,10 @@ export class AngularIndexer {
    * @param context The extension context.
    * @returns A map of selectors to `AngularElementData` objects.
    */
-  async generateFullIndex(context: vscode.ExtensionContext): Promise<Map<string, AngularElementData>> {
+  async generateFullIndex(
+    context: vscode.ExtensionContext,
+    progress?: vscode.Progress<{ message?: string; increment?: number }>
+  ): Promise<Map<string, AngularElementData>> {
     if (this.isIndexing) {
       logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): Already indexing, skipping...`);
       return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
@@ -804,26 +817,53 @@ export class AngularIndexer {
       this.projectModuleMap.clear();
       this.externalModuleExportsIndex.clear();
 
-      await this.indexProjectModules();
+      progress?.report({ message: "Discovering project files..." });
+      const allFileUris = await vscode.workspace.findFiles(
+        new vscode.RelativePattern(this.projectRootPath, "**/*.ts"),
+        "**/{.git,dist,out,e2e,bazel-out,.*,*.spec.ts,*.test.ts}"
+      );
 
-      const angularFiles = await this.getAngularFilesUsingVsCode();
+      const projectTsFiles: vscode.Uri[] = [];
+      const nodeModulesFiles: vscode.Uri[] = [];
+      const nodeModulesPath = path.join(this.projectRootPath, "node_modules");
+
+      for (const file of allFileUris) {
+        if (file.fsPath.includes(nodeModulesPath)) {
+          nodeModulesFiles.push(file);
+        } else {
+          projectTsFiles.push(file);
+        }
+      }
+
       logger.info(
-        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${angularFiles.length} Angular files.`
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${
+          projectTsFiles.length
+        } project files and ${nodeModulesFiles.length} node_modules files.`
+      );
+
+      progress?.report({ message: "Indexing external libraries..." });
+      const pkg = await findAngularDependencies(this.projectRootPath);
+      await this._indexNodeModulesFromUris(nodeModulesFiles, pkg, context);
+
+      // await this.indexProjectModules();
+      // const angularFiles = await this.getAngularFilesUsingVsCode();
+      logger.info(
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${projectTsFiles.length} Angular files.`
       );
 
       const batchSize = 20; // Process in batches
-      for (let i = 0; i < angularFiles.length; i += batchSize) {
-        const batch = angularFiles.slice(i, i + batchSize);
+      for (let i = 0; i < projectTsFiles.length; i += batchSize) {
+        const batch = projectTsFiles.slice(i, i + batchSize);
         // Sequentially process files in a batch to avoid overwhelming ts-morph or fs
         for (const file of batch) {
-          await this.updateFileIndex(file, context);
+          await this.updateFileIndex(file.fsPath, context);
         }
         // const batchTasks = batch.map(file => this.updateFileIndex(file, context));
         // await Promise.all(batchTasks); // This could be too concurrent for ts-morph project modifications
         logger.info(
-          `AngularIndexer (${path.basename(
-            this.projectRootPath
-          )}): Indexed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(angularFiles.length / batchSize)}`
+          `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed batch ${
+            Math.floor(i / batchSize) + 1
+          }/${Math.ceil(projectTsFiles.length / batchSize)}`
         );
       }
 
@@ -846,6 +886,70 @@ export class AngularIndexer {
       this.isIndexing = false;
       logger.stopTimer(timerName);
     }
+  }
+
+  private async _indexNodeModulesFromUris(
+    uris: vscode.Uri[],
+    dependencies: AngularDependency[],
+    context: vscode.ExtensionContext
+  ): Promise<void> {
+    const timerName = `indexNodeModulesFromUris:${path.basename(this.projectRootPath)}`;
+    logger.startTimer(timerName);
+    logger.info(`[NodeModules] Starting scan of ${uris.length} files from node_modules...`);
+
+    try {
+      const dependencySet = new Set(dependencies.map((d) => d.name));
+
+      const filesByPackage = new Map<string, vscode.Uri[]>();
+      for (const uri of uris) {
+        const pkgNameResult = this._getNpmPackageName(uri.fsPath);
+        if (pkgNameResult) {
+          const [pkgName] = pkgNameResult;
+          if (dependencySet.has(pkgName)) {
+            if (!filesByPackage.has(pkgName)) {
+              filesByPackage.set(pkgName, []);
+            }
+            filesByPackage.get(pkgName)?.push(uri);
+          }
+        }
+      }
+
+      for (const [, files] of filesByPackage) {
+        for (const file of files) {
+          await this.updateFileIndex(file.fsPath, context, true);
+        }
+      }
+    } catch (error) {
+      logger.error("[NodeModules] Error scanning node_modules:", error as Error);
+    }
+
+    logger.stopTimer(timerName);
+  }
+
+  /**
+   * Finds the package name from a file path.
+   * @param filePath The full path to the file.
+   * @returns A tuple of [packageName, isDevDependency] or undefined if not a node_modules file.
+   * @internal
+   */
+  private _getNpmPackageName(filePath: string): [string, boolean] | undefined {
+    const nodeModulesPath = path.join(this.projectRootPath, "node_modules");
+    if (!filePath.startsWith(nodeModulesPath)) {
+      return undefined;
+    }
+
+    const relativePath = path.relative(nodeModulesPath, filePath);
+    const parts = relativePath.split(path.sep);
+
+    // Find the package name, which is the last part of the path
+    const packageName = parts[parts.length - 1];
+
+    // Determine if it's a dev dependency
+    const isDev = packageName.startsWith("@"); // Common pattern for scoped packages
+    if (isDev) {
+      return [packageName.slice(1), true];
+    }
+    return [packageName, false];
   }
 
   /**
@@ -1672,75 +1776,6 @@ export class AngularIndexer {
    */
   searchWithSelectors(prefix: string): { selector: string; element: AngularElementData }[] {
     return this.selectorTrie.searchWithSelectors(prefix);
-  }
-
-  /**
-   * Gets all Angular files in the project using the VS Code API.
-   * @returns An array of file paths.
-   * @internal
-   */
-  private async getAngularFilesUsingVsCode(): Promise<string[]> {
-    try {
-      const patterns = ["**/*.ts"];
-      const allFiles: string[] = [];
-      for (const pattern of patterns) {
-        const files = await vscode.workspace.findFiles(
-          new vscode.RelativePattern(this.projectRootPath, pattern),
-          new vscode.RelativePattern(this.projectRootPath, "**/node_modules/**") // Ensure exclusion is relative to workspace folder
-        );
-        allFiles.push(...files.map((file) => file.fsPath));
-      }
-      return allFiles;
-    } catch (error) {
-      logger.error(`Error finding files using VS Code API: ${error}`);
-      return this.getAngularFilesFallback(this.projectRootPath).map((relPath) =>
-        path.join(this.projectRootPath, relPath)
-      );
-    }
-  }
-
-  /**
-   * Gets all Angular files in the project using a fallback method.
-   * @param basePath The base path of the project.
-   * @returns An array of file paths.
-   * @internal
-   */
-  private getAngularFilesFallback(basePath: string): string[] {
-    // Fallback to manual file discovery (simplified, consider enhancing .gitignore handling if this is frequently used)
-    const angularFiles: string[] = [];
-    const excludedDirs = new Set([
-      "node_modules",
-      ".git",
-      "dist",
-      "build",
-      "out",
-      ".vscode",
-      ".angular",
-      "coverage",
-      "tmp",
-    ]);
-
-    const traverseDirectory = (currentDirPath: string) => {
-      try {
-        const entries = fs.readdirSync(currentDirPath, { withFileTypes: true });
-        for (const entry of entries) {
-          const fullPath = path.join(currentDirPath, entry.name);
-          if (entry.isDirectory()) {
-            if (!excludedDirs.has(entry.name)) {
-              traverseDirectory(fullPath);
-            }
-          } else if (entry.isFile() && /\.ts$/.test(entry.name)) {
-            angularFiles.push(path.relative(basePath, fullPath));
-          }
-        }
-      } catch (_err) {
-        // logger.warn(`Could not read directory ${currentDirPath}: ${err}`);
-      }
-    };
-    if (fs.existsSync(basePath) && fs.statSync(basePath).isDirectory()) {
-      traverseDirectory(basePath);
-    }
-    return angularFiles;
   }
 
   /**

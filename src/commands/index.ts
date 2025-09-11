@@ -93,13 +93,13 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
           title: `Angular Auto-Import: Reindexing ${path.basename(projectRootPath)}`,
           cancellable: false,
         },
-        async () => {
+        async (progress) => {
           const indexer = commandContext.projectIndexers.get(projectRootPath);
           if (indexer) {
             TsConfigHelper.clearCache(projectRootPath);
             const newTsConfig = await TsConfigHelper.findAndParseTsConfig(projectRootPath);
             commandContext.projectTsConfigs.set(projectRootPath, newTsConfig);
-            await generateIndexForProject(projectRootPath, indexer, context);
+            await generateIndexForProject(projectRootPath, indexer, context, progress);
             const newSize = Array.from(indexer.getAllSelectors()).length;
             return { newSize, success: true };
           }
@@ -371,6 +371,7 @@ function getWebviewContent(metricsReport: string): string {
  * @param projectRootPath - Absolute path to the project root directory
  * @param indexer - The Angular indexer instance for this project
  * @param context - VS Code extension context for cache management
+ * @param progress - Optional progress reporter for the index generation
  *
  * @throws Will log warnings if cache keys are not properly configured
  *
@@ -382,14 +383,15 @@ function getWebviewContent(metricsReport: string): string {
 async function generateIndexForProject(
   projectRootPath: string,
   indexer: AngularIndexer,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  progress?: vscode.Progress<{ message?: string; increment?: number }>
 ): Promise<void> {
   // Generating index for project
   if (indexer.workspaceFileCacheKey === "" || indexer.workspaceIndexCacheKey === "") {
     logger.warn(`Cache keys not set for ${projectRootPath}, attempting to set them now`);
     indexer.setProjectRoot(projectRootPath);
   }
-  await indexer.generateFullIndex(context);
+  await indexer.generateFullIndex(context, progress);
 
   if (!indexer.fileWatcher) {
     // Watcher was not active, initializing
