@@ -87,16 +87,29 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
     }
 
     for (const projectRootPath of projectsToReindex) {
-      vscode.window.showInformationMessage(`🔄 Angular Auto-Import: Reindexing ${path.basename(projectRootPath)}...`);
-      const indexer = commandContext.projectIndexers.get(projectRootPath);
-      if (indexer) {
-        TsConfigHelper.clearCache(projectRootPath);
-        const newTsConfig = await TsConfigHelper.findAndParseTsConfig(projectRootPath);
-        commandContext.projectTsConfigs.set(projectRootPath, newTsConfig);
-        await generateIndexForProject(projectRootPath, indexer, context);
-        const newSize = Array.from(indexer.getAllSelectors()).length;
+      const result = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Angular Auto-Import: Reindexing ${path.basename(projectRootPath)}`,
+          cancellable: false,
+        },
+        async () => {
+          const indexer = commandContext.projectIndexers.get(projectRootPath);
+          if (indexer) {
+            TsConfigHelper.clearCache(projectRootPath);
+            const newTsConfig = await TsConfigHelper.findAndParseTsConfig(projectRootPath);
+            commandContext.projectTsConfigs.set(projectRootPath, newTsConfig);
+            await generateIndexForProject(projectRootPath, indexer, context);
+            const newSize = Array.from(indexer.getAllSelectors()).length;
+            return { newSize, success: true };
+          }
+          return { newSize: 0, success: false };
+        }
+      );
+
+      if (result.success) {
         vscode.window.showInformationMessage(
-          `✅ Reindex of ${path.basename(projectRootPath)} successful. Found ${newSize} elements.`
+          `✅ Reindex of ${path.basename(projectRootPath)} successful. Found ${result.newSize} elements.`
         );
       } else {
         vscode.window.showWarningMessage(

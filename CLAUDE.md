@@ -101,3 +101,21 @@ Settings are defined in `package.json` under `contributes.configuration`:
 - **Knip**: Dead code elimination and dependency analysis  
 - **TypeDoc**: API documentation generation
 - **ESBuild**: Fast bundling with VS Code-specific optimizations
+
+### Extension Commands
+
+Available VS Code commands for testing and debugging:
+- `angular-auto-import.reindex`: Reindex Project(s) - forces complete re-scan
+- `angular-auto-import.clearCache`: Clear Cache - resets all cached data
+- `angular-auto-import.showLogs`: Show Logs - displays extension output channel
+- `angular-auto-import.showPerformanceMetrics`: Show Performance Metrics
+
+### Development Guidelines
+
+Key principles from Cursor rules:
+- Use TypeScript `strict: true` with ES2022 target and Node16 modules
+- Prefer async/await for all I/O operations with proper try/catch error handling
+- Push all `Disposable`s to `context.subscriptions` for proper cleanup
+- Use VS Code's progress API (`withProgress`) for long-running operations
+- Leverage ts-morph for TypeScript AST parsing and manipulation
+- Cache parsed data in VS Code workspace state for performance
