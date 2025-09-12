@@ -1,5 +1,7 @@
 /**
+ *
  * Utilities for working with Angular elements and selectors.
+ *
  * @module
  */
 
@@ -11,6 +13,62 @@ import { STANDARD_ANGULAR_ELEMENTS } from "../config";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import { AngularElementData } from "../types";
+
+/**
+ * Checks if an Angular component, directive, or pipe class is standalone.
+ * Applies Angular v19+ default: if `standalone` flag is omitted, treats as standalone for Angular >= 19,
+ * and as non-standalone for Angular < 19.
+ * @param classDeclaration The ts-morph ClassDeclaration to check.
+ * @returns `true` if the class is standalone, `false` otherwise.
+ */
+export function isStandalone(classDeclaration: ClassDeclaration): boolean {
+  // 1) Explicit flag in decorator wins
+  for (const decorator of classDeclaration.getDecorators()) {
+    const decoratorName = decorator.getName();
+    if (decoratorName === "Component" || decoratorName === "Directive" || decoratorName === "Pipe") {
+      try {
+        const args = decorator.getArguments();
+        if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+          const objectLiteral = args[0].asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+          const standaloneProperty = objectLiteral.getProperty("standalone");
+          if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+            const initializer = standaloneProperty.getInitializer();
+            if (initializer?.isKind(SyntaxKind.TrueKeyword)) {
+              return true;
+            }
+            if (initializer?.isKind(SyntaxKind.FalseKeyword)) {
+              return false;
+            }
+          }
+        }
+      } catch (error) {
+        logger.error(
+          `Error checking standalone flag for ${classDeclaration.getName() ?? "unknown class"}:`,
+          error as Error
+        );
+      }
+    }
+  }
+
+  // 2) No explicit flag found - apply version-based defaults
+  try {
+    const filePath = classDeclaration.getSourceFile().getFilePath();
+    const major = readAngularCoreMajorFromFilePath(filePath);
+    if (typeof major === "number") {
+      // Angular >= 19: standalone by default
+      if (major >= 19) {
+        return true;
+      }
+      // Angular < 19: non-standalone by default
+      return false;
+    }
+  } catch (_err) {
+    // noop (fallback below)
+  }
+
+  // 3) Fallback: non-standalone if version cannot be determined
+  return false;
+}
 
 /**
  * Parses a complex Angular selector and returns an array of individual selectors.
@@ -435,54 +493,4 @@ function parseSemverMajor(version: string): number | null {
   }
   const n = Number(match[1]);
   return Number.isFinite(n) ? n : null;
-}
-
-/**
- * Checks if an Angular component, directive, or pipe class is standalone.
- * Applies Angular v19+ default: if `standalone` flag is omitted, treats as standalone for Angular >= 19.
- * @param classDeclaration The ts-morph ClassDeclaration to check.
- * @returns `true` if the class is standalone, `false` otherwise.
- */
-export function isStandalone(classDeclaration: ClassDeclaration): boolean {
-  // 1) Explicit flag in decorator wins
-  for (const decorator of classDeclaration.getDecorators()) {
-    const decoratorName = decorator.getName();
-    if (decoratorName === "Component" || decoratorName === "Directive" || decoratorName === "Pipe") {
-      try {
-        const args = decorator.getArguments();
-        if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-          const objectLiteral = args[0].asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-          const standaloneProperty = objectLiteral.getProperty("standalone");
-          if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-            const initializer = standaloneProperty.getInitializer();
-            if (initializer?.isKind(SyntaxKind.TrueKeyword)) {
-              return true;
-            }
-            if (initializer?.isKind(SyntaxKind.FalseKeyword)) {
-              return false;
-            }
-          }
-        }
-      } catch (error) {
-        logger.error(
-          `Error checking standalone flag for ${classDeclaration.getName() ?? "unknown class"}:`,
-          error as Error
-        );
-      }
-    }
-  }
-
-  // 2) Angular >= 19 default: standalone if flag omitted
-  try {
-    const filePath = classDeclaration.getSourceFile().getFilePath();
-    const major = readAngularCoreMajorFromFilePath(filePath);
-    if (typeof major === "number" && major >= 19) {
-      return true;
-    }
-  } catch (_err) {
-    // noop (fallback below)
-  }
-
-  // 3) Fallback: non-standalone if nothing else inferred
-  return false;
 }

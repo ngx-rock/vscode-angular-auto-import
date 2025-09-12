@@ -87,16 +87,29 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
     }
 
     for (const projectRootPath of projectsToReindex) {
-      vscode.window.showInformationMessage(`🔄 Angular Auto-Import: Reindexing ${path.basename(projectRootPath)}...`);
-      const indexer = commandContext.projectIndexers.get(projectRootPath);
-      if (indexer) {
-        TsConfigHelper.clearCache(projectRootPath);
-        const newTsConfig = await TsConfigHelper.findAndParseTsConfig(projectRootPath);
-        commandContext.projectTsConfigs.set(projectRootPath, newTsConfig);
-        await generateIndexForProject(projectRootPath, indexer, context);
-        const newSize = Array.from(indexer.getAllSelectors()).length;
+      const result = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Angular Auto-Import: Reindexing ${path.basename(projectRootPath)}`,
+          cancellable: false,
+        },
+        async (progress) => {
+          const indexer = commandContext.projectIndexers.get(projectRootPath);
+          if (indexer) {
+            TsConfigHelper.clearCache(projectRootPath);
+            const newTsConfig = await TsConfigHelper.findAndParseTsConfig(projectRootPath);
+            commandContext.projectTsConfigs.set(projectRootPath, newTsConfig);
+            await generateIndexForProject(projectRootPath, indexer, context, progress);
+            const newSize = Array.from(indexer.getAllSelectors()).length;
+            return { newSize, success: true };
+          }
+          return { newSize: 0, success: false };
+        }
+      );
+
+      if (result.success) {
         vscode.window.showInformationMessage(
-          `✅ Reindex of ${path.basename(projectRootPath)} successful. Found ${newSize} elements.`
+          `✅ Reindex of ${path.basename(projectRootPath)} successful. Found ${result.newSize} elements.`
         );
       } else {
         vscode.window.showWarningMessage(
@@ -130,18 +143,26 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
   // Clear cache command
   const clearCacheCommand = vscode.commands.registerCommand("angular-auto-import.clearCache", async () => {
     logger.info("Clear cache command invoked by user");
-    if (commandContext.projectIndexers.size === 0) {
+    const { projectIndexers } = commandContext;
+    const projectCount = projectIndexers.size;
+
+    if (projectCount === 0) {
       vscode.window.showInformationMessage("Angular Auto-Import: No active project to clear cache for.");
       return;
     }
 
-    for (const [projectRootPath, indexer] of commandContext.projectIndexers.entries()) {
+    for (const [, indexer] of projectIndexers) {
       await indexer.clearCache(context);
+    }
+
+    if (projectCount === 1) {
+      const [projectRootPath] = projectIndexers.keys();
       vscode.window.showInformationMessage(
         `✅ Angular Auto-Import: Cache cleared for project ${path.basename(projectRootPath)}.`
       );
+    } else {
+      vscode.window.showInformationMessage(`✅ Angular Auto-Import: Cache cleared for all ${projectCount} projects.`);
     }
-    vscode.window.showInformationMessage("✅ Angular Auto-Import: All project caches have been cleared.");
   });
   context.subscriptions.push(clearCacheCommand);
 
@@ -350,6 +371,7 @@ function getWebviewContent(metricsReport: string): string {
  * @param projectRootPath - Absolute path to the project root directory
  * @param indexer - The Angular indexer instance for this project
  * @param context - VS Code extension context for cache management
+ * @param progress - Optional progress reporter for the index generation
  *
  * @throws Will log warnings if cache keys are not properly configured
  *
@@ -361,14 +383,15 @@ function getWebviewContent(metricsReport: string): string {
 async function generateIndexForProject(
   projectRootPath: string,
   indexer: AngularIndexer,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  progress?: vscode.Progress<{ message?: string; increment?: number }>
 ): Promise<void> {
   // Generating index for project
   if (indexer.workspaceFileCacheKey === "" || indexer.workspaceIndexCacheKey === "") {
     logger.warn(`Cache keys not set for ${projectRootPath}, attempting to set them now`);
     indexer.setProjectRoot(projectRootPath);
   }
-  await indexer.generateFullIndex(context);
+  await indexer.generateFullIndex(context, progress);
 
   if (!indexer.fileWatcher) {
     // Watcher was not active, initializing

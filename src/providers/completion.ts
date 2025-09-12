@@ -10,7 +10,7 @@ import type { SourceFile } from "ts-morph";
 import * as vscode from "vscode";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
 import { AngularElementData } from "../types";
-import { isStandalone, switchFileType } from "../utils";
+import { isStandalone, LruCache, switchFileType } from "../utils";
 import { isInsideTemplateString } from "../utils/template-detection";
 import type { ProviderContext } from "./index";
 
@@ -19,8 +19,23 @@ import type { ProviderContext } from "./index";
  * This implementation relies solely on regular expressions for context detection to ensure
  * high performance and prevent crashes from invalid template syntax during typing.
  */
-export class CompletionProvider implements vscode.CompletionItemProvider {
-  constructor(private context: ProviderContext) {}
+export class CompletionProvider implements vscode.CompletionItemProvider, vscode.Disposable {
+  private standaloneCache = new LruCache<string, boolean>(50);
+  private disposables: vscode.Disposable[] = [];
+
+  constructor(private context: ProviderContext) {
+    this.disposables.push(
+      vscode.workspace.onDidSaveTextDocument((document) => {
+        this.standaloneCache.delete(document.fileName);
+      })
+    );
+  }
+
+  dispose() {
+    for (const d of this.disposables) {
+      d.dispose();
+    }
+  }
 
   /**
    * Provides completion items for the given document and position.
@@ -46,12 +61,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
       return new vscode.CompletionList([], true);
     }
 
-    const componentFile = await this.getComponentSourceFile(document);
-    if (componentFile) {
-      const classDeclaration = componentFile.getClasses()[0];
-      if (classDeclaration && !isStandalone(classDeclaration)) {
-        return new vscode.CompletionList([], true);
-      }
+    const isStandaloneComponent = await this.isStandaloneComponent(document);
+    if (!isStandaloneComponent) {
+      return new vscode.CompletionList([], true);
     }
 
     const { indexer } = projCtx;
@@ -440,6 +452,35 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     return new vscode.CompletionList(finalSuggestions, true);
   }
 
+  private async isStandaloneComponent(document: vscode.TextDocument): Promise<boolean> {
+    const componentPath = document.languageId === "html" ? switchFileType(document.fileName, ".ts") : document.fileName;
+
+    // For open, unsaved files, we are optimistic and allow completions.
+    // We don't cache this result because the 'dirty' state is temporary.
+    const activeDocument = vscode.workspace.textDocuments.find((doc) => doc.fileName === componentPath);
+    if (activeDocument?.isDirty) {
+      return true;
+    }
+
+    const cachedStatus = this.standaloneCache.get(componentPath);
+    if (cachedStatus !== undefined) {
+      return cachedStatus;
+    }
+
+    const componentFile = await this.getComponentSourceFile(document);
+    if (componentFile) {
+      const classDeclaration = componentFile.getClasses()[0];
+      if (classDeclaration) {
+        const isStandaloneComponent = isStandalone(classDeclaration);
+        this.standaloneCache.set(componentPath, isStandaloneComponent);
+        return isStandaloneComponent;
+      }
+    }
+    // Default to true if we can't determine, to avoid blocking completions.
+    this.standaloneCache.set(componentPath, true);
+    return true;
+  }
+
   private async getComponentSourceFile(document: vscode.TextDocument): Promise<SourceFile | undefined> {
     const projCtx = this.getProjectContextForDocument(document);
     if (!projCtx) {
@@ -466,16 +507,14 @@ export class CompletionProvider implements vscode.CompletionItemProvider {
     }
 
     const { project } = projCtx.indexer;
-    const activeDocument = vscode.workspace.textDocuments.find((doc) => doc.fileName === document.fileName);
-    const currentContent = activeDocument ? activeDocument.getText() : document.getText();
     let sourceFile = project.getSourceFile(document.fileName);
 
-    if (sourceFile) {
-      if (sourceFile.getFullText() !== currentContent) {
-        sourceFile.replaceWithText(currentContent);
-      }
-    } else {
-      sourceFile = project.createSourceFile(document.fileName, currentContent, {
+    // For completions, we work with the last saved version of the file
+    // that ts-morph knows about. We avoid updating it with unsaved content
+    // because that's a very slow operation (re-parsing).
+    // The cache is invalidated on save, which will trigger a re-read.
+    if (!sourceFile) {
+      sourceFile = project.createSourceFile(document.fileName, document.getText(), {
         overwrite: true,
       });
     }

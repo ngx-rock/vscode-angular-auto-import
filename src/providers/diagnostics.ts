@@ -15,22 +15,34 @@ import {
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
+import { knownTags } from "../consts";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { AngularElementData, ParsedHtmlElement } from "../types";
 import { getAngularElements, isStandalone, switchFileType } from "../utils";
+import { debounce } from "../utils/debounce";
 import type { ProviderContext } from "./index";
 
 /**
- * Provides diagnostics for Angular elements.
+ * Provides diagnostics for Angular templates.
  */
 export class DiagnosticProvider {
   private diagnosticCollection: vscode.DiagnosticCollection;
   private disposables: vscode.Disposable[] = [];
   private candidateDiagnostics: Map<string, vscode.Diagnostic[]> = new Map();
+  private templateCache = new Map<string, { version: number; nodes: unknown[] }>();
+  // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+  private compiler: any | null = null;
+  /**
+   * Cache for storing whether a specific Angular element (component, directive, pipe) is imported in a given TypeScript component file.
+   * Key: path to the TypeScript component file.
+   * Value: Map where key is the Angular element name (e.g., 'MyComponent') and value is a boolean indicating if it's imported.
+   */
+  private importedElementsCache = new Map<string, Map<string, boolean>>();
 
   constructor(private context: ProviderContext) {
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection("angular-auto-import");
+    this.loadCompiler();
   }
 
   /**
@@ -38,20 +50,24 @@ export class DiagnosticProvider {
    */
   activate(): void {
     // Update diagnostics when HTML documents change
-    const htmlUpdateHandler = vscode.workspace.onDidChangeTextDocument(async (event) => {
-      if (event.document.languageId === "html") {
-        await this.updateDiagnostics(event.document);
-      }
-    });
+    const htmlUpdateHandler = vscode.workspace.onDidChangeTextDocument(
+      debounce(async (event: vscode.TextDocumentChangeEvent) => {
+        if (event.document.languageId === "html") {
+          await this.updateDiagnostics(event.document);
+        }
+      }, 300)
+    );
     this.disposables.push(htmlUpdateHandler);
 
     // Update diagnostics when TypeScript documents change
-    const tsUpdateHandler = vscode.workspace.onDidChangeTextDocument(async (event) => {
-      if (event.document.languageId === "typescript") {
-        await this.updateDiagnostics(event.document);
-        await this.updateRelatedHtmlDiagnostics(event.document);
-      }
-    });
+    const tsUpdateHandler = vscode.workspace.onDidChangeTextDocument(
+      debounce(async (event: vscode.TextDocumentChangeEvent) => {
+        if (event.document.languageId === "typescript") {
+          await this.updateDiagnostics(event.document);
+          await this.updateRelatedHtmlDiagnostics(event.document);
+        }
+      }, 300)
+    );
     this.disposables.push(tsUpdateHandler);
 
     // Update diagnostics when TypeScript documents are saved
@@ -106,6 +122,7 @@ export class DiagnosticProvider {
     });
     this.disposables = [];
     this.candidateDiagnostics.clear();
+    this.templateCache.clear();
     this.diagnosticCollection.dispose();
   }
 
@@ -134,6 +151,9 @@ export class DiagnosticProvider {
       if (!fs.existsSync(htmlFilePath)) {
         return;
       }
+
+      // Clear cache for the related TS file as its changes might affect diagnostics
+      this.importedElementsCache.delete(tsDocument.fileName);
 
       // Open the HTML document and update diagnostics
       const htmlUri = vscode.Uri.file(htmlFilePath);
@@ -194,6 +214,8 @@ export class DiagnosticProvider {
    * Updates diagnostics for a document.
    */
   private async updateDiagnostics(document: vscode.TextDocument): Promise<void> {
+    const startTime = process.hrtime.bigint();
+
     if (!this.context.extensionConfig.diagnosticsEnabled) {
       this.diagnosticCollection.clear();
       this.candidateDiagnostics.delete(document.uri.toString());
@@ -203,56 +225,104 @@ export class DiagnosticProvider {
     if (document.languageId === "html") {
       const componentPath = switchFileType(document.fileName, ".ts");
       if (!fs.existsSync(componentPath)) {
+        logger.debug(
+          `[DiagnosticProvider] Skipping diagnostics for HTML file without a corresponding TS component: ${document.fileName}`
+        );
         return; // Not an Angular component's template
       }
-      await this.runDiagnostics(document.getText(), document, 0, componentPath);
-    } else if (document.languageId === "typescript") {
-      const componentInfo = this.extractInlineTemplate(document);
-      if (componentInfo) {
-        await this.runDiagnostics(componentInfo.template, document, componentInfo.templateOffset, document.fileName);
-      } else {
-        // Clear both collections when there's no inline template
-        this.candidateDiagnostics.delete(document.uri.toString());
-        this.diagnosticCollection.delete(document.uri);
+      const tsDocument = await this.getTsDocument(document, componentPath);
+      if (!tsDocument) {
+        return;
       }
-    }
-  }
-
-  private async runDiagnostics(
-    templateText: string,
-    document: vscode.TextDocument,
-    offset: number,
-    componentPath: string
-  ): Promise<void> {
-    const projCtx = this.getProjectContextForDocument(document);
-    if (!projCtx) {
-      return;
-    }
-
-    const { indexer } = projCtx;
-    const diagnostics: vscode.Diagnostic[] = [];
-    const severity = this.getSeverityFromConfig(this.context.extensionConfig.diagnosticsSeverity);
-
-    const tsDocument = await this.getTsDocument(document, componentPath);
-    if (!tsDocument) {
-      return;
-    }
-
-    const sourceFile = this.getSourceFile(tsDocument);
-    if (sourceFile) {
+      const sourceFile = this.getSourceFile(tsDocument);
+      if (!sourceFile) {
+        logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
+        return;
+      }
       const classDeclaration = sourceFile.getClasses()[0];
       if (classDeclaration && !isStandalone(classDeclaration)) {
         this.candidateDiagnostics.delete(document.uri.toString());
         this.diagnosticCollection.delete(document.uri);
         return;
       }
+      await this.runDiagnostics(document.getText(), document, 0, componentPath, tsDocument, sourceFile);
+    } else if (document.languageId === "typescript") {
+      const tsDocument = document;
+      const sourceFile = this.getSourceFile(tsDocument);
+      if (!sourceFile) {
+        logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
+        return;
+      }
+      const classDeclaration = sourceFile.getClasses()[0];
+      if (classDeclaration && !isStandalone(classDeclaration)) {
+        this.candidateDiagnostics.delete(document.uri.toString());
+        this.diagnosticCollection.delete(document.uri);
+        return;
+      }
+      const componentInfo = this.extractInlineTemplate(tsDocument, sourceFile);
+      if (componentInfo) {
+        this.importedElementsCache.delete(document.fileName);
+        await this.runDiagnostics(
+          componentInfo.template,
+          document,
+          componentInfo.templateOffset,
+          document.fileName,
+          tsDocument,
+          sourceFile
+        );
+      } else {
+        // Clear both collections when there's no inline template
+        this.candidateDiagnostics.delete(document.uri.toString());
+        this.diagnosticCollection.delete(document.uri);
+        this.importedElementsCache.delete(document.fileName); // Clear cache for this TS file
+        logger.debug(
+          `[DiagnosticProvider] No inline template found for TS file, clearing diagnostics: ${document.fileName}`
+        );
+      }
     }
 
+    const endTime = process.hrtime.bigint();
+    const duration = Number(endTime - startTime) / 1_000_000; // Convert to milliseconds
+    logger.debug(`[DiagnosticProvider] updateDiagnostics for ${document.fileName} took ${duration.toFixed(2)} ms`);
+  }
+
+  private async runDiagnostics(
+    templateText: string,
+    document: vscode.TextDocument,
+    offset: number,
+    _componentPath: string,
+    _tsDocument: vscode.TextDocument,
+    sourceFile: SourceFile
+  ): Promise<void> {
+    const projCtx = this.getProjectContextForDocument(document);
+    if (!projCtx) {
+      logger.debug(`[DiagnosticProvider] No project context for document: ${document.fileName}`);
+      return;
+    }
+
+    if (!this.compiler) {
+      logger.warn("[DiagnosticProvider] @angular/compiler not loaded yet, skipping diagnostics.");
+      return;
+    }
+
+    const { CssSelector, SelectorMatcher } = this.compiler;
+
+    const { indexer } = projCtx;
+    const diagnostics: vscode.Diagnostic[] = [];
+    const severity = this.getSeverityFromConfig(this.context.extensionConfig.diagnosticsSeverity);
+
     // Parse the template to get all elements and their full context
-    const parsedElements = await this.parseCompleteTemplate(templateText, document, offset, indexer);
+    const parsedElements = this.parseCompleteTemplate(templateText, document, offset, indexer);
 
     for (const element of parsedElements) {
-      const elementDiagnostics = await this.checkElement(element, indexer, tsDocument, severity);
+      const elementDiagnostics = await this.checkElement(
+        element,
+        indexer,
+        severity,
+        sourceFile,
+        CssSelector,
+        SelectorMatcher
+      );
       if (elementDiagnostics.length > 0) {
         diagnostics.push(...elementDiagnostics);
       }
@@ -262,21 +332,49 @@ export class DiagnosticProvider {
     this.publishFilteredDiagnostics(document.uri);
   }
 
-  private async parseCompleteTemplate(
+  private parseCompleteTemplate(
     text: string,
     document: vscode.TextDocument,
     offset: number,
     indexer: AngularIndexer
-  ): Promise<ParsedHtmlFullElement[]> {
+  ): ParsedHtmlFullElement[] {
+    const parseTemplateStartTime = process.hrtime.bigint();
     const elements: ParsedHtmlFullElement[] = [];
     try {
-      const compiler = await import("@angular/compiler");
-      const { nodes } = compiler.parseTemplate(text, document.uri.fsPath);
+      if (!this.compiler) {
+        logger.warn("[DiagnosticProvider] @angular/compiler not loaded yet, skipping template parsing.");
+        return elements;
+      }
+      const {
+        parseTemplate,
+        TmplAstBoundAttribute,
+        TmplAstBoundEvent,
+        TmplAstElement,
+        TmplAstReference,
+        TmplAstTemplate,
+        TmplAstBoundText,
+      } = this.compiler;
+      type ParseResult = ReturnType<typeof parseTemplate>;
+      type TemplateNode = ParseResult["nodes"][0];
 
-      type CompilerModule = typeof compiler;
-      type TemplateNode = (typeof nodes)[0];
-      type AttributeLikeNode =
-        | InstanceType<CompilerModule["TmplAstTextAttribute"]>
+      const currentVersion = document.version;
+      const cacheKey = document.uri.toString();
+      const cached = this.templateCache.get(cacheKey);
+      let nodes: TemplateNode[];
+
+      if (cached && cached.version === currentVersion) {
+        logger.debug(`[DiagnosticProvider] Template cache HIT for ${document.fileName}`);
+        nodes = cached.nodes as TemplateNode[];
+      } else {
+        logger.debug(`[DiagnosticProvider] Template cache MISS for ${document.fileName}`);
+        const parsed = parseTemplate(text, document.uri.fsPath);
+        nodes = parsed.nodes;
+        this.templateCache.set(cacheKey, { version: currentVersion, nodes });
+      }
+
+      type CompilerModule = typeof this.compiler;
+
+      type AttributeNode =
         | InstanceType<CompilerModule["TmplAstBoundAttribute"]>
         | InstanceType<CompilerModule["TmplAstBoundEvent"]>
         | InstanceType<CompilerModule["TmplAstReference"]>;
@@ -371,19 +469,19 @@ export class DiagnosticProvider {
             });
           }
 
-          if (node instanceof compiler.TmplAstElement || node instanceof compiler.TmplAstTemplate) {
-            const isTemplate = node instanceof compiler.TmplAstTemplate;
+          if (node instanceof TmplAstElement || node instanceof TmplAstTemplate) {
+            const isTemplate = node instanceof TmplAstTemplate;
 
-            const regularAttrs: AttributeLikeNode[] = [
+            const regularAttrs: AttributeNode[] = [
               ...node.attributes,
               ...node.inputs,
               ...node.outputs,
               ...node.references,
             ];
 
-            const templateAttrs = node instanceof compiler.TmplAstTemplate ? [...node.templateAttrs] : [];
+            const templateAttrs = node instanceof TmplAstTemplate ? [...node.templateAttrs] : [];
 
-            const allAttrsList: AttributeLikeNode[] = [...regularAttrs, ...templateAttrs];
+            const allAttrsList: AttributeNode[] = [...regularAttrs, ...templateAttrs];
 
             const attributes = allAttrsList.map((attr) => ({
               name: attr.name,
@@ -415,23 +513,23 @@ export class DiagnosticProvider {
             }
 
             // One entry for each attribute or reference
-            const processAttribute = (attr: AttributeLikeNode, isTemplateAttr: boolean) => {
+            const processAttribute = (attr: AttributeNode, isTemplateAttr: boolean) => {
               const keySpan = attr.keySpan ?? attr.sourceSpan;
               if (!keySpan) {
                 return;
               }
 
               // Skip event bindings, as they are not importable directives.
-              if (attr instanceof compiler.TmplAstBoundEvent) {
+              if (attr instanceof TmplAstBoundEvent) {
                 return;
               }
 
               let type: ParsedHtmlFullElement["type"] = "attribute";
-              if (attr instanceof compiler.TmplAstReference) {
+              if (attr instanceof TmplAstReference) {
                 type = "template-reference";
               } else if (isTemplateAttr || attr.name.startsWith("*")) {
                 type = "structural-directive";
-              } else if (attr instanceof compiler.TmplAstBoundAttribute) {
+              } else if (attr instanceof TmplAstBoundAttribute) {
                 type = "property-binding";
               }
 
@@ -448,7 +546,7 @@ export class DiagnosticProvider {
               });
 
               // Check for pipes in bound attribute values (like *ngIf="expression | pipe")
-              if (attr instanceof compiler.TmplAstBoundAttribute && attr.value) {
+              if (attr instanceof TmplAstBoundAttribute && attr.value) {
                 const valueSpan = attr.valueSpan || attr.sourceSpan;
                 if (valueSpan) {
                   const expressionText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
@@ -468,7 +566,7 @@ export class DiagnosticProvider {
             }
           }
 
-          if (node instanceof compiler.TmplAstBoundText) {
+          if (node instanceof TmplAstBoundText) {
             const pipes = this._findPipesInExpression(
               text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset),
               document,
@@ -499,6 +597,12 @@ export class DiagnosticProvider {
       };
 
       visit(nodes);
+      // Log duration for parsing template
+      const parseTemplateEndTime = process.hrtime.bigint();
+      const parseTemplateDuration = Number(parseTemplateEndTime - parseTemplateStartTime) / 1_000_000;
+      logger.debug(
+        `[DiagnosticProvider] parseCompleteTemplate for ${document.fileName} took ${parseTemplateDuration.toFixed(2)} ms`
+      );
     } catch (e) {
       logger.error(`[DiagnosticProvider] Failed to parse template: ${document.uri.fsPath}`, e as Error);
     }
@@ -508,10 +612,14 @@ export class DiagnosticProvider {
   private async checkElement(
     element: ParsedHtmlFullElement,
     indexer: AngularIndexer,
-    tsDocument: vscode.TextDocument,
-    severity: vscode.DiagnosticSeverity
+    severity: vscode.DiagnosticSeverity,
+    sourceFile: SourceFile,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    CssSelector: any,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    SelectorMatcher: any
   ): Promise<vscode.Diagnostic[]> {
-    const { CssSelector, SelectorMatcher } = await import("@angular/compiler");
+    const checkElementStartTime = process.hrtime.bigint();
     const diagnostics: vscode.Diagnostic[] = [];
     const processedCandidatesThisCall = new Set<string>();
 
@@ -540,7 +648,7 @@ export class DiagnosticProvider {
         const matchedSelectors: string[] = [];
         // The callback will be invoked for each selector that matches.
         // We capture them all and will use the most specific one.
-        matcher.match(templateCssSelector, (selector) => {
+        matcher.match(templateCssSelector, (selector: string) => {
           matchedSelectors.push(selector.toString());
         });
 
@@ -554,17 +662,21 @@ export class DiagnosticProvider {
         // Only add to processed after a successful match.
         processedCandidatesThisCall.add(candidate.name);
 
-        if (!this.isElementImported(tsDocument, candidate)) {
+        if (!this.isElementImported(sourceFile, candidate)) {
           diagnostics.push(this.createMissingImportDiagnostic(element, candidate, specificSelector, severity));
         }
       } else {
         // For pipes, the candidate name is the selector
         processedCandidatesThisCall.add(candidate.name);
-        if (!this.isElementImported(tsDocument, candidate)) {
+        if (!this.isElementImported(sourceFile, candidate)) {
           diagnostics.push(this.createMissingImportDiagnostic(element, candidate, element.name, severity));
         }
       }
     }
+
+    const checkElementEndTime = process.hrtime.bigint();
+    const checkElementDuration = Number(checkElementEndTime - checkElementStartTime) / 1_000_000;
+    logger.debug(`[DiagnosticProvider] checkElement for ${element.name} took ${checkElementDuration.toFixed(2)} ms`);
 
     return diagnostics;
   }
@@ -610,12 +722,10 @@ export class DiagnosticProvider {
     return sourceFile;
   }
 
-  private extractInlineTemplate(document: vscode.TextDocument): { template: string; templateOffset: number } | null {
-    const sourceFile = this.getSourceFile(document);
-    if (!sourceFile) {
-      return null;
-    }
-
+  private extractInlineTemplate(
+    _document: vscode.TextDocument,
+    sourceFile: SourceFile
+  ): { template: string; templateOffset: number } | null {
     for (const classDeclaration of sourceFile.getClasses()) {
       const componentDecorator = classDeclaration.getDecorator("Component");
       if (componentDecorator) {
@@ -701,12 +811,21 @@ export class DiagnosticProvider {
     }
   }
 
-  private isElementImported(document: vscode.TextDocument, element: AngularElementData): boolean {
+  private isElementImported(sourceFile: SourceFile, element: AngularElementData): boolean {
     try {
-      const sourceFile = this.getSourceFile(document);
       if (!sourceFile) {
         return false;
       }
+
+      const cacheKey = sourceFile.getFilePath();
+      let fileCache = this.importedElementsCache.get(cacheKey);
+
+      if (fileCache?.has(element.name)) {
+        // Cache hit
+        return fileCache.get(element.name) ?? false;
+      }
+
+      let isImported = false;
 
       for (const classDeclaration of sourceFile.getClasses()) {
         const componentDecorator = classDeclaration.getDecorator("Component");
@@ -728,7 +847,8 @@ export class DiagnosticProvider {
                     return imp.getNamedImports().some((named) => named.getName() === element.name);
                   });
                   if (hasTopLevelImport) {
-                    return true;
+                    isImported = true;
+                    break; // Found, no need to check further
                   }
                 }
               }
@@ -736,7 +856,60 @@ export class DiagnosticProvider {
           }
         }
       }
-      return false;
+
+      // If not found in direct imports, check external modules exports
+      if (!isImported) {
+        // Get project context by finding workspace folder from source file path
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(sourceFile.getFilePath()));
+        if (workspaceFolder) {
+          const projectRootPath = workspaceFolder.uri.fsPath;
+          const indexer = this.context.projectIndexers.get(projectRootPath);
+          if (indexer) {
+            for (const classDeclaration of sourceFile.getClasses()) {
+              const componentDecorator = classDeclaration.getDecorator("Component");
+              if (componentDecorator) {
+                const decoratorArgs = componentDecorator.getArguments();
+                if (decoratorArgs.length > 0 && decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+                  const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
+                  const importsProperty = objectLiteral.getProperty("imports");
+
+                  if (importsProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+                    const initializer = importsProperty.getInitializer();
+                    if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
+                      const importsArray = initializer as ArrayLiteralExpression;
+                      const importedModules = importsArray.getElements().map((el: Expression) => el.getText().trim());
+
+                      // Check if any imported module exports this element
+                      for (const moduleName of importedModules) {
+                        const moduleExports = indexer.getExternalModuleExports(moduleName);
+                        if (moduleExports?.has(element.name)) {
+                          isImported = true;
+                          logger.debug(
+                            `[DiagnosticProvider] Element '${element.name}' found in external module '${moduleName}' exports`
+                          );
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              if (isImported) {
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Store in cache
+      if (!fileCache) {
+        fileCache = new Map();
+        this.importedElementsCache.set(cacheKey, fileCache);
+      }
+      fileCache.set(element.name, isImported);
+
+      return isImported;
     } catch (error) {
       logger.error("[DiagnosticProvider] Error checking element import with ts-morph:", error as Error);
       return false;
@@ -768,121 +941,20 @@ export class DiagnosticProvider {
     }
     this.diagnosticCollection.set(uri, candidateDiags);
   }
+
+  private loadCompiler(): void {
+    void import("@angular/compiler")
+      .then((compiler) => {
+        this.compiler = compiler;
+        logger.info("[DiagnosticProvider] @angular/compiler pre-loaded.");
+      })
+      .catch((error) => {
+        logger.error("[DiagnosticProvider] Failed to pre-load @angular/compiler:", error as Error);
+      });
+  }
 }
 
 function isKnownHtmlTag(tag: string): boolean {
-  const knownTags = new Set([
-    "a",
-    "abbr",
-    "address",
-    "area",
-    "article",
-    "aside",
-    "audio",
-    "b",
-    "base",
-    "bdi",
-    "bdo",
-    "blockquote",
-    "body",
-    "br",
-    "button",
-    "canvas",
-    "caption",
-    "cite",
-    "code",
-    "col",
-    "colgroup",
-    "data",
-    "datalist",
-    "dd",
-    "del",
-    "details",
-    "dfn",
-    "dialog",
-    "div",
-    "dl",
-    "dt",
-    "em",
-    "embed",
-    "fieldset",
-    "figcaption",
-    "figure",
-    "footer",
-    "form",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "head",
-    "header",
-    "hr",
-    "html",
-    "i",
-    "iframe",
-    "img",
-    "input",
-    "ins",
-    "kbd",
-    "label",
-    "legend",
-    "li",
-    "link",
-    "main",
-    "map",
-    "mark",
-    "meta",
-    "meter",
-    "nav",
-    "ng-template",
-    "noscript",
-    "object",
-    "ol",
-    "optgroup",
-    "option",
-    "output",
-    "p",
-    "param",
-    "picture",
-    "pre",
-    "progress",
-    "q",
-    "rp",
-    "rt",
-    "ruby",
-    "s",
-    "samp",
-    "script",
-    "section",
-    "select",
-    "small",
-    "source",
-    "span",
-    "strong",
-    "style",
-    "sub",
-    "summary",
-    "sup",
-    "table",
-    "tbody",
-    "td",
-    "template",
-    "textarea",
-    "tfoot",
-    "th",
-    "thead",
-    "time",
-    "title",
-    "tr",
-    "track",
-    "u",
-    "ul",
-    "var",
-    "video",
-    "wbr",
-  ]);
   return knownTags.has(tag.toLowerCase());
 }
 

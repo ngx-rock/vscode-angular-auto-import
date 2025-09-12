@@ -22,7 +22,13 @@ import {
 import * as vscode from "vscode";
 import { logger } from "../logger";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
-import { findAngularDependencies, getLibraryEntryPoints, isStandalone, parseAngularSelector } from "../utils";
+import {
+  type AngularDependency,
+  findAngularDependencies,
+  getLibraryEntryPoints,
+  isStandalone,
+  parseAngularSelector,
+} from "../utils";
 
 /**
  * Represents a node in a Trie data structure for storing selectors.
@@ -241,6 +247,12 @@ export class AngularIndexer {
   private selectorTrie: SelectorTrie = new SelectorTrie();
   private projectModuleMap: Map<string, { moduleName: string; importPath: string }> = new Map();
   /**
+   * Index of external modules and their exported entities.
+   * Key: module name (e.g., "MatTableModule")
+   * Value: Set of exported entity names (e.g., Set(["MatTable", "MatHeaderCell", ...]))
+   */
+  private externalModuleExportsIndex: Map<string, Set<string>> = new Map();
+  /**
    * The file watcher for the project.
    */
   public fileWatcher: vscode.FileSystemWatcher | null = null;
@@ -259,6 +271,10 @@ export class AngularIndexer {
    * The cache key for the module map in the workspace state.
    */
   public workspaceModulesCacheKey: string = "";
+  /**
+   * The cache key for the external modules exports index in the workspace state.
+   */
+  public workspaceExternalModulesExportsCacheKey: string = "";
 
   constructor() {
     this.project = new Project({
@@ -287,8 +303,9 @@ export class AngularIndexer {
     this.workspaceFileCacheKey = `angularFileCache_${projectHash}`;
     this.workspaceIndexCacheKey = `angularSelectorToDataIndex_${projectHash}`;
     this.workspaceModulesCacheKey = `angularModulesCache_${projectHash}`;
+    this.workspaceExternalModulesExportsCacheKey = `angularExternalModulesExports_${projectHash}`;
     logger.info(
-      `AngularIndexer: Project root set to ${projectPath}. Cache keys: ${this.workspaceFileCacheKey}, ${this.workspaceIndexCacheKey}, ${this.workspaceModulesCacheKey}`
+      `AngularIndexer: Project root set to ${projectPath}. Cache keys: ${this.workspaceFileCacheKey}, ${this.workspaceIndexCacheKey}, ${this.workspaceModulesCacheKey}, ${this.workspaceExternalModulesExportsCacheKey}`
     );
   }
 
@@ -612,7 +629,11 @@ export class AngularIndexer {
    * @param context The extension context.
    * @internal
    */
-  private async updateFileIndex(filePath: string, context: vscode.ExtensionContext): Promise<void> {
+  private async updateFileIndex(
+    filePath: string,
+    context: vscode.ExtensionContext,
+    isExternal: boolean = false
+  ): Promise<void> {
     try {
       if (!fs.existsSync(filePath)) {
         logger.warn(`File not found, cannot update index: ${filePath} for project ${this.projectRootPath}`);
@@ -651,9 +672,7 @@ export class AngularIndexer {
       }
 
       // If the file is a module, re-index project modules.
-      if (filePath.endsWith(".module.ts")) {
-        await this.indexProjectModules();
-      }
+      // This is now handled centrally in generateFullIndex to avoid redundant file searches.
 
       // Before parsing, remove all existing selectors from this file to ensure clean update
       if (cachedFile) {
@@ -702,7 +721,7 @@ export class AngularIndexer {
             parsed.selector, // original selector
             individualSelectors,
             parsed.isStandalone,
-            false, // isExternal
+            isExternal, // isExternal
             moduleToImport
           );
 
@@ -763,7 +782,10 @@ export class AngularIndexer {
    * @param context The extension context.
    * @returns A map of selectors to `AngularElementData` objects.
    */
-  async generateFullIndex(context: vscode.ExtensionContext): Promise<Map<string, AngularElementData>> {
+  async generateFullIndex(
+    context: vscode.ExtensionContext,
+    progress?: vscode.Progress<{ message?: string; increment?: number }>
+  ): Promise<Map<string, AngularElementData>> {
     if (this.isIndexing) {
       logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): Already indexing, skipping...`);
       return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
@@ -791,34 +813,70 @@ export class AngularIndexer {
       this.fileCache.clear();
       this.selectorTrie.clear();
       this.projectModuleMap.clear();
+      this.externalModuleExportsIndex.clear();
 
-      await this.indexProjectModules();
-
-      const angularFiles = await this.getAngularFilesUsingVsCode();
-      logger.info(
-        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${angularFiles.length} Angular files.`
+      progress?.report({ message: "Discovering project files..." });
+      const allFileUris = await vscode.workspace.findFiles(
+        new vscode.RelativePattern(this.projectRootPath, "**/*.ts"),
+        "**/{.git,dist,out,e2e,bazel-out,.*,*.spec.ts,*.test.ts}"
       );
 
+      const projectTsFiles: vscode.Uri[] = [];
+      const nodeModulesFiles: vscode.Uri[] = [];
+      const nodeModulesPath = path.join(this.projectRootPath, "node_modules");
+
+      for (const file of allFileUris) {
+        if (file.fsPath.includes(nodeModulesPath)) {
+          nodeModulesFiles.push(file);
+        } else {
+          projectTsFiles.push(file);
+        }
+      }
+
+      logger.info(
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${
+          projectTsFiles.length
+        } project files and ${nodeModulesFiles.length} node_modules files.`
+      );
+
+      progress?.report({ message: "Indexing external libraries..." });
+      const pkg = await findAngularDependencies(this.projectRootPath);
+      await this._indexNodeModulesFromUris(nodeModulesFiles, pkg, context);
+
+      progress?.report({ message: "Filtering project files..." });
+      const candidateFiles = await this._filterRelevantFiles(projectTsFiles);
+
+      const moduleFiles = candidateFiles.filter((uri) => uri.fsPath.endsWith(".module.ts"));
+      const componentFiles = candidateFiles.filter((uri) => !uri.fsPath.endsWith(".module.ts"));
+
+      logger.info(
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${
+          candidateFiles.length
+        } potential Angular files (${moduleFiles.length} modules, ${componentFiles.length} components/directives/pipes).`
+      );
+
+      progress?.report({ message: "Indexing project modules..." });
+      await this.indexProjectModules(moduleFiles);
+
+      progress?.report({ message: "Indexing project components..." });
       const batchSize = 20; // Process in batches
-      for (let i = 0; i < angularFiles.length; i += batchSize) {
-        const batch = angularFiles.slice(i, i + batchSize);
+      for (let i = 0; i < componentFiles.length; i += batchSize) {
+        const batch = componentFiles.slice(i, i + batchSize);
         // Sequentially process files in a batch to avoid overwhelming ts-morph or fs
         for (const file of batch) {
-          await this.updateFileIndex(file, context);
+          await this.updateFileIndex(file.fsPath, context);
         }
-        // const batchTasks = batch.map(file => this.updateFileIndex(file, context));
-        // await Promise.all(batchTasks); // This could be too concurrent for ts-morph project modifications
         logger.info(
-          `AngularIndexer (${path.basename(
-            this.projectRootPath
-          )}): Indexed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(angularFiles.length / batchSize)}`
+          `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed component batch ${
+            Math.floor(i / batchSize) + 1
+          }/${Math.ceil(componentFiles.length / batchSize)}`
         );
       }
 
       const totalElements = this.selectorTrie.getAllElements().length;
       logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${totalElements} elements.`);
 
-      await this.indexNodeModules(context);
+      await this.indexNodeModules(context, progress);
 
       await this.saveIndexToWorkspace(context);
 
@@ -834,6 +892,94 @@ export class AngularIndexer {
       this.isIndexing = false;
       logger.stopTimer(timerName);
     }
+  }
+
+  private async _indexNodeModulesFromUris(
+    uris: vscode.Uri[],
+    dependencies: AngularDependency[],
+    context: vscode.ExtensionContext
+  ): Promise<void> {
+    const timerName = `indexNodeModulesFromUris:${path.basename(this.projectRootPath)}`;
+    logger.startTimer(timerName);
+    logger.info(`[NodeModules] Starting scan of ${uris.length} files from node_modules...`);
+
+    try {
+      const dependencySet = new Set(dependencies.map((d) => d.name));
+
+      const filesByPackage = new Map<string, vscode.Uri[]>();
+      for (const uri of uris) {
+        const pkgNameResult = this._getNpmPackageName(uri.fsPath);
+        if (pkgNameResult) {
+          const [pkgName] = pkgNameResult;
+          if (dependencySet.has(pkgName)) {
+            if (!filesByPackage.has(pkgName)) {
+              filesByPackage.set(pkgName, []);
+            }
+            filesByPackage.get(pkgName)?.push(uri);
+          }
+        }
+      }
+
+      for (const [, files] of filesByPackage) {
+        for (const file of files) {
+          await this.updateFileIndex(file.fsPath, context, true);
+        }
+      }
+    } catch (error) {
+      logger.error("[NodeModules] Error scanning node_modules:", error as Error);
+    }
+
+    logger.stopTimer(timerName);
+  }
+
+  /**
+   * Quickly filters a list of files to find ones that likely contain Angular declarations.
+   * @param uris An array of file URIs to filter.
+   * @returns A promise that resolves to a filtered array of file URIs.
+   * @internal
+   */
+  private async _filterRelevantFiles(uris: vscode.Uri[]): Promise<vscode.Uri[]> {
+    const angularDecoratorRegex = /@(Component|Directive|Pipe|NgModule)\s*\(/;
+    const promises = uris.map(async (uri) => {
+      try {
+        const content = await vscode.workspace.fs.readFile(uri);
+        if (angularDecoratorRegex.test(content.toString())) {
+          return uri;
+        }
+      } catch (error) {
+        logger.error(`Could not read file ${uri.fsPath} during filtering:`, error as Error);
+      }
+      return null;
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((uri): uri is vscode.Uri => uri !== null);
+  }
+
+  /**
+   * Finds the package name from a file path.
+   * @param filePath The full path to the file.
+   * @returns A tuple of [packageName, isDevDependency] or undefined if not a node_modules file.
+   * @internal
+   */
+  private _getNpmPackageName(filePath: string): [string, boolean] | undefined {
+    const nodeModulesPath = path.join(this.projectRootPath, "node_modules");
+    if (!filePath.startsWith(nodeModulesPath)) {
+      return undefined;
+    }
+
+    const relativePath = path.relative(nodeModulesPath, filePath);
+    const parts = relativePath.split(path.sep);
+
+    // Find the package name, which is the last part of the path
+    const packageName = parts[parts.length - 1];
+
+    // Determine if it's a dev dependency
+    const isDev = packageName.startsWith("@"); // Common pattern for scoped packages
+    if (isDev) {
+      return [packageName.slice(1), true];
+    }
+    return [packageName, false];
   }
 
   /**
@@ -853,6 +999,9 @@ export class AngularIndexer {
       const storedIndex = context.workspaceState.get<Record<string, AngularElementData>>(this.workspaceIndexCacheKey);
       const storedModules = context.workspaceState.get<Record<string, { moduleName: string; importPath: string }>>(
         this.workspaceModulesCacheKey
+      );
+      const storedExternalModulesExports = context.workspaceState.get<Record<string, string[]>>(
+        this.workspaceExternalModulesExportsCacheKey
       );
 
       if (storedCache && storedIndex) {
@@ -877,6 +1026,7 @@ export class AngularIndexer {
         this.fileCache = convertedCache;
 
         this.selectorTrie.clear();
+        this.externalModuleExportsIndex.clear();
         for (const [key, value] of Object.entries(storedIndex)) {
           const elementData = new AngularElementData(
             value.path,
@@ -899,6 +1049,14 @@ export class AngularIndexer {
 
         if (storedModules) {
           this.projectModuleMap = new Map(Object.entries(storedModules));
+        }
+
+        if (storedExternalModulesExports) {
+          // Convert stored string arrays back to Sets
+          this.externalModuleExportsIndex.clear();
+          for (const [moduleName, exports] of Object.entries(storedExternalModulesExports)) {
+            this.externalModuleExportsIndex.set(moduleName, new Set(exports));
+          }
         }
         logger.info(
           `AngularIndexer (${path.basename(this.projectRootPath)}): Loaded ${
@@ -936,6 +1094,15 @@ export class AngularIndexer {
 
       await context.workspaceState.update(this.workspaceIndexCacheKey, serializableTrie);
       await context.workspaceState.update(this.workspaceModulesCacheKey, Object.fromEntries(this.projectModuleMap));
+
+      // Serialize external modules exports (convert Sets to arrays)
+      const serializableExternalModules = Object.fromEntries(
+        Array.from(this.externalModuleExportsIndex.entries()).map(([moduleName, exportsSet]) => [
+          moduleName,
+          Array.from(exportsSet),
+        ])
+      );
+      await context.workspaceState.update(this.workspaceExternalModulesExportsCacheKey, serializableExternalModules);
     } catch (error) {
       logger.error(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Error saving index to workspace:`,
@@ -953,7 +1120,8 @@ export class AngularIndexer {
       !this.projectRootPath ||
       !this.workspaceFileCacheKey ||
       !this.workspaceIndexCacheKey ||
-      !this.workspaceModulesCacheKey
+      !this.workspaceModulesCacheKey ||
+      !this.workspaceExternalModulesExportsCacheKey
     ) {
       logger.error("AngularIndexer.clearCache: projectRootPath or cache keys not set. Cannot clear cache.");
       return;
@@ -963,6 +1131,7 @@ export class AngularIndexer {
       this.fileCache.clear();
       this.selectorTrie.clear();
       this.projectModuleMap.clear();
+      this.externalModuleExportsIndex.clear();
       this.project.getSourceFiles().forEach((sf) => {
         this.project.removeSourceFile(sf);
       });
@@ -971,6 +1140,7 @@ export class AngularIndexer {
       await context.workspaceState.update(this.workspaceFileCacheKey, undefined);
       await context.workspaceState.update(this.workspaceIndexCacheKey, undefined);
       await context.workspaceState.update(this.workspaceModulesCacheKey, undefined);
+      await context.workspaceState.update(this.workspaceExternalModulesExportsCacheKey, undefined);
 
       logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): All caches cleared.`);
     } catch (error) {
@@ -991,10 +1161,26 @@ export class AngularIndexer {
   }
 
   /**
+   * Gets all exported entities from an external module.
+   * @param moduleName The name of the external module (e.g., "MatTableModule").
+   * @returns A Set of exported entity names or undefined if module not found.
+   */
+  getExternalModuleExports(moduleName: string): Set<string> | undefined {
+    if (typeof moduleName !== "string" || !moduleName) {
+      return undefined;
+    }
+    return this.externalModuleExportsIndex.get(moduleName);
+  }
+
+  /**
    * Indexes all Angular libraries in `node_modules`.
    * @param context The extension context.
+   * @param progress Optional progress reporter to use instead of creating a new one.
    */
-  public async indexNodeModules(context: vscode.ExtensionContext): Promise<void> {
+  public async indexNodeModules(
+    context: vscode.ExtensionContext,
+    progress?: vscode.Progress<{ message?: string; increment?: number }>
+  ): Promise<void> {
     const timerName = `indexNodeModules:${path.basename(this.projectRootPath)}`;
     logger.startTimer(timerName);
 
@@ -1004,57 +1190,65 @@ export class AngularIndexer {
       `Starting node_modules index - Memory: ${Math.round(initialMemory.memoryUsage.heapUsed / 1024 / 1024)}MB`
     );
 
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: `Angular Auto-Import: Indexing libraries from node_modules...`,
-        cancellable: false,
-      },
-      async (progress) => {
-        try {
-          if (!this.projectRootPath) {
-            logger.error("AngularIndexer.indexNodeModules: projectRootPath not set.");
-            return;
-          }
-          progress.report({ message: "Finding Angular libraries..." });
-          const angularDeps = await findAngularDependencies(this.projectRootPath);
-          logger.debug(`[indexNodeModules] Found ${angularDeps.length} Angular dependencies.`);
-
-          const totalDeps = angularDeps.length;
-          let processedCount = 0;
-
-          for (const dep of angularDeps) {
-            processedCount++;
-            progress.report({
-              message: `Processing ${dep.name}... (${processedCount}/${totalDeps})`,
-              increment: (1 / totalDeps) * 100,
-            });
-
-            const entryPoints = await getLibraryEntryPoints(dep);
-            if (entryPoints.size === 0) {
-              continue;
-            }
-
-            logger.info(`📚 Indexing library: ${dep.name} (${entryPoints.size} entry points)`);
-            await this._indexLibrary(entryPoints);
-          }
-          await this.saveIndexToWorkspace(context);
-
-          // Log final memory usage after node_modules indexing
-          const finalMemory = logger.getPerformanceMetrics();
-          const memoryDelta = finalMemory.memoryUsage.heapUsed - initialMemory.memoryUsage.heapUsed;
-          logger.info(
-            `Node modules index completed - Memory: ${Math.round(finalMemory.memoryUsage.heapUsed / 1024 / 1024)}MB (Δ${memoryDelta > 0 ? "+" : ""}${Math.round(memoryDelta / 1024 / 1024)}MB)`
-          );
-
-          logger.debug(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
-        } catch (error) {
-          logger.error("[indexNodeModules] Error during node_modules indexing:", error as Error);
-        } finally {
-          logger.stopTimer(timerName);
+    const indexingLogic = async (progressReporter: vscode.Progress<{ message?: string; increment?: number }>) => {
+      try {
+        if (!this.projectRootPath) {
+          logger.error("AngularIndexer.indexNodeModules: projectRootPath not set.");
+          return;
         }
+        progressReporter.report({ message: "Finding Angular libraries..." });
+        const angularDeps = await findAngularDependencies(this.projectRootPath);
+        logger.debug(`[indexNodeModules] Found ${angularDeps.length} Angular dependencies.`);
+
+        const totalDeps = angularDeps.length;
+        let processedCount = 0;
+
+        for (const dep of angularDeps) {
+          processedCount++;
+          progressReporter.report({
+            message: `Processing ${dep.name}... (${processedCount}/${totalDeps})`,
+            increment: (1 / totalDeps) * 100,
+          });
+
+          const entryPoints = await getLibraryEntryPoints(dep);
+          if (entryPoints.size === 0) {
+            continue;
+          }
+
+          logger.info(`📚 Indexing library: ${dep.name} (${entryPoints.size} entry points)`);
+          await this._indexLibrary(entryPoints);
+        }
+        await this.saveIndexToWorkspace(context);
+
+        // Log final memory usage after node_modules indexing
+        const finalMemory = logger.getPerformanceMetrics();
+        const memoryDelta = finalMemory.memoryUsage.heapUsed - initialMemory.memoryUsage.heapUsed;
+        logger.info(
+          `Node modules index completed - Memory: ${Math.round(
+            finalMemory.memoryUsage.heapUsed / 1024 / 1024
+          )}MB (Δ${memoryDelta > 0 ? "+" : ""}${Math.round(memoryDelta / 1024 / 1024)}MB)`
+        );
+
+        logger.debug(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
+      } catch (error) {
+        logger.error("[indexNodeModules] Error during node_modules indexing:", error as Error);
+      } finally {
+        logger.stopTimer(timerName);
       }
-    );
+    };
+
+    if (progress) {
+      await indexingLogic(progress);
+    } else {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Angular Auto-Import: Indexing libraries from node_modules...`,
+          cancellable: false,
+        },
+        indexingLogic
+      );
+    }
   }
 
   /**
@@ -1118,21 +1312,17 @@ export class AngularIndexer {
 
   /**
    * Indexes all NgModules in the project.
+   * @param moduleFileUris An array of module file URIs to index.
    * @internal
    */
-  private async indexProjectModules(): Promise<void> {
+  private async indexProjectModules(moduleFileUris: vscode.Uri[]): Promise<void> {
     if (!this.projectRootPath) {
       return;
     }
-    logger.debug(`[Indexer] Indexing project NgModules for ${this.projectRootPath}...`);
+    logger.debug(`[Indexer] Indexing ${moduleFileUris.length} project NgModules for ${this.projectRootPath}...`);
     this.projectModuleMap.clear();
 
-    const moduleFiles = await vscode.workspace.findFiles(
-      new vscode.RelativePattern(this.projectRootPath, "**/*.module.ts"),
-      new vscode.RelativePattern(this.projectRootPath, "**/node_modules/**")
-    );
-
-    for (const file of moduleFiles) {
+    for (const file of moduleFileUris) {
       try {
         const sourceFile = this.project.addSourceFileAtPath(file.fsPath);
         this._processProjectModuleFile(sourceFile);
@@ -1145,7 +1335,7 @@ export class AngularIndexer {
     for (const sourceFile of this.project.getSourceFiles()) {
       if (
         sourceFile.getFilePath().endsWith(".module.ts") &&
-        !moduleFiles.some((f) => f.fsPath === sourceFile.getFilePath())
+        !moduleFileUris.some((f) => f.fsPath === sourceFile.getFilePath())
       ) {
         this._processProjectModuleFile(sourceFile);
       }
@@ -1185,6 +1375,14 @@ export class AngularIndexer {
 
       const exportedIdentifiers = this._getIdentifierNamesFromArrayProp(exportsProp as PropertyAssignment);
 
+      // Store module exports in externalModuleExportsIndex for diagnostic provider
+      if (exportedIdentifiers.length > 0) {
+        this.externalModuleExportsIndex.set(moduleName, new Set(exportedIdentifiers));
+        logger.debug(
+          `[ProjectModules] Indexed module ${moduleName} with ${exportedIdentifiers.length} exports: ${exportedIdentifiers.join(", ")}`
+        );
+      }
+
       for (const componentName of exportedIdentifiers) {
         // Simple mapping, assumes component is declared in the same module if exported.
         // A more complex implementation would also check the `declarations` array.
@@ -1209,12 +1407,30 @@ export class AngularIndexer {
       return [];
     }
     const initializer = prop.getInitializer();
-    if (!initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
-      return [];
+
+    // Handle direct array literals
+    if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
+      const arr = initializer as ArrayLiteralExpression;
+      return arr.getElements().map((el) => el.getText());
     }
 
-    const arr = initializer as ArrayLiteralExpression;
-    return arr.getElements().map((el) => el.getText());
+    // Handle variable references (like EXPORTED_DECLARATIONS)
+    if (initializer?.isKind(SyntaxKind.Identifier)) {
+      const varName = initializer.getText();
+      const sourceFile = prop.getSourceFile();
+
+      // Find the variable declaration
+      const variableDeclaration = sourceFile.getVariableDeclaration(varName);
+      if (variableDeclaration) {
+        const varInitializer = variableDeclaration.getInitializer();
+        if (varInitializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
+          const arr = varInitializer as ArrayLiteralExpression;
+          return arr.getElements().map((el) => el.getText());
+        }
+      }
+    }
+
+    return [];
   }
 
   /**
@@ -1268,14 +1484,27 @@ export class AngularIndexer {
 
             if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
               const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+
+              // Create a Set to accumulate exports for this module
+              const moduleExports = new Set<string>();
+
               this._processModuleExports(
                 exportsTuple,
                 className,
                 importPath,
                 componentToModuleMap,
                 allLibraryClasses,
-                typeChecker
+                typeChecker,
+                moduleExports
               );
+
+              // Store the accumulated exports in the external modules index
+              if (moduleExports.size > 0) {
+                this.externalModuleExportsIndex.set(className, moduleExports);
+                logger.debug(
+                  `[ExternalModules] Indexed module ${className} with ${moduleExports.size} exports: ${Array.from(moduleExports).join(", ")}`
+                );
+              }
             }
           }
         }
@@ -1293,6 +1522,7 @@ export class AngularIndexer {
    * @param componentToModuleMap The map to store the component-to-module mappings.
    * @param allLibraryClasses A map of all classes in the library.
    * @param typeChecker The type checker to use.
+   * @param moduleExports Optional Set to accumulate all exports for the module.
    * @internal
    */
   private _processModuleExports(
@@ -1301,7 +1531,8 @@ export class AngularIndexer {
     importPath: string,
     componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
     allLibraryClasses: Map<string, ClassDeclaration>,
-    typeChecker: TypeChecker
+    typeChecker: TypeChecker,
+    moduleExports?: Set<string>
   ) {
     for (const element of exportsTuple.getElements()) {
       let exportedClassName: string | undefined;
@@ -1341,7 +1572,8 @@ export class AngularIndexer {
                   importPath,
                   componentToModuleMap,
                   allLibraryClasses,
-                  typeChecker
+                  typeChecker,
+                  moduleExports
                 );
               }
             }
@@ -1354,6 +1586,11 @@ export class AngularIndexer {
               moduleName: moduleName,
               importPath,
             });
+          }
+
+          // Add to module exports if Set is provided
+          if (moduleExports) {
+            moduleExports.add(exportedClassName);
           }
         }
       }
@@ -1580,75 +1817,6 @@ export class AngularIndexer {
   }
 
   /**
-   * Gets all Angular files in the project using the VS Code API.
-   * @returns An array of file paths.
-   * @internal
-   */
-  private async getAngularFilesUsingVsCode(): Promise<string[]> {
-    try {
-      const patterns = ["**/*.ts"];
-      const allFiles: string[] = [];
-      for (const pattern of patterns) {
-        const files = await vscode.workspace.findFiles(
-          new vscode.RelativePattern(this.projectRootPath, pattern),
-          new vscode.RelativePattern(this.projectRootPath, "**/node_modules/**") // Ensure exclusion is relative to workspace folder
-        );
-        allFiles.push(...files.map((file) => file.fsPath));
-      }
-      return allFiles;
-    } catch (error) {
-      logger.error(`Error finding files using VS Code API: ${error}`);
-      return this.getAngularFilesFallback(this.projectRootPath).map((relPath) =>
-        path.join(this.projectRootPath, relPath)
-      );
-    }
-  }
-
-  /**
-   * Gets all Angular files in the project using a fallback method.
-   * @param basePath The base path of the project.
-   * @returns An array of file paths.
-   * @internal
-   */
-  private getAngularFilesFallback(basePath: string): string[] {
-    // Fallback to manual file discovery (simplified, consider enhancing .gitignore handling if this is frequently used)
-    const angularFiles: string[] = [];
-    const excludedDirs = new Set([
-      "node_modules",
-      ".git",
-      "dist",
-      "build",
-      "out",
-      ".vscode",
-      ".angular",
-      "coverage",
-      "tmp",
-    ]);
-
-    const traverseDirectory = (currentDirPath: string) => {
-      try {
-        const entries = fs.readdirSync(currentDirPath, { withFileTypes: true });
-        for (const entry of entries) {
-          const fullPath = path.join(currentDirPath, entry.name);
-          if (entry.isDirectory()) {
-            if (!excludedDirs.has(entry.name)) {
-              traverseDirectory(fullPath);
-            }
-          } else if (entry.isFile() && /\.ts$/.test(entry.name)) {
-            angularFiles.push(path.relative(basePath, fullPath));
-          }
-        }
-      } catch (_err) {
-        // logger.warn(`Could not read directory ${currentDirPath}: ${err}`);
-      }
-    };
-    if (fs.existsSync(basePath) && fs.statSync(basePath).isDirectory()) {
-      traverseDirectory(basePath);
-    }
-    return angularFiles;
-  }
-
-  /**
    * Disposes the file watcher and clears the caches.
    */
   dispose() {
@@ -1658,6 +1826,7 @@ export class AngularIndexer {
     }
     this.fileCache.clear();
     this.selectorTrie.clear();
+    this.externalModuleExportsIndex.clear();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
     this.project.getSourceFiles().forEach((sf) => {
       this.project.removeSourceFile(sf);

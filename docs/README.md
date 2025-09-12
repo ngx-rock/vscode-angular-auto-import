@@ -84,6 +84,8 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 | [config](config.md) | Central export for configuration files. |
 | [config/angular-elements](config/angular-elements.md) | Configuration for standard Angular directives and pipes. |
 | [config/settings](config/settings.md) | Manages extension settings and configuration. |
+| [consts](consts.md) | - |
+| [consts/known-tags](consts/known-tags.md) | - |
 | [logger](logger.md) | - |
 | [logger/channel-transport](logger/channel-transport.md) | - |
 | [logger/config](logger/config.md) | - |
@@ -103,6 +105,8 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 | [types/tsconfig](types/tsconfig.md) | Defines types related to TypeScript configuration and path mappings. |
 | [utils](utils.md) | Central export for all utility functions. |
 | [utils/angular](utils/angular.md) | Utilities for working with Angular elements and selectors. |
+| [utils/cache](utils/cache.md) | LRUCache |
+| [utils/debounce](utils/debounce.md) | - |
 | [utils/import](utils/import.md) | Angular Auto-Import Utility Functions |
 | [utils/package-json](utils/package-json.md) | Utilities for working with `package.json` files. |
 | [utils/path](utils/path.md) | Utilities for working with file paths. |

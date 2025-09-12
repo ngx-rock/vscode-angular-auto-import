@@ -21,6 +21,7 @@ high performance and prevent crashes from invalid template syntax during typing.
 #### Implements
 
 - `CompletionItemProvider`
+- `Disposable`
 
 #### Constructors
 
@@ -28,7 +29,7 @@ high performance and prevent crashes from invalid template syntax during typing.
 
 > **new CompletionProvider**(`context`): [`CompletionProvider`](#completionprovider)
 
-Defined in: [providers/completion.ts:23](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L23)
+Defined in: [providers/completion.ts:26](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L26)
 
 ###### Parameters
 
@@ -42,17 +43,35 @@ Defined in: [providers/completion.ts:23](https://github.com/ngx-rock/vscode-angu
 
 #### Properties
 
-| Property | Modifier | Type | Defined in |
-| ------ | ------ | ------ | ------ |
-| <a id="context"></a> `context` | `private` | [`ProviderContext`](../providers.md#providercontext) | [providers/completion.ts:23](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L23) |
+| Property | Modifier | Type | Default value | Defined in |
+| ------ | ------ | ------ | ------ | ------ |
+| <a id="context"></a> `context` | `private` | [`ProviderContext`](../providers.md#providercontext) | `undefined` | [providers/completion.ts:26](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L26) |
+| <a id="disposables"></a> `disposables` | `private` | `Disposable`[] | `[]` | [providers/completion.ts:24](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L24) |
+| <a id="standalonecache"></a> `standaloneCache` | `private` | [`LruCache`](../utils/cache.md#lrucache)\<`string`, `boolean`\> | `undefined` | [providers/completion.ts:23](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L23) |
 
 #### Methods
+
+##### dispose()
+
+> **dispose**(): `void`
+
+Defined in: [providers/completion.ts:34](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L34)
+
+Dispose this object.
+
+###### Returns
+
+`void`
+
+###### Implementation of
+
+`vscode.Disposable.dispose`
 
 ##### getComponentSourceFile()
 
 > `private` **getComponentSourceFile**(`document`): `Promise`\<`undefined` \| `SourceFile`\>
 
-Defined in: [providers/completion.ts:443](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L443)
+Defined in: [providers/completion.ts:484](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L484)
 
 ###### Parameters
 
@@ -68,7 +87,7 @@ Defined in: [providers/completion.ts:443](https://github.com/ngx-rock/vscode-ang
 
 > `private` **getProjectContextForDocument**(`document`): `undefined` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
 
-Defined in: [providers/completion.ts:509](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L509)
+Defined in: [providers/completion.ts:548](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L548)
 
 **`Internal`**
 
@@ -90,7 +109,7 @@ The project context or `undefined` if not found.
 
 > `private` **getSourceFile**(`document`): `undefined` \| `SourceFile`
 
-Defined in: [providers/completion.ts:462](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L462)
+Defined in: [providers/completion.ts:503](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L503)
 
 ###### Parameters
 
@@ -106,7 +125,7 @@ Defined in: [providers/completion.ts:462](https://github.com/ngx-rock/vscode-ang
 
 > `private` **getTsDocument**(`document`, `componentPath`): `Promise`\<`null` \| `TextDocument`\>
 
-Defined in: [providers/completion.ts:486](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L486)
+Defined in: [providers/completion.ts:525](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L525)
 
 ###### Parameters
 
@@ -119,11 +138,27 @@ Defined in: [providers/completion.ts:486](https://github.com/ngx-rock/vscode-ang
 
 `Promise`\<`null` \| `TextDocument`\>
 
+##### isStandaloneComponent()
+
+> `private` **isStandaloneComponent**(`document`): `Promise`\<`boolean`\>
+
+Defined in: [providers/completion.ts:455](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L455)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `document` | `TextDocument` |
+
+###### Returns
+
+`Promise`\<`boolean`\>
+
 ##### provideCompletionItems()
 
 > **provideCompletionItems**(`document`, `position`, `_token`, `_context`): `Promise`\<`CompletionList`\<`CompletionItem`\>\>
 
-Defined in: [providers/completion.ts:33](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L33)
+Defined in: [providers/completion.ts:48](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L48)
 
 Provides completion items for the given document and position.
 
