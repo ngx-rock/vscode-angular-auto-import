@@ -382,7 +382,18 @@ export class AngularIndexer {
     try {
       let sourceFile = this.project.getSourceFile(filePath);
       if (sourceFile) {
-        sourceFile.replaceWithText(content); // Update existing
+        try {
+          // Check if the sourceFile is still valid before manipulating it
+          sourceFile.getFilePath(); // This will throw if the node is forgotten
+          sourceFile.replaceWithText(content); // Update existing
+        } catch (_nodeError) {
+          // If the sourceFile node is forgotten, remove it and create a new one
+          logger.warn(`SourceFile node forgotten for ${filePath}, recreating...`);
+          this.project.removeSourceFile(sourceFile);
+          sourceFile = this.project.createSourceFile(filePath, content, {
+            overwrite: true,
+          });
+        }
       } else {
         sourceFile = this.project.createSourceFile(filePath, content, {
           overwrite: true,
@@ -393,9 +404,15 @@ export class AngularIndexer {
       const classes = sourceFile.getClasses();
 
       for (const classDeclaration of classes) {
-        const elementInfo = this.extractAngularElementInfo(classDeclaration, filePath, content); // content passed for hash
-        if (elementInfo) {
-          elements.push(elementInfo);
+        try {
+          // Add try-catch around each class processing to handle forgotten nodes
+          const elementInfo = this.extractAngularElementInfo(classDeclaration, filePath, content); // content passed for hash
+          if (elementInfo) {
+            elements.push(elementInfo);
+          }
+        } catch (classError) {
+          logger.warn(`Error processing class in ${filePath}: ${(classError as Error).message}`);
+          // Continue with other classes even if one fails
         }
       }
 
@@ -734,9 +751,16 @@ export class AngularIndexer {
       } else {
         // Parsing failed or not an Angular element - remove from file cache and trie
         this.fileCache.delete(filePath);
-        const sourceFile = this.project.getSourceFile(filePath);
-        if (sourceFile) {
-          this.project.removeSourceFile(sourceFile); // or sourceFile.forget()
+        try {
+          const sourceFile = this.project.getSourceFile(filePath);
+          if (sourceFile) {
+            // Check if the sourceFile is still valid before removing
+            sourceFile.getFilePath(); // This will throw if the node is forgotten
+            this.project.removeSourceFile(sourceFile); // or sourceFile.forget()
+          }
+        } catch (_nodeError) {
+          // If the sourceFile node is already forgotten, log it but don't fail
+          logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
         }
         logger.info(`No Angular elements found in ${filePath} for ${this.projectRootPath}`);
       }
@@ -766,10 +790,17 @@ export class AngularIndexer {
       this.fileCache.delete(filePath);
     }
 
-    // Remove from ts-morph project
-    const sourceFile = this.project.getSourceFile(filePath);
-    if (sourceFile) {
-      this.project.removeSourceFile(sourceFile);
+    // Remove from ts-morph project with error handling
+    try {
+      const sourceFile = this.project.getSourceFile(filePath);
+      if (sourceFile) {
+        // Check if the sourceFile is still valid before removing
+        sourceFile.getFilePath(); // This will throw if the node is forgotten
+        this.project.removeSourceFile(sourceFile);
+      }
+    } catch (_nodeError) {
+      // If the sourceFile node is already forgotten, log it but don't fail
+      logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
     }
 
     if (fileInfo) {
@@ -808,7 +839,14 @@ export class AngularIndexer {
 
       // Clear existing ts-morph project files before full scan to avoid stale data
       this.project.getSourceFiles().forEach((sf) => {
-        this.project.removeSourceFile(sf);
+        try {
+          // Check if the sourceFile is still valid before removing
+          sf.getFilePath(); // This will throw if the node is forgotten
+          this.project.removeSourceFile(sf);
+        } catch (_nodeError) {
+          // If the sourceFile node is already forgotten, skip it
+          logger.debug(`SourceFile node already forgotten for ${sf.getBaseName()}, skipping removal`);
+        }
       });
       this.fileCache.clear();
       this.selectorTrie.clear();
@@ -1133,7 +1171,14 @@ export class AngularIndexer {
       this.projectModuleMap.clear();
       this.externalModuleExportsIndex.clear();
       this.project.getSourceFiles().forEach((sf) => {
-        this.project.removeSourceFile(sf);
+        try {
+          // Check if the sourceFile is still valid before removing
+          sf.getFilePath(); // This will throw if the node is forgotten
+          this.project.removeSourceFile(sf);
+        } catch (_nodeError) {
+          // If the sourceFile node is already forgotten, skip it
+          logger.debug(`SourceFile node already forgotten during clearCache, skipping removal`);
+        }
       });
 
       // Clear persisted state
@@ -1262,7 +1307,13 @@ export class AngularIndexer {
       try {
         const sourceFile = this.project.addSourceFileAtPathIfExists(filePath);
         if (sourceFile) {
-          libraryFiles.push({ importPath, sourceFile });
+          try {
+            // Check if the sourceFile is still valid
+            sourceFile.getFilePath(); // This will throw if the node is forgotten
+            libraryFiles.push({ importPath, sourceFile });
+          } catch (_nodeError) {
+            logger.warn(`[Indexer] SourceFile node forgotten for library file ${filePath}, skipping`);
+          }
         }
       } catch (error) {
         logger.warn(`[Indexer] Could not process library file ${filePath}: ${(error as Error).message}`);
@@ -1277,23 +1328,30 @@ export class AngularIndexer {
     const allLibraryClasses = new Map<string, ClassDeclaration>();
     // Pass 0: Collect all class declarations from all files in the library for easy lookup.
     for (const { sourceFile } of libraryFiles) {
-      const exportedDeclarations = sourceFile.getExportedDeclarations();
-      for (const declarations of exportedDeclarations.values()) {
-        for (const declaration of declarations) {
-          if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
-            const classDecl = declaration as ClassDeclaration;
-            const name = classDecl.getName();
-            if (name && !allLibraryClasses.has(name)) {
-              allLibraryClasses.set(name, classDecl);
+      try {
+        // Check if the sourceFile is still valid
+        sourceFile.getFilePath(); // This will throw if the node is forgotten
+
+        const exportedDeclarations = sourceFile.getExportedDeclarations();
+        for (const declarations of exportedDeclarations.values()) {
+          for (const declaration of declarations) {
+            if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
+              const classDecl = declaration as ClassDeclaration;
+              const name = classDecl.getName();
+              if (name && !allLibraryClasses.has(name)) {
+                allLibraryClasses.set(name, classDecl);
+              }
             }
           }
         }
-      }
-      for (const classDecl of sourceFile.getClasses()) {
-        const name = classDecl.getName();
-        if (name && !allLibraryClasses.has(name)) {
-          allLibraryClasses.set(name, classDecl);
+        for (const classDecl of sourceFile.getClasses()) {
+          const name = classDecl.getName();
+          if (name && !allLibraryClasses.has(name)) {
+            allLibraryClasses.set(name, classDecl);
+          }
         }
+      } catch (_nodeError) {
+        logger.warn(`[Indexer] SourceFile node forgotten during class collection, skipping file`);
       }
     }
 
@@ -1301,12 +1359,24 @@ export class AngularIndexer {
 
     // Pass 1: Build a complete map of all modules and their exports for the entire library
     for (const { importPath, sourceFile } of libraryFiles) {
-      this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap, allLibraryClasses, typeChecker);
+      try {
+        // Check if the sourceFile is still valid
+        sourceFile.getFilePath(); // This will throw if the node is forgotten
+        this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap, allLibraryClasses, typeChecker);
+      } catch (_nodeError) {
+        logger.warn(`[Indexer] SourceFile node forgotten during module mapping for ${importPath}, skipping`);
+      }
     }
 
     // Pass 2: Index all components/directives/pipes using the complete map
     for (const { importPath, sourceFile } of libraryFiles) {
-      await this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap);
+      try {
+        // Check if the sourceFile is still valid
+        sourceFile.getFilePath(); // This will throw if the node is forgotten
+        await this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap);
+      } catch (_nodeError) {
+        logger.warn(`[Indexer] SourceFile node forgotten during declarations indexing for ${importPath}, skipping`);
+      }
     }
   }
 
@@ -1325,6 +1395,8 @@ export class AngularIndexer {
     for (const file of moduleFileUris) {
       try {
         const sourceFile = this.project.addSourceFileAtPath(file.fsPath);
+        // Check if the sourceFile is still valid before processing
+        sourceFile.getFilePath(); // This will throw if the node is forgotten
         this._processProjectModuleFile(sourceFile);
       } catch (error) {
         logger.warn(`[Indexer] Could not process project module file ${file.fsPath}: ${(error as Error).message}`);
@@ -1333,11 +1405,14 @@ export class AngularIndexer {
 
     // Process already opened files that might be modules
     for (const sourceFile of this.project.getSourceFiles()) {
-      if (
-        sourceFile.getFilePath().endsWith(".module.ts") &&
-        !moduleFileUris.some((f) => f.fsPath === sourceFile.getFilePath())
-      ) {
-        this._processProjectModuleFile(sourceFile);
+      try {
+        // Check if the sourceFile is still valid
+        const filePath = sourceFile.getFilePath(); // This will throw if the node is forgotten
+        if (filePath.endsWith(".module.ts") && !moduleFileUris.some((f) => f.fsPath === filePath)) {
+          this._processProjectModuleFile(sourceFile);
+        }
+      } catch (_nodeError) {
+        logger.warn(`[Indexer] SourceFile node forgotten during project module processing, skipping`);
       }
     }
     logger.debug(`[Indexer] Found ${this.projectModuleMap.size} component-to-module mappings in project.`);
@@ -1349,6 +1424,14 @@ export class AngularIndexer {
    * @internal
    */
   private _processProjectModuleFile(sourceFile: SourceFile) {
+    try {
+      // Check if the sourceFile is still valid
+      sourceFile.getFilePath(); // This will throw if the node is forgotten
+    } catch (_nodeError) {
+      logger.warn(`[Indexer] SourceFile node forgotten in _processProjectModuleFile, skipping`);
+      return;
+    }
+
     const classDeclarations = sourceFile.getClasses();
     for (const classDecl of classDeclarations) {
       const ngModuleDecorator = classDecl.getDecorator("NgModule");
@@ -1510,7 +1593,11 @@ export class AngularIndexer {
         }
       }
     } catch (error) {
-      logger.error(`Error building module map for file ${sourceFile.getFilePath()}:`, error as Error);
+      try {
+        logger.error(`Error building module map for file ${sourceFile.getFilePath()}: ${(error as Error).message}`);
+      } catch (_nodeError) {
+        logger.error(`Error building module map for forgotten SourceFile node: ${(error as Error).message}`);
+      }
     }
   }
 
@@ -1795,7 +1882,11 @@ export class AngularIndexer {
         }
       }
     } catch (error) {
-      logger.error(`Error indexing declarations in file ${sourceFile.getFilePath()}:`, error as Error);
+      try {
+        logger.error(`Error indexing declarations in file ${sourceFile.getFilePath()}: ${(error as Error).message}`);
+      } catch (_nodeError) {
+        logger.error(`Error indexing declarations in forgotten SourceFile node: ${(error as Error).message}`);
+      }
     }
   }
 
@@ -1829,7 +1920,14 @@ export class AngularIndexer {
     this.externalModuleExportsIndex.clear();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
     this.project.getSourceFiles().forEach((sf) => {
-      this.project.removeSourceFile(sf);
+      try {
+        // Check if the sourceFile is still valid before removing
+        sf.getFilePath(); // This will throw if the node is forgotten
+        this.project.removeSourceFile(sf);
+      } catch (_nodeError) {
+        // If the sourceFile node is already forgotten, skip it
+        logger.debug(`SourceFile node already forgotten during dispose, skipping removal`);
+      }
     });
   }
 }
