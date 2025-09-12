@@ -10,7 +10,6 @@ import type { ExtensionConfig } from "../config";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { ProcessedTsConfig } from "../types";
-import { setGlobalDiagnosticProvider } from "../utils";
 import { CompletionProvider } from "./completion";
 import { DiagnosticProvider } from "./diagnostics";
 import { QuickfixImportProvider } from "./quickfix";
@@ -81,13 +80,13 @@ export function registerProviders(context: vscode.ExtensionContext, providerCont
     diagnosticProvider.activate();
 
     // Set global diagnostic provider for import utils
-    setGlobalDiagnosticProvider(diagnosticProvider);
+    // setGlobalDiagnosticProvider(diagnosticProvider); // This line is removed
 
     // Deactivate when the extension is deactivated
     context.subscriptions.push({
       dispose: () => {
         diagnosticProvider.deactivate();
-        setGlobalDiagnosticProvider(null);
+        // setGlobalDiagnosticProvider(null); // This line is removed
       },
     });
   }

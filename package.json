@@ -68,6 +68,12 @@
         "title": "Show Performance Metrics",
         "category": "Angular Auto Import",
         "icon": "$(graph)"
+      },
+      {
+        "command": "angular-auto-import.fix-all",
+        "title": "Angular Auto Import: Fix all missing imports in current file",
+        "category": "Angular Auto Import",
+        "icon": "$(check-all)"
       }
     ],
     "configuration": {

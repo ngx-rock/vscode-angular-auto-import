@@ -45,17 +45,7 @@ import { switchFileType } from "./path";
  * Global reference to diagnostic provider for updating diagnostics.
  * @internal
  */
-let globalDiagnosticProvider: import("../providers/diagnostics").DiagnosticProvider | null = null;
-
-/**
- * Sets the global diagnostic provider instance.
- * @param provider The diagnostic provider instance.
- */
-export function setGlobalDiagnosticProvider(
-  provider: import("../providers/diagnostics").DiagnosticProvider | null
-): void {
-  globalDiagnosticProvider = provider;
-}
+const globalDiagnosticProvider: import("../providers/diagnostics").DiagnosticProvider | null = null;
 
 /**
  * Gets the active VSCode document for a given file path.
@@ -68,18 +58,18 @@ function getActiveDocument(filePath: string): vscode.TextDocument | undefined {
 }
 
 /**
- * Imports an Angular element into a component file. This function handles adding the import statement
- * and updating the `@Component` decorator's `imports` array.
+ * Imports multiple Angular elements into a component file. This function handles adding the import statements
+ * and updating the `@Component` decorator's `imports` array for all elements in one operation.
  *
- * @param element The Angular element to import.
+ * @param elements An array of Angular elements to import.
  * @param componentFilePathAbs The absolute path to the component file.
  * @param projectRootPath The root path of the project.
  * @param indexerProject The ts-morph project instance.
  * @param _tsConfig The processed tsconfig.json.
  * @returns A promise that resolves to `true` if the import was successful, `false` otherwise.
  */
-export async function importElementToFile(
-  element: AngularElementData,
+export async function importElementsToFile(
+  elements: AngularElementData[],
   componentFilePathAbs: string,
   projectRootPath: string,
   indexerProject: import("ts-morph").Project,
@@ -87,114 +77,77 @@ export async function importElementToFile(
 ): Promise<boolean> {
   try {
     if (!indexerProject) {
-      logger.error("ts-morph Project instance is required for importElementToFile");
+      logger.error("ts-morph Project instance is required for importElementsToFile");
       return false;
     }
 
-    // Get active VSCode document if available
     const activeDocument = getActiveDocument(componentFilePathAbs);
     let currentContent: string;
 
     if (activeDocument) {
-      // Use content from active VSCode document (includes unsaved changes)
       currentContent = activeDocument.getText();
-      // Using content from active VSCode document
     } else {
-      // Fallback to reading from disk
       currentContent = fs.readFileSync(componentFilePathAbs, "utf-8");
-      // Using content from disk
     }
 
-    // Ensure ts-morph SourceFile is synchronized with current content
     let sourceFile = indexerProject.getSourceFile(componentFilePathAbs);
     if (sourceFile) {
       if (sourceFile.getFullText() !== currentContent) {
         sourceFile.replaceWithText(currentContent);
-        // Synchronized ts-morph SourceFile
       }
     } else {
       sourceFile = indexerProject.createSourceFile(componentFilePathAbs, currentContent, { overwrite: true });
-      // Created new ts-morph SourceFile
     }
 
-    // Determine if the element is from an external package or local project file.
-    let importPathString: string;
-    if (element.isExternal) {
-      // Use the path directly as it's a module specifier (e.g., '@angular/core').
-      importPathString = element.path;
-    } else {
-      // For project elements, resolve the path using tsconfig aliases or relative paths.
-      const absoluteTargetModulePath = path.join(projectRootPath, element.path);
-      const absoluteTargetModulePathNoExt = switchFileType(absoluteTargetModulePath, "");
+    let modified = false;
 
-      importPathString = await TsConfigHelper.resolveImportPath(
-        absoluteTargetModulePathNoExt,
-        componentFilePathAbs,
-        projectRootPath
-      );
-    }
+    for (const element of elements) {
+      const importPathString = await resolveImportPathForElement(element, componentFilePathAbs, projectRootPath);
 
-    logger.debug(`Final import path for ${element.type} '${element.name}': '${importPathString}'`);
+      logger.debug(`Final import path for ${element.type} '${element.name}': '${importPathString}'`);
 
-    let importStatementModified = false;
-    let annotationModified = false;
-
-    // Check if already imported from the same module
-    const importDeclaration = sourceFile.getImportDeclaration(
-      (d) =>
-        d.getModuleSpecifierValue() === importPathString &&
-        d.getNamedImports().some((ni) => ni.getName() === element.name)
-    );
-
-    if (!importDeclaration) {
-      // Check if there's an existing import from the same module path
-      const existingImportFromSameModule = sourceFile.getImportDeclaration(
-        (d) => d.getModuleSpecifierValue() === importPathString
+      const importDeclaration = sourceFile.getImportDeclaration(
+        (d) =>
+          d.getModuleSpecifierValue() === importPathString &&
+          d.getNamedImports().some((ni) => ni.getName() === element.name)
       );
 
-      if (existingImportFromSameModule) {
-        // Add to existing import from the same module
-        const namedImports = existingImportFromSameModule.getNamedImports();
-        const alreadyImported = namedImports.some((ni) => ni.getName() === element.name);
+      if (!importDeclaration) {
+        const existingImportFromSameModule = sourceFile.getImportDeclaration(
+          (d) => d.getModuleSpecifierValue() === importPathString
+        );
 
-        if (!alreadyImported) {
-          existingImportFromSameModule.addNamedImport(element.name);
-          importStatementModified = true;
-          // Added to existing import
+        if (existingImportFromSameModule) {
+          const namedImports = existingImportFromSameModule.getNamedImports();
+          const alreadyImported = namedImports.some((ni) => ni.getName() === element.name);
+          if (!alreadyImported) {
+            existingImportFromSameModule.addNamedImport(element.name);
+            modified = true;
+          }
         } else {
-          // Already imported
-        }
-      } else {
-        // Check if imported with the same name but different path
-        const existingImportWithName = sourceFile
-          .getImportDeclarations()
-          .find((d) => d.getNamedImports().some((ni) => ni.getName() === element.name));
+          const existingImportWithName = sourceFile
+            .getImportDeclarations()
+            .find((d) => d.getNamedImports().some((ni) => ni.getName() === element.name));
 
-        if (existingImportWithName) {
-          // Already imported from different path
-        } else {
-          // Add new import declaration
-          sourceFile.addImportDeclaration({
-            namedImports: [{ name: element.name }],
-            moduleSpecifier: importPathString,
-          });
-          importStatementModified = true;
-          logger.info(`Added new import statement for ${element.name}`);
+          if (!existingImportWithName) {
+            sourceFile.addImportDeclaration({
+              namedImports: [{ name: element.name }],
+              moduleSpecifier: importPathString,
+            });
+            modified = true;
+          }
         }
       }
-    } else {
-      // Already imported correctly
+
+      if (addImportToAnnotationTsMorph(element.exportingModuleName || element.name, sourceFile)) {
+        modified = true;
+      }
     }
 
-    // Add to @Component imports array
-    // Adding to @Component imports array
-    annotationModified = addImportToAnnotationTsMorph(element.exportingModuleName || element.name, sourceFile);
-
-    if (importStatementModified || annotationModified) {
+    if (modified) {
       const newContent = sourceFile.getFullText();
 
       if (activeDocument) {
-        // Use WorkspaceEdit to apply changes to active document
         const edit = new vscode.WorkspaceEdit();
         const fullRange = new vscode.Range(
           activeDocument.positionAt(0),
@@ -204,44 +157,55 @@ export async function importElementToFile(
 
         const success = await vscode.workspace.applyEdit(edit);
         if (success) {
-          // Since the edit was applied, the document is dirty.
-          // We must save it to trigger other extensions and update state.
           await activeDocument.save();
-          logger.info(`Applied edits and saved document: ${path.basename(componentFilePathAbs)}`);
         } else {
           logger.error(`Failed to apply WorkspaceEdit to ${path.basename(componentFilePathAbs)}`);
           return false;
         }
       } else {
-        // Fallback to direct file write if document is not active
         fs.writeFileSync(componentFilePathAbs, newContent);
-        logger.info(`Successfully updated file ${path.basename(componentFilePathAbs)} for ${element.name}`);
       }
 
-      // Force-refresh diagnostics to prevent race conditions with other providers.
       if (globalDiagnosticProvider) {
-        // Forcing diagnostics update
         await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(componentFilePathAbs);
-
         const htmlFilePath = switchFileType(componentFilePathAbs, ".html");
         if (fs.existsSync(htmlFilePath)) {
           await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(htmlFilePath);
         }
       }
-
-      logger.info(`Successfully updated document ${path.basename(componentFilePathAbs)} for ${element.name}`);
-
-      return true;
-    } else {
-      // No changes needed - already imported
       return true;
     }
+    // No changes needed
+    return true;
   } catch (e) {
     const error = e instanceof Error ? e : new Error(String(e));
-    logger.error("Error importing element:", error);
-    vscode.window.showErrorMessage(`Error importing ${element.name}: ${error.message}`);
+    logger.error("Error importing elements:", error);
+    vscode.window.showErrorMessage(`Error importing elements: ${error.message}`);
     return false;
   }
+}
+
+/**
+ * Resolves the import path for a given Angular element.
+ * @param element The Angular element.
+ * @param componentFilePathAbs The absolute path of the component file where the import will be added.
+ * @param projectRootPath The project's root path.
+ * @returns The resolved import path string.
+ * @internal
+ */
+async function resolveImportPathForElement(
+  element: AngularElementData,
+  componentFilePathAbs: string,
+  projectRootPath: string
+): Promise<string> {
+  if (element.isExternal) {
+    return element.path;
+  }
+  // For project elements, resolve the path using tsconfig aliases or relative paths.
+  const absoluteTargetModulePath = path.join(projectRootPath, element.path);
+  const absoluteTargetModulePathNoExt = switchFileType(absoluteTargetModulePath, "");
+
+  return TsConfigHelper.resolveImportPath(absoluteTargetModulePathNoExt, componentFilePathAbs, projectRootPath);
 }
 
 /**

@@ -13,7 +13,8 @@ import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
-import { importElementToFile, switchFileType } from "../utils";
+import { importElementsToFile, switchFileType } from "../utils";
+import { getAngularElementAsync } from "../utils/angular";
 
 /**
  * Context object containing shared state and dependencies for extension commands.
@@ -271,6 +272,57 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
     }
   });
   context.subscriptions.push(showMetricsCommand);
+
+  // Fix all diagnostics command
+  const fixAllCommand = vscode.commands.registerCommand("angular-auto-import.fix-all", async () => {
+    logger.info("Fix all command invoked by user");
+    const activeEditor = vscode.window.activeTextEditor;
+    if (!activeEditor) {
+      vscode.window.showInformationMessage("No active editor to fix diagnostics for.");
+      return;
+    }
+
+    const document = activeEditor.document;
+    const diagnostics = vscode.languages.getDiagnostics(document.uri).filter((d) => d.source === "angular-auto-import");
+
+    if (diagnostics.length === 0) {
+      vscode.window.showInformationMessage("No auto-import diagnostics to fix.");
+      return;
+    }
+
+    const projCtx = getProjectContextForDocument(document, commandContext);
+    if (!projCtx) {
+      vscode.window.showErrorMessage("Could not determine project context for the active file.");
+      return;
+    }
+    const { indexer, projectRootPath, tsConfig } = projCtx;
+
+    const elementsToImport = new Map<string, AngularElementData>();
+
+    for (const diagnostic of diagnostics) {
+      if (typeof diagnostic.code !== "string" || !diagnostic.code.includes(":")) {
+        continue;
+      }
+
+      const diagnosticCodeParts = (diagnostic.code as string).split(":");
+      const selectorToSearch = diagnosticCodeParts[1];
+
+      if (selectorToSearch) {
+        const elementData = await getAngularElementAsync(selectorToSearch, indexer);
+        if (elementData && !elementsToImport.has(elementData.name)) {
+          elementsToImport.set(elementData.name, elementData);
+        }
+      }
+    }
+
+    if (elementsToImport.size === 0) {
+      vscode.window.showInformationMessage("Could not resolve any elements to import.");
+      return;
+    }
+
+    await importElementsCommandLogic(Array.from(elementsToImport.values()), projectRootPath, tsConfig, indexer);
+  });
+  context.subscriptions.push(fixAllCommand);
 }
 
 /**
@@ -460,6 +512,65 @@ function getProjectContextForDocument(
 }
 
 /**
+ * Executes the core logic for importing one or more Angular elements into the current file.
+ *
+ * @param elements - An array of Angular elements to import.
+ * @param projectRootPath - Absolute path to the project root.
+ * @param tsConfig - Parsed TypeScript configuration for path resolution.
+ * @param indexer - Angular indexer containing the ts-morph project instance.
+ * @returns Promise that resolves to true if the import was successful, false otherwise.
+ */
+async function importElementsCommandLogic(
+  elements: AngularElementData[],
+  projectRootPath: string,
+  tsConfig: ProcessedTsConfig | null,
+  indexer: AngularIndexer
+): Promise<boolean> {
+  const activeEditor = vscode.window.activeTextEditor;
+  if (!activeEditor) {
+    vscode.window.showErrorMessage("No active file found.");
+    return false;
+  }
+  const currentFileAbs = activeEditor.document.fileName;
+
+  let activeComponentFileAbs = currentFileAbs;
+  if (currentFileAbs.endsWith(".html")) {
+    activeComponentFileAbs = switchFileType(currentFileAbs, ".ts");
+  }
+
+  if (!fs.existsSync(activeComponentFileAbs)) {
+    vscode.window.showErrorMessage(
+      `Component file not found for ${path.basename(currentFileAbs)}. Expected ${path.basename(
+        activeComponentFileAbs
+      )} or current file is not a .ts file.`
+    );
+    return false;
+  }
+
+  const success = await importElementsToFile(
+    elements,
+    activeComponentFileAbs,
+    projectRootPath,
+    indexer.project, // ts-morph Project instance
+    tsConfig
+  );
+
+  if (success) {
+    if (elements.length === 1) {
+      const elementData = elements[0];
+      vscode.window.showInformationMessage(
+        `${elementData.type} '${elementData.name}' processed for ${path.basename(activeComponentFileAbs)}.`
+      );
+    } else {
+      vscode.window.showInformationMessage(
+        `Successfully processed ${elements.length} elements for ${path.basename(activeComponentFileAbs)}.`
+      );
+    }
+  }
+  return success;
+}
+
+/**
  * Executes the core logic for importing an Angular element into the current file.
  *
  * This function handles the complete import workflow:
@@ -501,40 +612,5 @@ async function importElementCommandLogic(
     );
     return false;
   }
-
-  const activeEditor = vscode.window.activeTextEditor;
-  if (!activeEditor) {
-    vscode.window.showErrorMessage("No active file found.");
-    return false;
-  }
-  const currentFileAbs = activeEditor.document.fileName;
-
-  let activeComponentFileAbs = currentFileAbs;
-  if (currentFileAbs.endsWith(".html")) {
-    activeComponentFileAbs = switchFileType(currentFileAbs, ".ts");
-  }
-
-  if (!fs.existsSync(activeComponentFileAbs)) {
-    vscode.window.showErrorMessage(
-      `Component file not found for ${path.basename(currentFileAbs)}. Expected ${path.basename(
-        activeComponentFileAbs
-      )} or current file is not a .ts file.`
-    );
-    return false;
-  }
-
-  const success = await importElementToFile(
-    elementData,
-    activeComponentFileAbs,
-    projectRootPath,
-    indexer.project, // ts-morph Project instance
-    tsConfig
-  );
-
-  if (success) {
-    vscode.window.showInformationMessage(
-      `${elementData.type} '${elementData.name}' processed for ${path.basename(activeComponentFileAbs)}.`
-    );
-  }
-  return success;
+  return importElementsCommandLogic([elementData], projectRootPath, tsConfig, indexer);
 }
