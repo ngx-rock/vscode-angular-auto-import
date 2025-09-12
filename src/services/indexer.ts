@@ -672,9 +672,7 @@ export class AngularIndexer {
       }
 
       // If the file is a module, re-index project modules.
-      if (filePath.endsWith(".module.ts")) {
-        await this.indexProjectModules();
-      }
+      // This is now handled centrally in generateFullIndex to avoid redundant file searches.
 
       // Before parsing, remove all existing selectors from this file to ensure clean update
       if (cachedFile) {
@@ -845,25 +843,33 @@ export class AngularIndexer {
       const pkg = await findAngularDependencies(this.projectRootPath);
       await this._indexNodeModulesFromUris(nodeModulesFiles, pkg, context);
 
-      // await this.indexProjectModules();
-      // const angularFiles = await this.getAngularFilesUsingVsCode();
+      progress?.report({ message: "Filtering project files..." });
+      const candidateFiles = await this._filterRelevantFiles(projectTsFiles);
+
+      const moduleFiles = candidateFiles.filter((uri) => uri.fsPath.endsWith(".module.ts"));
+      const componentFiles = candidateFiles.filter((uri) => !uri.fsPath.endsWith(".module.ts"));
+
       logger.info(
-        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${projectTsFiles.length} Angular files.`
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Found ${
+          candidateFiles.length
+        } potential Angular files (${moduleFiles.length} modules, ${componentFiles.length} components/directives/pipes).`
       );
 
+      progress?.report({ message: "Indexing project modules..." });
+      await this.indexProjectModules(moduleFiles);
+
+      progress?.report({ message: "Indexing project components..." });
       const batchSize = 20; // Process in batches
-      for (let i = 0; i < projectTsFiles.length; i += batchSize) {
-        const batch = projectTsFiles.slice(i, i + batchSize);
+      for (let i = 0; i < componentFiles.length; i += batchSize) {
+        const batch = componentFiles.slice(i, i + batchSize);
         // Sequentially process files in a batch to avoid overwhelming ts-morph or fs
         for (const file of batch) {
           await this.updateFileIndex(file.fsPath, context);
         }
-        // const batchTasks = batch.map(file => this.updateFileIndex(file, context));
-        // await Promise.all(batchTasks); // This could be too concurrent for ts-morph project modifications
         logger.info(
-          `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed batch ${
+          `AngularIndexer (${path.basename(this.projectRootPath)}): Indexed component batch ${
             Math.floor(i / batchSize) + 1
-          }/${Math.ceil(projectTsFiles.length / batchSize)}`
+          }/${Math.ceil(componentFiles.length / batchSize)}`
         );
       }
 
@@ -924,6 +930,30 @@ export class AngularIndexer {
     }
 
     logger.stopTimer(timerName);
+  }
+
+  /**
+   * Quickly filters a list of files to find ones that likely contain Angular declarations.
+   * @param uris An array of file URIs to filter.
+   * @returns A promise that resolves to a filtered array of file URIs.
+   * @internal
+   */
+  private async _filterRelevantFiles(uris: vscode.Uri[]): Promise<vscode.Uri[]> {
+    const angularDecoratorRegex = /@(Component|Directive|Pipe|NgModule)\s*\(/;
+    const promises = uris.map(async (uri) => {
+      try {
+        const content = await vscode.workspace.fs.readFile(uri);
+        if (angularDecoratorRegex.test(content.toString())) {
+          return uri;
+        }
+      } catch (error) {
+        logger.error(`Could not read file ${uri.fsPath} during filtering:`, error as Error);
+      }
+      return null;
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((uri): uri is vscode.Uri => uri !== null);
   }
 
   /**
@@ -1270,21 +1300,17 @@ export class AngularIndexer {
 
   /**
    * Indexes all NgModules in the project.
+   * @param moduleFileUris An array of module file URIs to index.
    * @internal
    */
-  private async indexProjectModules(): Promise<void> {
+  private async indexProjectModules(moduleFileUris: vscode.Uri[]): Promise<void> {
     if (!this.projectRootPath) {
       return;
     }
-    logger.debug(`[Indexer] Indexing project NgModules for ${this.projectRootPath}...`);
+    logger.debug(`[Indexer] Indexing ${moduleFileUris.length} project NgModules for ${this.projectRootPath}...`);
     this.projectModuleMap.clear();
 
-    const moduleFiles = await vscode.workspace.findFiles(
-      new vscode.RelativePattern(this.projectRootPath, "**/*.module.ts"),
-      new vscode.RelativePattern(this.projectRootPath, "**/node_modules/**")
-    );
-
-    for (const file of moduleFiles) {
+    for (const file of moduleFileUris) {
       try {
         const sourceFile = this.project.addSourceFileAtPath(file.fsPath);
         this._processProjectModuleFile(sourceFile);
@@ -1297,7 +1323,7 @@ export class AngularIndexer {
     for (const sourceFile of this.project.getSourceFiles()) {
       if (
         sourceFile.getFilePath().endsWith(".module.ts") &&
-        !moduleFiles.some((f) => f.fsPath === sourceFile.getFilePath())
+        !moduleFileUris.some((f) => f.fsPath === sourceFile.getFilePath())
       ) {
         this._processProjectModuleFile(sourceFile);
       }
