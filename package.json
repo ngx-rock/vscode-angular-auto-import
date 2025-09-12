@@ -79,7 +79,7 @@
             "null"
           ],
           "default": null,
-          "description": "Optional. Absolute path to the Angular project root. If not set, uses open workspace folders. Ignored if workspace folders are open."
+          "description": "Optional. Absolute path to the Angular project root. If set, overrides workspace folders. If not set, uses open workspace folders."
         },
         "angular-auto-import.index.refreshInterval": {
           "type": "number",

@@ -183,8 +183,8 @@ export function deactivate(): void {
  * Determines the project root directories for Angular Auto-Import to operate on.
  *
  * The function follows this priority order:
- * 1. Uses workspace folders if available (ignores projectPath setting)
- * 2. Falls back to configured projectPath setting if no workspace folders
+ * 1. Uses configured projectPath setting if provided and valid (overrides workspace folders)
+ * 2. Falls back to workspace folders if no projectPath configured
  * 3. Returns empty array if neither is available or valid
  *
  * @returns Promise resolving to array of absolute project root paths
@@ -194,25 +194,33 @@ export function deactivate(): void {
  * ```typescript
  * const roots = await determineProjectRoots();
  * logger.info('Found project roots:', roots);
- * // Output: ['C:\\workspace\\my-angular-app']
+ * // Output: ['C:\\workspace\\my-angular-app\\src'] (if projectPath configured to src/)
  * ```
  */
 async function determineProjectRoots(): Promise<string[]> {
   let effectiveProjectRoots: string[] = [];
 
-  if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-    effectiveProjectRoots = vscode.workspace.workspaceFolders.map((f) => f.uri.fsPath);
-
-    if (extensionConfig.projectPath && extensionConfig.projectPath.trim() !== "") {
-      logger.warn("Angular Auto-Import: 'projectPath' setting is ignored when workspace folders are open.");
-    }
-  } else if (extensionConfig.projectPath && extensionConfig.projectPath.trim() !== "") {
+  // Priority 1: Use projectPath if configured
+  if (extensionConfig.projectPath && extensionConfig.projectPath.trim() !== "") {
     const resolvedPath = path.resolve(extensionConfig.projectPath);
 
     if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isDirectory()) {
       effectiveProjectRoots.push(resolvedPath);
       logger.info(`Angular Auto-Import: Using configured project path: ${resolvedPath}`);
+
+      if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        logger.info("Angular Auto-Import: 'projectPath' setting overrides workspace folders.");
+      }
+    } else {
+      logger.error(
+        `Angular Auto-Import: Configured project path does not exist or is not a directory: ${resolvedPath}`
+      );
     }
+  }
+  // Priority 2: Fall back to workspace folders if projectPath not configured
+  else if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+    effectiveProjectRoots = vscode.workspace.workspaceFolders.map((f) => f.uri.fsPath);
+    logger.info("Angular Auto-Import: Using workspace folders as project roots.");
   }
 
   return effectiveProjectRoots;
