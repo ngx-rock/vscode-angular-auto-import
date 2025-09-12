@@ -51,7 +51,7 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 
 | Setting                                     | Description                                                                                                   | Default   |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------- |
-| `angular-auto-import.projectPath`           | Optional. Absolute path to the Angular project root. If not set, uses open workspace folders.                 | `null`    |
+| `angular-auto-import.projectPath`           | Optional. Absolute path to the Angular project root. If set, overrides workspace folders. If not set, uses open workspace folders. | `null`    |
 | `angular-auto-import.index.refreshInterval` | Interval in minutes for automatically reindexing Angular elements. Set to `0` to disable periodic reindexing. | `60`      |
 | `angular-auto-import.diagnostics.enabled`   | Enable or disable diagnostics for missing imports.                                                            | `true`    |
 | `angular-auto-import.diagnostics.severity`  | The severity of diagnostics for missing imports (`error`, `warning`, `info`).                                 | `warning` |
@@ -59,7 +59,7 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 ## Troubleshooting
 
 - **Elements not found**: If elements are not being auto-imported, try running the `Angular Auto Import: Reindex Project(s)` command. If issues persist, use the `Angular Auto Import: Clear Cache` command to completely reset the cache.
-- **Performance issues**: For very large projects, consider increasing `angular-auto-import.index.refreshInterval` or setting `angular-auto-import.projectPath` to a specific sub-project root.
+- **Performance issues**: For very large projects, consider increasing `angular-auto-import.index.refreshInterval` or setting `angular-auto-import.projectPath` to a specific sub-project root (e.g., `src/` folder to skip node_modules).
 - **Incorrect imports**: Ensure your `tsconfig.json` `baseUrl` and `paths` are correctly configured.
  
 ---
