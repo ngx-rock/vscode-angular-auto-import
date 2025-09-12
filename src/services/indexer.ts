@@ -876,7 +876,7 @@ export class AngularIndexer {
       const totalElements = this.selectorTrie.getAllElements().length;
       logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): Indexed ${totalElements} elements.`);
 
-      await this.indexNodeModules(context);
+      await this.indexNodeModules(context, progress);
 
       await this.saveIndexToWorkspace(context);
 
@@ -1175,8 +1175,12 @@ export class AngularIndexer {
   /**
    * Indexes all Angular libraries in `node_modules`.
    * @param context The extension context.
+   * @param progress Optional progress reporter to use instead of creating a new one.
    */
-  public async indexNodeModules(context: vscode.ExtensionContext): Promise<void> {
+  public async indexNodeModules(
+    context: vscode.ExtensionContext,
+    progress?: vscode.Progress<{ message?: string; increment?: number }>
+  ): Promise<void> {
     const timerName = `indexNodeModules:${path.basename(this.projectRootPath)}`;
     logger.startTimer(timerName);
 
@@ -1186,57 +1190,65 @@ export class AngularIndexer {
       `Starting node_modules index - Memory: ${Math.round(initialMemory.memoryUsage.heapUsed / 1024 / 1024)}MB`
     );
 
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: `Angular Auto-Import: Indexing libraries from node_modules...`,
-        cancellable: false,
-      },
-      async (progress) => {
-        try {
-          if (!this.projectRootPath) {
-            logger.error("AngularIndexer.indexNodeModules: projectRootPath not set.");
-            return;
-          }
-          progress.report({ message: "Finding Angular libraries..." });
-          const angularDeps = await findAngularDependencies(this.projectRootPath);
-          logger.debug(`[indexNodeModules] Found ${angularDeps.length} Angular dependencies.`);
-
-          const totalDeps = angularDeps.length;
-          let processedCount = 0;
-
-          for (const dep of angularDeps) {
-            processedCount++;
-            progress.report({
-              message: `Processing ${dep.name}... (${processedCount}/${totalDeps})`,
-              increment: (1 / totalDeps) * 100,
-            });
-
-            const entryPoints = await getLibraryEntryPoints(dep);
-            if (entryPoints.size === 0) {
-              continue;
-            }
-
-            logger.info(`📚 Indexing library: ${dep.name} (${entryPoints.size} entry points)`);
-            await this._indexLibrary(entryPoints);
-          }
-          await this.saveIndexToWorkspace(context);
-
-          // Log final memory usage after node_modules indexing
-          const finalMemory = logger.getPerformanceMetrics();
-          const memoryDelta = finalMemory.memoryUsage.heapUsed - initialMemory.memoryUsage.heapUsed;
-          logger.info(
-            `Node modules index completed - Memory: ${Math.round(finalMemory.memoryUsage.heapUsed / 1024 / 1024)}MB (Δ${memoryDelta > 0 ? "+" : ""}${Math.round(memoryDelta / 1024 / 1024)}MB)`
-          );
-
-          logger.debug(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
-        } catch (error) {
-          logger.error("[indexNodeModules] Error during node_modules indexing:", error as Error);
-        } finally {
-          logger.stopTimer(timerName);
+    const indexingLogic = async (progressReporter: vscode.Progress<{ message?: string; increment?: number }>) => {
+      try {
+        if (!this.projectRootPath) {
+          logger.error("AngularIndexer.indexNodeModules: projectRootPath not set.");
+          return;
         }
+        progressReporter.report({ message: "Finding Angular libraries..." });
+        const angularDeps = await findAngularDependencies(this.projectRootPath);
+        logger.debug(`[indexNodeModules] Found ${angularDeps.length} Angular dependencies.`);
+
+        const totalDeps = angularDeps.length;
+        let processedCount = 0;
+
+        for (const dep of angularDeps) {
+          processedCount++;
+          progressReporter.report({
+            message: `Processing ${dep.name}... (${processedCount}/${totalDeps})`,
+            increment: (1 / totalDeps) * 100,
+          });
+
+          const entryPoints = await getLibraryEntryPoints(dep);
+          if (entryPoints.size === 0) {
+            continue;
+          }
+
+          logger.info(`📚 Indexing library: ${dep.name} (${entryPoints.size} entry points)`);
+          await this._indexLibrary(entryPoints);
+        }
+        await this.saveIndexToWorkspace(context);
+
+        // Log final memory usage after node_modules indexing
+        const finalMemory = logger.getPerformanceMetrics();
+        const memoryDelta = finalMemory.memoryUsage.heapUsed - initialMemory.memoryUsage.heapUsed;
+        logger.info(
+          `Node modules index completed - Memory: ${Math.round(
+            finalMemory.memoryUsage.heapUsed / 1024 / 1024
+          )}MB (Δ${memoryDelta > 0 ? "+" : ""}${Math.round(memoryDelta / 1024 / 1024)}MB)`
+        );
+
+        logger.debug(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
+      } catch (error) {
+        logger.error("[indexNodeModules] Error during node_modules indexing:", error as Error);
+      } finally {
+        logger.stopTimer(timerName);
       }
-    );
+    };
+
+    if (progress) {
+      await indexingLogic(progress);
+    } else {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Angular Auto-Import: Indexing libraries from node_modules...`,
+          cancellable: false,
+        },
+        indexingLogic
+      );
+    }
   }
 
   /**
