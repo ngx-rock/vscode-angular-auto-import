@@ -4,16 +4,20 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.11.2] - 2025-09-12
+
+### Fixed
+- **Critical indexing stability**: Fixed "forgotten node" errors that occurred during periodic project reindexing ([#15]) 
+
+[#15]: https://github.com/<repo-owner>/<repo-name>/issues/15 
+
 ## [1.11.1] - 2025-09-12
 
 ### Fixed
-- **Project path override behavior**: `projectPath` setting now correctly overrides workspace folders when specified
-- Previously, `projectPath` was ignored when workspace folders were open, making it impossible to force a specific project root (e.g., `src/` subdirectory)
-- Updated setting description to reflect new behavior: "If set, overrides workspace folders"
+- **Project path override behavior**: `projectPath` setting now correctly overrides workspace folders when specified ([#16])
+- Previously, `projectPath` was ignored when workspace folders were open, making it impossible to force a specific project root (e.g., `src/` subdirectory) 
 
-### Added
-- Comprehensive test suite for project root determination logic
-- Better error handling and logging for invalid project paths
+[#16]: https://github.com/<repo-owner>/<repo-name>/issues/16 
 
 ## [1.11.0] - 2025-09-12
 
