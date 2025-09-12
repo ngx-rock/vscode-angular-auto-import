@@ -187,6 +187,7 @@ export function deactivate(): void {
  * 2. Falls back to workspace folders if no projectPath configured
  * 3. Returns empty array if neither is available or valid
  *
+ * @param config - Extension configuration (optional, uses current config if not provided)
  * @returns Promise resolving to array of absolute project root paths
  * @throws {Error} When configured project path is invalid or inaccessible
  *
@@ -196,13 +197,16 @@ export function deactivate(): void {
  * logger.info('Found project roots:', roots);
  * // Output: ['C:\\workspace\\my-angular-app\\src'] (if projectPath configured to src/)
  * ```
+ *
+ * @internal - Exported for testing purposes only
  */
-async function determineProjectRoots(): Promise<string[]> {
+export async function determineProjectRoots(config?: ExtensionConfig): Promise<string[]> {
   let effectiveProjectRoots: string[] = [];
+  const activeConfig = config || extensionConfig;
 
   // Priority 1: Use projectPath if configured
-  if (extensionConfig.projectPath && extensionConfig.projectPath.trim() !== "") {
-    const resolvedPath = path.resolve(extensionConfig.projectPath);
+  if (activeConfig.projectPath && activeConfig.projectPath.trim() !== "") {
+    const resolvedPath = path.resolve(activeConfig.projectPath);
 
     if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isDirectory()) {
       effectiveProjectRoots.push(resolvedPath);
