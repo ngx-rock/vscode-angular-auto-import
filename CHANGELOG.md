@@ -4,6 +4,15 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.11.0] - 2025-09-12
+
+### Added  
+- Debounce mechanism for document updates to reduce unnecessary processing 
+- Template caching for improved diagnostic performance
+
+### Improved 
+- Enhanced external module exports handling 
+
 ## [1.10.1] - 2025-08-31
 
 ### Added

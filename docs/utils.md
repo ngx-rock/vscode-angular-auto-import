@@ -16,6 +16,24 @@ Re-exports [AngularDependency](utils/package-json.md#angulardependency)
 
 ***
 
+### clearAllTemplateCache
+
+Re-exports [clearAllTemplateCache](utils/template-detection.md#clearalltemplatecache)
+
+***
+
+### clearTemplateCache
+
+Re-exports [clearTemplateCache](utils/template-detection.md#cleartemplatecache)
+
+***
+
+### debounce
+
+Re-exports [debounce](utils/debounce.md#debounce)
+
+***
+
 ### findAngularDependencies
 
 Re-exports [findAngularDependencies](utils/package-json.md#findangulardependencies)
@@ -64,9 +82,21 @@ Re-exports [isAngularFile](utils/angular.md#isangularfile)
 
 ***
 
+### isInsideTemplateString
+
+Re-exports [isInsideTemplateString](utils/template-detection.md#isinsidetemplatestring)
+
+***
+
 ### isStandalone
 
 Re-exports [isStandalone](utils/angular.md#isstandalone)
+
+***
+
+### LruCache
+
+Re-exports [LruCache](utils/cache.md#lrucache)
 
 ***
 

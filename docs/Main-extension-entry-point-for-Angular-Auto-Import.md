@@ -69,7 +69,7 @@ await activate(context);
 
 > **deactivate**(): `void`
 
-Defined in: [extension.ts:157](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L157)
+Defined in: [extension.ts:160](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L160)
 
 Deactivates the Angular Auto-Import extension and cleans up all resources.
 
@@ -97,7 +97,7 @@ deactivate();
 
 > **getProjectContextForDocument**(`document`): `undefined` \| [`ProjectContext`](types/angular.md#projectcontext)
 
-Defined in: [extension.ts:462](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L462)
+Defined in: [extension.ts:459](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L459)
 
 Retrieves the project context for a given VS Code document.
 
