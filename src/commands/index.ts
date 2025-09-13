@@ -10,6 +10,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import type { ExtensionConfig } from "../config";
 import { logger } from "../logger";
+import type { DiagnosticProvider } from "../providers/diagnostics";
 import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
@@ -36,6 +37,7 @@ export interface CommandContext {
   projectTsConfigs: Map<string, ProcessedTsConfig | null>;
   /** Current extension configuration settings */
   extensionConfig: ExtensionConfig;
+  diagnosticProvider?: DiagnosticProvider;
 }
 
 /**
@@ -234,12 +236,11 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
       return;
     }
 
-    await importElementsCommandLogic(
-      Array.from(fixAllResult.elementsToImport!.values()),
-      fixAllResult.projectRootPath!,
-      fixAllResult.tsConfig!,
-      fixAllResult.indexer!
-    );
+    const { elementsToImport, projectRootPath, tsConfig, indexer } = fixAllResult;
+
+    if (elementsToImport && projectRootPath && tsConfig && indexer) {
+      await importElementsCommandLogic(Array.from(elementsToImport.values()), projectRootPath, tsConfig, indexer);
+    }
   });
   context.subscriptions.push(fixAllCommand);
 }
@@ -450,6 +451,9 @@ async function processFixAllCommand(commandContext: CommandContext): Promise<{
   }
 
   const document = activeEditor.document;
+  if (commandContext.diagnosticProvider) {
+    await commandContext.diagnosticProvider.forceUpdateDiagnosticsForFile(document.fileName);
+  }
   const diagnostics = getRelevantDiagnostics(document);
 
   if (diagnostics.length === 0) {
