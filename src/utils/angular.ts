@@ -7,7 +7,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ClassDeclaration } from "ts-morph";
+import type { ClassDeclaration, Decorator } from "ts-morph";
 import { SyntaxKind } from "ts-morph";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
 import { logger } from "../logger";
@@ -23,50 +23,85 @@ import { AngularElementData } from "../types";
  */
 export function isStandalone(classDeclaration: ClassDeclaration): boolean {
   // 1) Explicit flag in decorator wins
-  for (const decorator of classDeclaration.getDecorators()) {
-    const decoratorName = decorator.getName();
-    if (decoratorName === "Component" || decoratorName === "Directive" || decoratorName === "Pipe") {
-      try {
-        const args = decorator.getArguments();
-        if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-          const objectLiteral = args[0].asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-          const standaloneProperty = objectLiteral.getProperty("standalone");
-          if (standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-            const initializer = standaloneProperty.getInitializer();
-            if (initializer?.isKind(SyntaxKind.TrueKeyword)) {
-              return true;
-            }
-            if (initializer?.isKind(SyntaxKind.FalseKeyword)) {
-              return false;
-            }
-          }
-        }
-      } catch (error) {
-        logger.error(
-          `Error checking standalone flag for ${classDeclaration.getName() ?? "unknown class"}:`,
-          error as Error
-        );
-      }
-    }
+  const explicitStandalone = getExplicitStandaloneFlag(classDeclaration);
+  if (explicitStandalone !== undefined) {
+    return explicitStandalone;
   }
 
   // 2) No explicit flag found - apply version-based defaults
+  return getVersionBasedStandaloneDefault(classDeclaration);
+}
+
+/**
+ * Gets the explicit standalone flag from Angular decorator.
+ */
+function getExplicitStandaloneFlag(classDeclaration: ClassDeclaration): boolean | undefined {
+  for (const decorator of classDeclaration.getDecorators()) {
+    const decoratorName = decorator.getName();
+    if (decoratorName === "Component" || decoratorName === "Directive" || decoratorName === "Pipe") {
+      const standaloneValue = extractStandaloneFlagFromDecorator(decorator, classDeclaration);
+      if (standaloneValue !== undefined) {
+        return standaloneValue;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Extracts standalone flag from a single decorator.
+ */
+function extractStandaloneFlagFromDecorator(
+  decorator: Decorator,
+  classDeclaration: ClassDeclaration
+): boolean | undefined {
+  try {
+    const args = decorator.getArguments();
+    if (args.length === 0 || !args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+      return undefined;
+    }
+
+    const objectLiteral = args[0].asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+    const standaloneProperty = objectLiteral.getProperty("standalone");
+
+    if (!standaloneProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+      return undefined;
+    }
+
+    const initializer = standaloneProperty.getInitializer();
+    if (initializer?.isKind(SyntaxKind.TrueKeyword)) {
+      return true;
+    }
+    if (initializer?.isKind(SyntaxKind.FalseKeyword)) {
+      return false;
+    }
+
+    return undefined;
+  } catch (error) {
+    logger.error(
+      `Error checking standalone flag for ${classDeclaration.getName() ?? "unknown class"}:`,
+      error as Error
+    );
+    return undefined;
+  }
+}
+
+/**
+ * Gets version-based standalone default value.
+ */
+function getVersionBasedStandaloneDefault(classDeclaration: ClassDeclaration): boolean {
   try {
     const filePath = classDeclaration.getSourceFile().getFilePath();
     const major = readAngularCoreMajorFromFilePath(filePath);
     if (typeof major === "number") {
       // Angular >= 19: standalone by default
-      if (major >= 19) {
-        return true;
-      }
-      // Angular < 19: non-standalone by default
-      return false;
+      return major >= 19;
     }
   } catch (_err) {
     // noop (fallback below)
   }
 
-  // 3) Fallback: non-standalone if version cannot be determined
+  // Fallback: non-standalone if version cannot be determined
   return false;
 }
 

@@ -33,6 +33,23 @@ interface PotentialSuggestion {
   originalBestSelector: string;
 }
 
+interface StandardAngularElement {
+  name: string;
+  importPath: string;
+  type: "directive" | "pipe";
+  selectors: string[];
+  originalSelector: string;
+}
+
+interface ProjectContextForCompletion {
+  indexer: {
+    searchWithSelectors(filterText: string): Array<{ selector: string; element: AngularElementData }>;
+    project: import("ts-morph").Project;
+  };
+  projectRootPath: string;
+  tsConfig: any;
+}
+
 /**
  * Provides autocompletion for Angular elements.
  * This implementation relies solely on regular expressions for context detection to ensure
@@ -278,7 +295,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
    * Generates all completion suggestions.
    */
   private async generateCompletionSuggestions(
-    projCtx: { indexer: any; projectRootPath: string; tsConfig: any },
+    projCtx: ProjectContextForCompletion,
     contextData: CompletionContextData
   ): Promise<vscode.CompletionItem[]> {
     const suggestions: vscode.CompletionItem[] = [];
@@ -299,7 +316,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
    * Generates suggestions from indexed elements.
    */
   private async generateIndexedElementSuggestions(
-    indexer: any,
+    indexer: ProjectContextForCompletion["indexer"],
     contextData: CompletionContextData,
     seenElements: Set<string>
   ): Promise<vscode.CompletionItem[]> {
@@ -539,10 +556,12 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     const groupedByInsertText = this.groupSuggestionsByInsertText(potentialSuggestions);
     const suggestions: vscode.CompletionItem[] = [];
 
-    for (const [insertText, group] of groupedByInsertText.entries()) {
+    for (const [_insertText, group] of groupedByInsertText.entries()) {
       for (const sugg of group) {
         const elementKey = `${sugg.element.path}:${sugg.element.name}`;
-        if (seenElements.has(elementKey)) continue;
+        if (seenElements.has(elementKey)) {
+          continue;
+        }
         seenElements.add(elementKey);
 
         const item = this.createCompletionItem(sugg, group.length > 1, contextData);
@@ -562,7 +581,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     const grouped = new Map<string, PotentialSuggestion[]>();
 
     for (const suggestion of potentialSuggestions) {
-      if (!suggestion.insertText) continue;
+      if (!suggestion.insertText) {
+        continue;
+      }
 
       const existing = grouped.get(suggestion.insertText);
       if (existing) {
@@ -667,7 +688,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
    */
   private evaluateStandardElementMatch(
     stdSelector: string,
-    stdElement: any,
+    stdElement: StandardAngularElement,
     contextData: CompletionContextData
   ): {
     shouldInclude: boolean;
@@ -707,7 +728,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
    */
   private createStandardElementCompletionItem(
     stdSelector: string,
-    stdElement: any,
+    stdElement: StandardAngularElement,
     match: { insertText: string; itemKind: vscode.CompletionItemKind; relevance: number },
     contextData: CompletionContextData
   ): vscode.CompletionItem {

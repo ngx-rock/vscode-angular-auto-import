@@ -9,6 +9,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   type ArrayLiteralExpression,
+  type ClassDeclaration,
   type Expression,
   type ObjectLiteralExpression,
   type SourceFile,
@@ -646,102 +647,129 @@ export class DiagnosticProvider {
       }
 
       const cacheKey = sourceFile.getFilePath();
-      let fileCache = this.importedElementsCache.get(cacheKey);
-
-      if (fileCache?.has(element.name)) {
-        // Cache hit
-        return fileCache.get(element.name) ?? false;
+      const cached = this.getImportFromCache(cacheKey, element.name);
+      if (cached !== undefined) {
+        return cached;
       }
 
-      let isImported = false;
-
-      for (const classDeclaration of sourceFile.getClasses()) {
-        const componentDecorator = classDeclaration.getDecorator("Component");
-        if (componentDecorator) {
-          const decoratorArgs = componentDecorator.getArguments();
-          if (decoratorArgs.length > 0 && decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-            const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
-            const importsProperty = objectLiteral.getProperty("imports");
-
-            if (importsProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-              const initializer = importsProperty.getInitializer();
-              if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
-                const importsArray = initializer as ArrayLiteralExpression;
-                const isInImportsArray = importsArray
-                  .getElements()
-                  .some((el: Expression) => el.getText().trim() === element.name);
-                if (isInImportsArray) {
-                  const hasTopLevelImport = sourceFile.getImportDeclarations().some((imp) => {
-                    return imp.getNamedImports().some((named) => named.getName() === element.name);
-                  });
-                  if (hasTopLevelImport) {
-                    isImported = true;
-                    break; // Found, no need to check further
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // If not found in direct imports, check external modules exports
+      let isImported = this.checkDirectElementImport(sourceFile, element);
       if (!isImported) {
-        // Get project context by finding workspace folder from source file path
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(sourceFile.getFilePath()));
-        if (workspaceFolder) {
-          const projectRootPath = workspaceFolder.uri.fsPath;
-          const indexer = this.context.projectIndexers.get(projectRootPath);
-          if (indexer) {
-            for (const classDeclaration of sourceFile.getClasses()) {
-              const componentDecorator = classDeclaration.getDecorator("Component");
-              if (componentDecorator) {
-                const decoratorArgs = componentDecorator.getArguments();
-                if (decoratorArgs.length > 0 && decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-                  const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
-                  const importsProperty = objectLiteral.getProperty("imports");
-
-                  if (importsProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-                    const initializer = importsProperty.getInitializer();
-                    if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
-                      const importsArray = initializer as ArrayLiteralExpression;
-                      const importedModules = importsArray.getElements().map((el: Expression) => el.getText().trim());
-
-                      // Check if any imported module exports this element
-                      for (const moduleName of importedModules) {
-                        const moduleExports = indexer.getExternalModuleExports(moduleName);
-                        if (moduleExports?.has(element.name)) {
-                          isImported = true;
-                          logger.debug(
-                            `[DiagnosticProvider] Element '${element.name}' found in external module '${moduleName}' exports`
-                          );
-                          break;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-              if (isImported) {
-                break;
-              }
-            }
-          }
-        }
+        isImported = this.checkExternalModuleImports(sourceFile, element);
       }
 
-      // Store in cache
-      if (!fileCache) {
-        fileCache = new Map();
-        this.importedElementsCache.set(cacheKey, fileCache);
-      }
-      fileCache.set(element.name, isImported);
-
+      this.updateImportCache(cacheKey, element.name, isImported);
       return isImported;
     } catch (error) {
       logger.error("[DiagnosticProvider] Error checking element import with ts-morph:", error as Error);
       return false;
     }
+  }
+
+  /**
+   * Gets import status from cache.
+   */
+  private getImportFromCache(cacheKey: string, elementName: string): boolean | undefined {
+    const fileCache = this.importedElementsCache.get(cacheKey);
+    return fileCache?.get(elementName);
+  }
+
+  /**
+   * Updates import cache with result.
+   */
+  private updateImportCache(cacheKey: string, elementName: string, isImported: boolean): void {
+    let fileCache = this.importedElementsCache.get(cacheKey);
+    if (!fileCache) {
+      fileCache = new Map();
+      this.importedElementsCache.set(cacheKey, fileCache);
+    }
+    fileCache.set(elementName, isImported);
+  }
+
+  /**
+   * Gets the imports array from a Component decorator.
+   */
+  private getComponentImportsArray(classDeclaration: ClassDeclaration): ArrayLiteralExpression | undefined {
+    const componentDecorator = classDeclaration.getDecorator("Component");
+    if (!componentDecorator) {
+      return undefined;
+    }
+
+    const decoratorArgs = componentDecorator.getArguments();
+    if (decoratorArgs.length === 0 || !decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+      return undefined;
+    }
+
+    const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
+    const importsProperty = objectLiteral.getProperty("imports");
+
+    if (!importsProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+      return undefined;
+    }
+
+    const initializer = importsProperty.getInitializer();
+    return initializer?.isKind(SyntaxKind.ArrayLiteralExpression) ? (initializer as ArrayLiteralExpression) : undefined;
+  }
+
+  /**
+   * Checks if element is directly imported in the Component imports array.
+   */
+  private checkDirectElementImport(sourceFile: SourceFile, element: AngularElementData): boolean {
+    for (const classDeclaration of sourceFile.getClasses()) {
+      const importsArray = this.getComponentImportsArray(classDeclaration);
+      if (!importsArray) {
+        continue;
+      }
+
+      const isInImportsArray = importsArray
+        .getElements()
+        .some((el: Expression) => el.getText().trim() === element.name);
+
+      if (isInImportsArray) {
+        const hasTopLevelImport = sourceFile.getImportDeclarations().some((imp) => {
+          return imp.getNamedImports().some((named) => named.getName() === element.name);
+        });
+        if (hasTopLevelImport) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Checks if element is imported via external modules.
+   */
+  private checkExternalModuleImports(sourceFile: SourceFile, element: AngularElementData): boolean {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(sourceFile.getFilePath()));
+    if (!workspaceFolder) {
+      return false;
+    }
+
+    const projectRootPath = workspaceFolder.uri.fsPath;
+    const indexer = this.context.projectIndexers.get(projectRootPath);
+    if (!indexer) {
+      return false;
+    }
+
+    for (const classDeclaration of sourceFile.getClasses()) {
+      const importsArray = this.getComponentImportsArray(classDeclaration);
+      if (!importsArray) {
+        continue;
+      }
+
+      const importedModules = importsArray.getElements().map((el: Expression) => el.getText().trim());
+
+      for (const moduleName of importedModules) {
+        const moduleExports = indexer.getExternalModuleExports(moduleName);
+        if (moduleExports?.has(element.name)) {
+          logger.debug(
+            `[DiagnosticProvider] Element '${element.name}' found in external module '${moduleName}' exports`
+          );
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private processTemplateNode(

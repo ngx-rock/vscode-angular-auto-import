@@ -41,75 +41,97 @@ class PathAliasTrie {
    */
   private buildTrie(tsconfig: ProcessedTsConfig): void {
     const { absoluteBaseUrl, paths } = tsconfig;
+    const projectRoot = this.findProjectRoot(absoluteBaseUrl);
 
-    // Find the project root by going up from baseUrl until we find a directory that contains src/ or similar
+    for (const [alias, pathArray] of Object.entries(paths)) {
+      this.processAliasEntry(alias, pathArray, absoluteBaseUrl, projectRoot);
+    }
+  }
+
+  /**
+   * Finds the project root by going up from baseUrl.
+   */
+  private findProjectRoot(absoluteBaseUrl: string): string {
     let projectRoot = absoluteBaseUrl;
     while (projectRoot !== path.dirname(projectRoot)) {
-      if (
-        fs.existsSync(path.join(projectRoot, "src")) ||
-        fs.existsSync(path.join(projectRoot, "package.json")) ||
-        fs.existsSync(path.join(projectRoot, "tsconfig.json"))
-      ) {
+      if (this.isProjectRootDirectory(projectRoot)) {
         break;
       }
       projectRoot = path.dirname(projectRoot);
     }
+    return projectRoot;
+  }
 
-    for (const [alias, pathArray] of Object.entries(paths)) {
-      // Ensure pathArray is an array of strings
-      const pathArraySafe = Array.isArray(pathArray) ? (pathArray as string[]) : [];
+  /**
+   * Checks if a directory is likely to be a project root.
+   */
+  private isProjectRootDirectory(dirPath: string): boolean {
+    return (
+      fs.existsSync(path.join(dirPath, "src")) ||
+      fs.existsSync(path.join(dirPath, "package.json")) ||
+      fs.existsSync(path.join(dirPath, "tsconfig.json"))
+    );
+  }
 
-      if (pathArraySafe.length > 0) {
-        const originalPath = pathArraySafe[0];
-        // Normalize paths that start with "./" to remove the prefix
-        // if (originalPath.startsWith('./')) {
-        //   originalPath = originalPath.substring(2);
-        // }
-        const physicalPath = path.resolve(absoluteBaseUrl, originalPath);
+  /**
+   * Processes a single alias entry and adds it to the trie.
+   */
+  private processAliasEntry(alias: string, pathArray: unknown, absoluteBaseUrl: string, projectRoot: string): void {
+    const pathArraySafe = Array.isArray(pathArray) ? (pathArray as string[]) : [];
 
-        // A "barrel-style" alias is any non-wildcard alias.
-        // It points to a specific file (often index.ts) or directory,
-        // and the remainder of the path should not be appended.
-        const isWildcard = alias.endsWith("/*") || alias.endsWith("*");
-
-        const cleanAlias = alias.replace(/\/?\*?$/, "");
-        let cleanPath = physicalPath;
-
-        if (isWildcard) {
-          // For wildcard paths, e.g., 'src/app/*' -> '/path/to/project/src/app'
-          cleanPath = physicalPath.replace(/\/?\*?$/, "");
-        } else if (path.basename(physicalPath) === "index.ts") {
-          // For paths to index.ts, use the parent directory.
-          cleanPath = path.dirname(physicalPath);
-        } else {
-          // For paths to specific files, use the path without the extension.
-          cleanPath = switchFileType(physicalPath, "");
-        }
-
-        // Use relative path from project root instead of absolute path
-        const relativePath = path.relative(projectRoot, cleanPath);
-        const pathSegments = normalizePath(relativePath)
-          .toLowerCase() // Use lowercase for case-insensitivity
-          .split("/")
-          .filter((p) => p.length > 0);
-
-        let currentNode = this.root;
-        for (const segment of pathSegments) {
-          if (!currentNode.children.has(segment)) {
-            currentNode.children.set(segment, new TrieNode());
-          }
-          const nextNode = currentNode.children.get(segment);
-          if (!nextNode) {
-            throw new Error("Unexpected missing node in alias trie insertion");
-          }
-          currentNode = nextNode;
-        }
-        currentNode.alias = cleanAlias;
-        currentNode.isBarrel = !isWildcard;
-      } else {
-        logger.warn(`[PathAliasTrie] Skipped alias '${alias}': empty path array`);
-      }
+    if (pathArraySafe.length === 0) {
+      logger.warn(`[PathAliasTrie] Skipped alias '${alias}': empty path array`);
+      return;
     }
+
+    const originalPath = pathArraySafe[0];
+    const physicalPath = path.resolve(absoluteBaseUrl, originalPath);
+    const isWildcard = alias.endsWith("/*") || alias.endsWith("*");
+
+    const cleanAlias = alias.replace(/\/?\*?$/, "");
+    const cleanPath = this.getCleanPath(physicalPath, isWildcard);
+
+    this.addPathToTrie(cleanPath, projectRoot, cleanAlias, isWildcard);
+  }
+
+  /**
+   * Gets the clean path based on wildcard status and path type.
+   */
+  private getCleanPath(physicalPath: string, isWildcard: boolean): string {
+    if (isWildcard) {
+      return physicalPath.replace(/\/?\*?$/, "");
+    }
+
+    if (path.basename(physicalPath) === "index.ts") {
+      return path.dirname(physicalPath);
+    }
+
+    return switchFileType(physicalPath, "");
+  }
+
+  /**
+   * Adds a path to the trie structure.
+   */
+  private addPathToTrie(cleanPath: string, projectRoot: string, cleanAlias: string, isWildcard: boolean): void {
+    const relativePath = path.relative(projectRoot, cleanPath);
+    const pathSegments = normalizePath(relativePath)
+      .toLowerCase()
+      .split("/")
+      .filter((p) => p.length > 0);
+
+    let currentNode = this.root;
+    for (const segment of pathSegments) {
+      if (!currentNode.children.has(segment)) {
+        currentNode.children.set(segment, new TrieNode());
+      }
+      const nextNode = currentNode.children.get(segment);
+      if (!nextNode) {
+        throw new Error("Unexpected missing node in alias trie insertion");
+      }
+      currentNode = nextNode;
+    }
+    currentNode.alias = cleanAlias;
+    currentNode.isBarrel = !isWildcard;
   }
 
   /**

@@ -29,6 +29,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   type ArrayLiteralExpression,
+  type Decorator,
   type Node,
   type ObjectLiteralExpression,
   type PropertyAssignment,
@@ -58,6 +59,148 @@ function getActiveDocument(filePath: string): vscode.TextDocument | undefined {
 }
 
 /**
+ * Prepares a source file for modification.
+ */
+async function prepareSourceFile(
+  componentFilePathAbs: string,
+  indexerProject: import("ts-morph").Project
+): Promise<import("ts-morph").SourceFile | null> {
+  const activeDocument = getActiveDocument(componentFilePathAbs);
+  let currentContent: string;
+
+  if (activeDocument) {
+    currentContent = activeDocument.getText();
+  } else {
+    currentContent = fs.readFileSync(componentFilePathAbs, "utf-8");
+  }
+
+  let sourceFile = indexerProject.getSourceFile(componentFilePathAbs);
+  if (sourceFile) {
+    if (sourceFile.getFullText() !== currentContent) {
+      sourceFile.replaceWithText(currentContent);
+    }
+  } else {
+    sourceFile = indexerProject.createSourceFile(componentFilePathAbs, currentContent, { overwrite: true });
+  }
+
+  return sourceFile;
+}
+
+/**
+ * Processes import statements for each element.
+ */
+async function processElementImports(
+  elements: AngularElementData[],
+  sourceFile: import("ts-morph").SourceFile,
+  componentFilePathAbs: string,
+  projectRootPath: string
+): Promise<boolean> {
+  let modified = false;
+
+  for (const element of elements) {
+    const importPathString = await resolveImportPathForElement(element, componentFilePathAbs, projectRootPath);
+    logger.debug(`Final import path for ${element.type} '${element.name}': '${importPathString}'`);
+
+    if (addImportStatementForElement(sourceFile, element, importPathString)) {
+      modified = true;
+    }
+
+    if (addImportToAnnotationTsMorph(element.exportingModuleName || element.name, sourceFile)) {
+      modified = true;
+    }
+  }
+
+  return modified;
+}
+
+/**
+ * Adds import statement for a single element.
+ */
+function addImportStatementForElement(
+  sourceFile: import("ts-morph").SourceFile,
+  element: AngularElementData,
+  importPathString: string
+): boolean {
+  const importDeclaration = sourceFile.getImportDeclaration(
+    (d) =>
+      d.getModuleSpecifierValue() === importPathString &&
+      d.getNamedImports().some((ni) => ni.getName() === element.name)
+  );
+
+  if (importDeclaration) {
+    return false; // Already imported
+  }
+
+  const existingImportFromSameModule = sourceFile.getImportDeclaration(
+    (d) => d.getModuleSpecifierValue() === importPathString
+  );
+
+  if (existingImportFromSameModule) {
+    const namedImports = existingImportFromSameModule.getNamedImports();
+    const alreadyImported = namedImports.some((ni) => ni.getName() === element.name);
+    if (!alreadyImported) {
+      existingImportFromSameModule.addNamedImport(element.name);
+      return true;
+    }
+    return false;
+  }
+
+  const existingImportWithName = sourceFile
+    .getImportDeclarations()
+    .find((d) => d.getNamedImports().some((ni) => ni.getName() === element.name));
+
+  if (!existingImportWithName) {
+    sourceFile.addImportDeclaration({
+      namedImports: [{ name: element.name }],
+      moduleSpecifier: importPathString,
+    });
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Saves the modified file to disk and updates diagnostics.
+ */
+async function saveModifiedFile(
+  sourceFile: import("ts-morph").SourceFile,
+  componentFilePathAbs: string
+): Promise<boolean> {
+  const newContent = sourceFile.getFullText();
+  const activeDocument = getActiveDocument(componentFilePathAbs);
+
+  if (activeDocument) {
+    const edit = new vscode.WorkspaceEdit();
+    const fullRange = new vscode.Range(
+      activeDocument.positionAt(0),
+      activeDocument.positionAt(activeDocument.getText().length)
+    );
+    edit.replace(activeDocument.uri, fullRange, newContent);
+
+    const success = await vscode.workspace.applyEdit(edit);
+    if (success) {
+      await activeDocument.save();
+    } else {
+      logger.error(`Failed to apply WorkspaceEdit to ${path.basename(componentFilePathAbs)}`);
+      return false;
+    }
+  } else {
+    fs.writeFileSync(componentFilePathAbs, newContent);
+  }
+
+  if (globalDiagnosticProvider) {
+    await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(componentFilePathAbs);
+    const htmlFilePath = switchFileType(componentFilePathAbs, ".html");
+    if (fs.existsSync(htmlFilePath)) {
+      await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(htmlFilePath);
+    }
+  }
+
+  return true;
+}
+
+/**
  * Imports multiple Angular elements into a component file. This function handles adding the import statements
  * and updating the `@Component` decorator's `imports` array for all elements in one operation.
  *
@@ -81,101 +224,17 @@ export async function importElementsToFile(
       return false;
     }
 
-    const activeDocument = getActiveDocument(componentFilePathAbs);
-    let currentContent: string;
-
-    if (activeDocument) {
-      currentContent = activeDocument.getText();
-    } else {
-      currentContent = fs.readFileSync(componentFilePathAbs, "utf-8");
+    const sourceFile = await prepareSourceFile(componentFilePathAbs, indexerProject);
+    if (!sourceFile) {
+      return false;
     }
 
-    let sourceFile = indexerProject.getSourceFile(componentFilePathAbs);
-    if (sourceFile) {
-      if (sourceFile.getFullText() !== currentContent) {
-        sourceFile.replaceWithText(currentContent);
-      }
-    } else {
-      sourceFile = indexerProject.createSourceFile(componentFilePathAbs, currentContent, { overwrite: true });
-    }
-
-    let modified = false;
-
-    for (const element of elements) {
-      const importPathString = await resolveImportPathForElement(element, componentFilePathAbs, projectRootPath);
-
-      logger.debug(`Final import path for ${element.type} '${element.name}': '${importPathString}'`);
-
-      const importDeclaration = sourceFile.getImportDeclaration(
-        (d) =>
-          d.getModuleSpecifierValue() === importPathString &&
-          d.getNamedImports().some((ni) => ni.getName() === element.name)
-      );
-
-      if (!importDeclaration) {
-        const existingImportFromSameModule = sourceFile.getImportDeclaration(
-          (d) => d.getModuleSpecifierValue() === importPathString
-        );
-
-        if (existingImportFromSameModule) {
-          const namedImports = existingImportFromSameModule.getNamedImports();
-          const alreadyImported = namedImports.some((ni) => ni.getName() === element.name);
-          if (!alreadyImported) {
-            existingImportFromSameModule.addNamedImport(element.name);
-            modified = true;
-          }
-        } else {
-          const existingImportWithName = sourceFile
-            .getImportDeclarations()
-            .find((d) => d.getNamedImports().some((ni) => ni.getName() === element.name));
-
-          if (!existingImportWithName) {
-            sourceFile.addImportDeclaration({
-              namedImports: [{ name: element.name }],
-              moduleSpecifier: importPathString,
-            });
-            modified = true;
-          }
-        }
-      }
-
-      if (addImportToAnnotationTsMorph(element.exportingModuleName || element.name, sourceFile)) {
-        modified = true;
-      }
-    }
+    const modified = await processElementImports(elements, sourceFile, componentFilePathAbs, projectRootPath);
 
     if (modified) {
-      const newContent = sourceFile.getFullText();
-
-      if (activeDocument) {
-        const edit = new vscode.WorkspaceEdit();
-        const fullRange = new vscode.Range(
-          activeDocument.positionAt(0),
-          activeDocument.positionAt(activeDocument.getText().length)
-        );
-        edit.replace(activeDocument.uri, fullRange, newContent);
-
-        const success = await vscode.workspace.applyEdit(edit);
-        if (success) {
-          await activeDocument.save();
-        } else {
-          logger.error(`Failed to apply WorkspaceEdit to ${path.basename(componentFilePathAbs)}`);
-          return false;
-        }
-      } else {
-        fs.writeFileSync(componentFilePathAbs, newContent);
-      }
-
-      if (globalDiagnosticProvider) {
-        await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(componentFilePathAbs);
-        const htmlFilePath = switchFileType(componentFilePathAbs, ".html");
-        if (fs.existsSync(htmlFilePath)) {
-          await globalDiagnosticProvider.forceUpdateDiagnosticsForFile(htmlFilePath);
-        }
-      }
-      return true;
+      return await saveModifiedFile(sourceFile, componentFilePathAbs);
     }
-    // No changes needed
+
     return true;
   } catch (e) {
     const error = e instanceof Error ? e : new Error(String(e));
@@ -217,46 +276,74 @@ async function resolveImportPathForElement(
  * @internal
  */
 function addImportToAnnotationTsMorph(importName: string, sourceFile: SourceFile): boolean {
-  let modified = false;
   for (const classDeclaration of sourceFile.getClasses()) {
     const componentDecorator = classDeclaration.getDecorator("Component");
     if (componentDecorator) {
-      const decoratorArgs = componentDecorator.getArguments();
-      if (decoratorArgs.length > 0 && decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-        const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
-        const importsProperty = objectLiteral.getProperty("imports") as PropertyAssignment | undefined;
-
-        if (importsProperty) {
-          const initializer = importsProperty.getInitializer();
-          if (initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
-            const importsArray = initializer as ArrayLiteralExpression;
-            const existingImportNames = importsArray.getElements().map((el: Node) => el.getText().trim());
-            if (!existingImportNames.includes(importName)) {
-              importsArray.addElement(importName);
-              modified = true;
-              // Added to imports array
-            } else {
-              // Already in imports array
-            }
-          } else {
-            logger.warn(
-              `@Component 'imports' property in ${sourceFile.getBaseName()} is not an array. Manual update needed for ${importName}.`
-            );
-          }
-        } else {
-          // 'imports' property doesn't exist, add it.
-          const newPropertyAssignment = {
-            name: "imports",
-            initializer: `[${importName}]`,
-          };
-
-          objectLiteral.addPropertyAssignment(newPropertyAssignment);
-          modified = true;
-          // Added imports property to @Component decorator
-        }
-      }
-      break; // Assuming one @Component decorator per file
+      return addImportToComponentDecorator(componentDecorator, importName, sourceFile);
     }
   }
-  return modified;
+  return false;
+}
+
+/**
+ * Adds import to Component decorator's imports array.
+ */
+function addImportToComponentDecorator(
+  componentDecorator: Decorator,
+  importName: string,
+  sourceFile: SourceFile
+): boolean {
+  const decoratorArgs = componentDecorator.getArguments();
+  if (decoratorArgs.length === 0 || !decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+    return false;
+  }
+
+  const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
+  const importsProperty = objectLiteral.getProperty("imports") as PropertyAssignment | undefined;
+
+  if (importsProperty) {
+    return addToExistingImportsArray(importsProperty, importName, sourceFile);
+  }
+
+  return addNewImportsProperty(objectLiteral, importName);
+}
+
+/**
+ * Adds import to existing imports array.
+ */
+function addToExistingImportsArray(
+  importsProperty: PropertyAssignment,
+  importName: string,
+  sourceFile: SourceFile
+): boolean {
+  const initializer = importsProperty.getInitializer();
+  if (!initializer?.isKind(SyntaxKind.ArrayLiteralExpression)) {
+    logger.warn(
+      `@Component 'imports' property in ${sourceFile.getBaseName()} is not an array. Manual update needed for ${importName}.`
+    );
+    return false;
+  }
+
+  const importsArray = initializer as ArrayLiteralExpression;
+  const existingImportNames = importsArray.getElements().map((el: Node) => el.getText().trim());
+
+  if (existingImportNames.includes(importName)) {
+    return false; // Already in imports array
+  }
+
+  importsArray.addElement(importName);
+  return true;
+}
+
+/**
+ * Adds new imports property to Component decorator.
+ */
+function addNewImportsProperty(objectLiteral: ObjectLiteralExpression, importName: string): boolean {
+  const newPropertyAssignment = {
+    name: "imports",
+    initializer: `[${importName}]`,
+  };
+
+  objectLiteral.addPropertyAssignment(newPropertyAssignment);
+  return true;
 }
