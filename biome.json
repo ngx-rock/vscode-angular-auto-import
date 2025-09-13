@@ -75,7 +75,13 @@
         "noUselessSwitchCase": "error",
         "noUselessTernary": "error",
         "noUselessThisAlias": "error",
-        "noUselessTypeConstraint": "error"
+        "noUselessTypeConstraint": "error",
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 15
+          }
+        }
       },
       "suspicious": {
         "noExplicitAny": "error",

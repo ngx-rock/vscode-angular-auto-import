@@ -405,194 +405,22 @@ export class DiagnosticProvider {
 
       const visit = (nodesList: TemplateNode[]) => {
         for (const node of nodesList) {
-          // Debug logging can be enabled for development
-          // console.log('[DEBUG] Node type:', node.constructor.name);
-
-          // Universal handler for control flow blocks
-          const nodeName = node.constructor.name;
-
-          // Handle all types of control flow expressions
-          if (
-            nodeName.includes("Block") ||
-            nodeName.includes("Loop") ||
-            nodeName.includes("If") ||
-            nodeName.includes("Switch")
-          ) {
-            const controlFlowNode = node as TemplateNode & Record<string, unknown>;
-
-            // Check for pipes in main expression (condition/iterator)
-            if (controlFlowNode.expression) {
-              extractPipesFromExpression(controlFlowNode.expression);
-            }
-
-            // Handle branches (@if/@else/@else if)
-            if (controlFlowNode.branches && Array.isArray(controlFlowNode.branches)) {
-              for (const branch of controlFlowNode.branches) {
-                if (branch.expression) {
-                  extractPipesFromExpression(branch.expression);
-                }
-                if (branch.children && Array.isArray(branch.children)) {
-                  visit(branch.children);
-                }
-              }
-            }
-
-            // Handle cases (@switch)
-            if (controlFlowNode.cases && Array.isArray(controlFlowNode.cases)) {
-              for (const caseBlock of controlFlowNode.cases) {
-                if (caseBlock.expression) {
-                  extractPipesFromExpression(caseBlock.expression);
-                }
-                if (caseBlock.children && Array.isArray(caseBlock.children)) {
-                  visit(caseBlock.children);
-                }
-              }
-            }
-
-            // Handle main children
-            if (controlFlowNode.children && Array.isArray(controlFlowNode.children)) {
-              visit(controlFlowNode.children);
-            }
-
-            // Handle @for empty block
-            const emptyBlock = controlFlowNode.empty as { children?: TemplateNode[] };
-            if (emptyBlock?.children && Array.isArray(emptyBlock.children)) {
-              visit(emptyBlock.children);
-            }
-
-            // Handle @defer sub-blocks (placeholder, loading, error)
-            ["placeholder", "loading", "error"].forEach((blockType) => {
-              const block = controlFlowNode[blockType] as { children?: TemplateNode[] };
-              if (block?.children) {
-                visit(block.children);
-              }
-            });
-          }
-
-          if (node instanceof TmplAstElement || node instanceof TmplAstTemplate) {
-            const isTemplate = node instanceof TmplAstTemplate;
-
-            const regularAttrs: AttributeNode[] = [
-              ...node.attributes,
-              ...node.inputs,
-              ...node.outputs,
-              ...node.references,
-            ];
-
-            const templateAttrs = node instanceof TmplAstTemplate ? [...node.templateAttrs] : [];
-
-            const allAttrsList: AttributeNode[] = [...regularAttrs, ...templateAttrs];
-
-            const attributes = allAttrsList.map((attr) => ({
-              name: attr.name,
-              value: "value" in attr && attr.value ? String(attr.value) : "",
-            }));
-
-            const nodeName = isTemplate ? "ng-template" : node.name;
-            const foundElements = indexer.getElements(nodeName);
-
-            if (!isKnownHtmlTag(nodeName)) {
-              for (const candidate of foundElements) {
-                const isKnownAngularElement = candidate.type === "component" || candidate.type === "directive";
-
-                // One entry for the element tag itself, only if it could be a component
-                if (isKnownAngularElement) {
-                  elements.push({
-                    name: nodeName,
-                    type: candidate.type as ParsedHtmlFullElement["type"],
-                    isAttribute: false,
-                    range: new vscode.Range(
-                      document.positionAt(offset + node.startSourceSpan.start.offset),
-                      document.positionAt(offset + node.startSourceSpan.end.offset)
-                    ),
-                    tagName: nodeName,
-                    attributes,
-                  });
-                }
-              }
-            }
-
-            // One entry for each attribute or reference
-            const processAttribute = (attr: AttributeNode, isTemplateAttr: boolean) => {
-              const keySpan = attr.keySpan ?? attr.sourceSpan;
-              if (!keySpan) {
-                return;
-              }
-
-              // Skip event bindings, as they are not importable directives.
-              if (attr instanceof TmplAstBoundEvent) {
-                return;
-              }
-
-              let type: ParsedHtmlFullElement["type"] = "attribute";
-              if (attr instanceof TmplAstReference) {
-                type = "template-reference";
-              } else if (isTemplateAttr || attr.name.startsWith("*")) {
-                type = "structural-directive";
-              } else if (attr instanceof TmplAstBoundAttribute) {
-                type = "property-binding";
-              }
-
-              elements.push({
-                name: attr.name,
-                type: type,
-                isAttribute: true,
-                range: new vscode.Range(
-                  document.positionAt(offset + keySpan.start.offset),
-                  document.positionAt(offset + keySpan.end.offset)
-                ),
-                tagName: nodeName,
-                attributes,
-              });
-
-              // Check for pipes in bound attribute values (like *ngIf="expression | pipe")
-              if (attr instanceof TmplAstBoundAttribute && attr.value) {
-                const valueSpan = attr.valueSpan || attr.sourceSpan;
-                if (valueSpan) {
-                  const expressionText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
-                  const pipes = this._findPipesInExpression(expressionText, document, offset, valueSpan.start.offset);
-                  for (const pipe of pipes) {
-                    elements.push({ ...pipe, isAttribute: false, attributes: [] });
-                  }
-                }
-              }
-            };
-
-            for (const attr of regularAttrs) {
-              processAttribute(attr, false);
-            }
-            for (const attr of templateAttrs) {
-              processAttribute(attr, true);
-            }
-          }
-
-          if (node instanceof TmplAstBoundText) {
-            const pipes = this._findPipesInExpression(
-              text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset),
-              document,
-              offset,
-              node.sourceSpan.start.offset
-            );
-            for (const pipe of pipes) {
-              elements.push({ ...pipe, isAttribute: false, attributes: [] });
-            }
-          }
-
-          // Handle regular children for non-control-flow nodes
-          if (node && typeof node === "object" && "children" in node && Array.isArray(node.children)) {
-            // Only visit children if this is not a control flow node (already handled above)
-            const nodeName = node.constructor.name;
-            if (
-              !(
-                nodeName.includes("Block") ||
-                nodeName.includes("Loop") ||
-                nodeName.includes("If") ||
-                nodeName.includes("Switch")
-              )
-            ) {
-              visit(node.children as TemplateNode[]);
-            }
-          }
+          this.processTemplateNode(
+            node,
+            visit,
+            extractPipesFromExpression,
+            elements,
+            document,
+            offset,
+            text,
+            indexer,
+            TmplAstElement,
+            TmplAstTemplate,
+            TmplAstBoundEvent,
+            TmplAstReference,
+            TmplAstBoundAttribute,
+            TmplAstBoundText
+          );
         }
       };
 
@@ -914,6 +742,316 @@ export class DiagnosticProvider {
       logger.error("[DiagnosticProvider] Error checking element import with ts-morph:", error as Error);
       return false;
     }
+  }
+
+  private processTemplateNode(
+    node: any,
+    visit: (nodesList: any[]) => void,
+    extractPipesFromExpression: (expression: any, nodeOffset?: number) => void,
+    elements: any[],
+    document: vscode.TextDocument,
+    offset: number,
+    text: string,
+    indexer: any,
+    TmplAstElement: any,
+    TmplAstTemplate: any,
+    TmplAstBoundEvent: any,
+    TmplAstReference: any,
+    TmplAstBoundAttribute: any,
+    TmplAstBoundText: any
+  ): void {
+    const nodeName = node.constructor.name;
+
+    // Handle all types of control flow expressions
+    if (this.isControlFlowNode(nodeName)) {
+      this.processControlFlowNode(node, visit, extractPipesFromExpression);
+      return;
+    }
+
+    if (node instanceof TmplAstElement || node instanceof TmplAstTemplate) {
+      this.processElementOrTemplateNode(
+        node,
+        elements,
+        document,
+        offset,
+        text,
+        indexer,
+        TmplAstTemplate,
+        TmplAstBoundEvent,
+        TmplAstReference,
+        TmplAstBoundAttribute
+      );
+    }
+
+    if (node instanceof TmplAstBoundText) {
+      this.processBoundTextNode(node, elements, document, offset, text);
+    }
+
+    // Handle regular children for non-control-flow nodes
+    if (this.hasChildren(node) && !this.isControlFlowNode(nodeName)) {
+      visit(node.children);
+    }
+  }
+
+  private isControlFlowNode(nodeName: string): boolean {
+    return (
+      nodeName.includes("Block") || nodeName.includes("Loop") || nodeName.includes("If") || nodeName.includes("Switch")
+    );
+  }
+
+  private processControlFlowNode(
+    controlFlowNode: any,
+    visit: (nodesList: any[]) => void,
+    extractPipesFromExpression: (expression: any, nodeOffset?: number) => void
+  ): void {
+    // Check for pipes in main expression (condition/iterator)
+    if (controlFlowNode.expression) {
+      extractPipesFromExpression(controlFlowNode.expression);
+    }
+
+    // Handle branches and cases
+    this.processControlFlowBranchesAndCases(controlFlowNode, visit, extractPipesFromExpression);
+
+    // Handle main children
+    if (controlFlowNode.children && Array.isArray(controlFlowNode.children)) {
+      visit(controlFlowNode.children);
+    }
+
+    // Handle special blocks
+    this.processControlFlowSpecialBlocks(controlFlowNode, visit);
+  }
+
+  private processControlFlowBranchesAndCases(
+    controlFlowNode: any,
+    visit: (nodesList: any[]) => void,
+    extractPipesFromExpression: (expression: any, nodeOffset?: number) => void
+  ): void {
+    // Handle branches (@if/@else/@else if)
+    if (controlFlowNode.branches && Array.isArray(controlFlowNode.branches)) {
+      for (const branch of controlFlowNode.branches) {
+        if (branch.expression) {
+          extractPipesFromExpression(branch.expression);
+        }
+        if (branch.children && Array.isArray(branch.children)) {
+          visit(branch.children);
+        }
+      }
+    }
+
+    // Handle cases (@switch)
+    if (controlFlowNode.cases && Array.isArray(controlFlowNode.cases)) {
+      for (const caseBlock of controlFlowNode.cases) {
+        if (caseBlock.expression) {
+          extractPipesFromExpression(caseBlock.expression);
+        }
+        if (caseBlock.children && Array.isArray(caseBlock.children)) {
+          visit(caseBlock.children);
+        }
+      }
+    }
+  }
+
+  private processControlFlowSpecialBlocks(controlFlowNode: any, visit: (nodesList: any[]) => void): void {
+    // Handle @for empty block
+    const emptyBlock = controlFlowNode.empty as { children?: any[] };
+    if (emptyBlock?.children && Array.isArray(emptyBlock.children)) {
+      visit(emptyBlock.children);
+    }
+
+    // Handle @defer sub-blocks (placeholder, loading, error)
+    ["placeholder", "loading", "error"].forEach((blockType) => {
+      const block = controlFlowNode[blockType] as { children?: any[] };
+      if (block?.children) {
+        visit(block.children);
+      }
+    });
+  }
+
+  private processElementOrTemplateNode(
+    node: any,
+    elements: any[],
+    document: vscode.TextDocument,
+    offset: number,
+    text: string,
+    indexer: any,
+    TmplAstTemplate: any,
+    TmplAstBoundEvent: any,
+    TmplAstReference: any,
+    TmplAstBoundAttribute: any
+  ): void {
+    const isTemplate = node instanceof TmplAstTemplate;
+
+    const regularAttrs = [...node.attributes, ...node.inputs, ...node.outputs, ...node.references];
+
+    const templateAttrs = isTemplate ? [...node.templateAttrs] : [];
+    const allAttrsList = [...regularAttrs, ...templateAttrs];
+
+    const attributes = allAttrsList.map((attr: any) => ({
+      name: attr.name,
+      value: "value" in attr && attr.value ? String(attr.value) : "",
+    }));
+
+    const nodeName = isTemplate ? "ng-template" : node.name;
+    const foundElements = indexer.getElements(nodeName);
+
+    if (!isKnownHtmlTag(nodeName)) {
+      this.addAngularElementsToList(node, nodeName, foundElements, elements, document, offset, attributes);
+    }
+
+    // Process attributes
+    this.processAttributes(
+      regularAttrs,
+      templateAttrs,
+      nodeName,
+      attributes,
+      elements,
+      document,
+      offset,
+      text,
+      TmplAstBoundEvent,
+      TmplAstReference,
+      TmplAstBoundAttribute
+    );
+  }
+
+  private addAngularElementsToList(
+    node: any,
+    nodeName: string,
+    foundElements: any[],
+    elements: any[],
+    document: vscode.TextDocument,
+    offset: number,
+    attributes: any[]
+  ): void {
+    for (const candidate of foundElements) {
+      const isKnownAngularElement = candidate.type === "component" || candidate.type === "directive";
+
+      if (isKnownAngularElement) {
+        elements.push({
+          name: nodeName,
+          type: candidate.type,
+          isAttribute: false,
+          range: new vscode.Range(
+            document.positionAt(offset + node.startSourceSpan.start.offset),
+            document.positionAt(offset + node.startSourceSpan.end.offset)
+          ),
+          tagName: nodeName,
+          attributes,
+        });
+      }
+    }
+  }
+
+  private processAttributes(
+    regularAttrs: any[],
+    templateAttrs: any[],
+    nodeName: string,
+    attributes: any[],
+    elements: any[],
+    document: vscode.TextDocument,
+    offset: number,
+    text: string,
+    TmplAstBoundEvent: any,
+    TmplAstReference: any,
+    TmplAstBoundAttribute: any
+  ): void {
+    const processAttribute = (attr: any, isTemplateAttr: boolean) => {
+      this.processSingleAttribute(
+        attr,
+        isTemplateAttr,
+        nodeName,
+        attributes,
+        elements,
+        document,
+        offset,
+        text,
+        TmplAstBoundEvent,
+        TmplAstReference,
+        TmplAstBoundAttribute
+      );
+    };
+
+    for (const attr of regularAttrs) {
+      processAttribute(attr, false);
+    }
+    for (const attr of templateAttrs) {
+      processAttribute(attr, true);
+    }
+  }
+
+  private processSingleAttribute(
+    attr: any,
+    isTemplateAttr: boolean,
+    nodeName: string,
+    attributes: any[],
+    elements: any[],
+    document: vscode.TextDocument,
+    offset: number,
+    text: string,
+    TmplAstBoundEvent: any,
+    TmplAstReference: any,
+    TmplAstBoundAttribute: any
+  ): void {
+    const keySpan = attr.keySpan ?? attr.sourceSpan;
+    if (!keySpan) return;
+
+    // Skip event bindings, as they are not importable directives.
+    if (attr instanceof TmplAstBoundEvent) return;
+
+    let type = "attribute";
+    if (attr instanceof TmplAstReference) {
+      type = "template-reference";
+    } else if (isTemplateAttr || attr.name.startsWith("*")) {
+      type = "structural-directive";
+    } else if (attr instanceof TmplAstBoundAttribute) {
+      type = "property-binding";
+    }
+
+    elements.push({
+      name: attr.name,
+      type: type,
+      isAttribute: true,
+      range: new vscode.Range(
+        document.positionAt(offset + keySpan.start.offset),
+        document.positionAt(offset + keySpan.end.offset)
+      ),
+      tagName: nodeName,
+      attributes,
+    });
+
+    // Check for pipes in bound attribute values (like *ngIf="expression | pipe")
+    if (attr instanceof TmplAstBoundAttribute && attr.value) {
+      const valueSpan = attr.valueSpan || attr.sourceSpan;
+      if (valueSpan) {
+        const expressionText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
+        const pipes = this._findPipesInExpression(expressionText, document, offset, valueSpan.start.offset);
+        for (const pipe of pipes) {
+          elements.push({ ...pipe, isAttribute: false, attributes: [] });
+        }
+      }
+    }
+  }
+
+  private processBoundTextNode(
+    node: any,
+    elements: any[],
+    document: vscode.TextDocument,
+    offset: number,
+    text: string
+  ): void {
+    const pipes = this._findPipesInExpression(
+      text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset),
+      document,
+      offset,
+      node.sourceSpan.start.offset
+    );
+    for (const pipe of pipes) {
+      elements.push({ ...pipe, isAttribute: false, attributes: [] });
+    }
+  }
+
+  private hasChildren(node: any): boolean {
+    return node && typeof node === "object" && "children" in node && Array.isArray(node.children);
   }
 
   private getSeverityFromConfig(severityLevel: string): vscode.DiagnosticSeverity {
