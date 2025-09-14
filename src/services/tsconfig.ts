@@ -29,7 +29,7 @@ class TrieNode {
  * @internal
  */
 class PathAliasTrie {
-  private root: TrieNode = new TrieNode();
+  private readonly root: TrieNode = new TrieNode();
 
   constructor(tsconfig: ProcessedTsConfig) {
     this.buildTrie(tsconfig);

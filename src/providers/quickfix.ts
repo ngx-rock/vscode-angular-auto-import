@@ -22,7 +22,7 @@ import type { ProviderContext } from "./index";
 export class QuickfixImportProvider implements vscode.CodeActionProvider {
   public static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
-  constructor(private context: ProviderContext) {}
+  constructor(private readonly context: ProviderContext) {}
 
   async provideCodeActions(
     document: vscode.TextDocument,

@@ -19,7 +19,18 @@ import * as vscode from "vscode";
 import { knownTags } from "../consts";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
-import type { AngularElementData, ParsedHtmlElement } from "../types";
+import type {
+  AngularElementData,
+  ControlFlowNode,
+  ParsedHtmlElement,
+  TemplateAstNode,
+  TmplAstBoundAttribute,
+  TmplAstBoundEvent,
+  TmplAstBoundText,
+  TmplAstElement,
+  TmplAstReference,
+  TmplAstTemplate,
+} from "../types";
 import { getAngularElements, isStandalone, switchFileType } from "../utils";
 import { debounce } from "../utils/debounce";
 import type { ProviderContext } from "./index";
@@ -28,20 +39,21 @@ import type { ProviderContext } from "./index";
  * Provides diagnostics for Angular templates.
  */
 export class DiagnosticProvider {
-  private diagnosticCollection: vscode.DiagnosticCollection;
+  private readonly diagnosticCollection: vscode.DiagnosticCollection;
   private disposables: vscode.Disposable[] = [];
-  private candidateDiagnostics: Map<string, vscode.Diagnostic[]> = new Map();
-  private templateCache = new Map<string, { version: number; nodes: unknown[] }>();
+  private readonly candidateDiagnostics: Map<string, vscode.Diagnostic[]> = new Map();
+  private readonly templateCache = new Map<string, { version: number; nodes: unknown[] }>();
   // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+  // biome-ignore lint/style/useReadonlyClassProperties: This property is assigned in loadCompiler()
   private compiler: any | null = null;
   /**
    * Cache for storing whether a specific Angular element (component, directive, pipe) is imported in a given TypeScript component file.
    * Key: path to the TypeScript component file.
    * Value: Map where key is the Angular element name (e.g., 'MyComponent') and value is a boolean indicating if it's imported.
    */
-  private importedElementsCache = new Map<string, Map<string, boolean>>();
+  private readonly importedElementsCache = new Map<string, Map<string, boolean>>();
 
-  constructor(private context: ProviderContext) {
+  constructor(private readonly context: ProviderContext) {
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection("angular-auto-import");
     this.loadCompiler();
   }
@@ -373,28 +385,19 @@ export class DiagnosticProvider {
         this.templateCache.set(cacheKey, { version: currentVersion, nodes });
       }
 
-      type CompilerModule = typeof this.compiler;
-
-      type AttributeNode =
-        | InstanceType<CompilerModule["TmplAstBoundAttribute"]>
-        | InstanceType<CompilerModule["TmplAstBoundEvent"]>
-        | InstanceType<CompilerModule["TmplAstReference"]>;
-
-      const extractPipesFromExpression = (
-        expression: { sourceSpan?: { start: number; end: number } },
-        nodeOffset: number = 0
-      ) => {
-        if (!expression || !expression.sourceSpan) {
+      const extractPipesFromExpression = (expression: unknown, nodeOffset: number = 0) => {
+        if (!expression || typeof expression !== "object" || !("sourceSpan" in expression) || !expression.sourceSpan) {
           return;
         }
 
         try {
-          const expressionText = text.slice(expression.sourceSpan.start, expression.sourceSpan.end);
+          const expr = expression as { sourceSpan: { start: number; end: number } };
+          const expressionText = text.slice(expr.sourceSpan.start, expr.sourceSpan.end);
           const pipes = this._findPipesInExpression(
             expressionText,
             document,
             offset + nodeOffset,
-            expression.sourceSpan.start
+            expr.sourceSpan.start
           );
           for (const pipe of pipes) {
             elements.push({ ...pipe, isAttribute: false, attributes: [] });
@@ -773,20 +776,20 @@ export class DiagnosticProvider {
   }
 
   private processTemplateNode(
-    node: any,
-    visit: (nodesList: any[]) => void,
-    extractPipesFromExpression: (expression: any, nodeOffset?: number) => void,
-    elements: any[],
+    node: TemplateAstNode,
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void,
+    elements: ParsedHtmlElement[],
     document: vscode.TextDocument,
     offset: number,
     text: string,
-    indexer: any,
-    TmplAstElement: any,
-    TmplAstTemplate: any,
-    TmplAstBoundEvent: any,
-    TmplAstReference: any,
-    TmplAstBoundAttribute: any,
-    TmplAstBoundText: any
+    indexer: AngularIndexer,
+    TmplAstElement: new (...args: unknown[]) => TmplAstElement,
+    TmplAstTemplate: new (...args: unknown[]) => TmplAstTemplate,
+    TmplAstBoundEvent: new (...args: unknown[]) => TmplAstBoundEvent,
+    TmplAstReference: new (...args: unknown[]) => TmplAstReference,
+    TmplAstBoundAttribute: new (...args: unknown[]) => TmplAstBoundAttribute,
+    TmplAstBoundText: new (...args: unknown[]) => TmplAstBoundText
   ): void {
     const nodeName = node.constructor.name;
 
@@ -817,6 +820,7 @@ export class DiagnosticProvider {
 
     // Handle regular children for non-control-flow nodes
     if (this.hasChildren(node) && !this.isControlFlowNode(nodeName)) {
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
       visit(node.children);
     }
   }
@@ -828,9 +832,9 @@ export class DiagnosticProvider {
   }
 
   private processControlFlowNode(
-    controlFlowNode: any,
-    visit: (nodesList: any[]) => void,
-    extractPipesFromExpression: (expression: any, nodeOffset?: number) => void
+    controlFlowNode: ControlFlowNode,
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
   ): void {
     // Check for pipes in main expression (condition/iterator)
     if (controlFlowNode.expression) {
@@ -850,9 +854,9 @@ export class DiagnosticProvider {
   }
 
   private processControlFlowBranchesAndCases(
-    controlFlowNode: any,
-    visit: (nodesList: any[]) => void,
-    extractPipesFromExpression: (expression: any, nodeOffset?: number) => void
+    controlFlowNode: ControlFlowNode,
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
   ): void {
     // Handle branches (@if/@else/@else if)
     if (controlFlowNode.branches && Array.isArray(controlFlowNode.branches)) {
@@ -879,16 +883,19 @@ export class DiagnosticProvider {
     }
   }
 
-  private processControlFlowSpecialBlocks(controlFlowNode: any, visit: (nodesList: any[]) => void): void {
+  private processControlFlowSpecialBlocks(
+    controlFlowNode: ControlFlowNode,
+    visit: (nodesList: TemplateAstNode[]) => void
+  ): void {
     // Handle @for empty block
-    const emptyBlock = controlFlowNode.empty as { children?: any[] };
+    const emptyBlock = controlFlowNode.empty as { children?: TemplateAstNode[] };
     if (emptyBlock?.children && Array.isArray(emptyBlock.children)) {
       visit(emptyBlock.children);
     }
 
     // Handle @defer sub-blocks (placeholder, loading, error)
     ["placeholder", "loading", "error"].forEach((blockType) => {
-      const block = controlFlowNode[blockType] as { children?: any[] };
+      const block = (controlFlowNode as Record<string, unknown>)[blockType] as { children?: TemplateAstNode[] };
       if (block?.children) {
         visit(block.children);
       }
@@ -896,26 +903,30 @@ export class DiagnosticProvider {
   }
 
   private processElementOrTemplateNode(
-    node: any,
-    elements: any[],
+    node: TmplAstElement | TmplAstTemplate,
+    elements: ParsedHtmlElement[],
     document: vscode.TextDocument,
     offset: number,
     text: string,
-    indexer: any,
-    TmplAstTemplate: any,
-    TmplAstBoundEvent: any,
-    TmplAstReference: any,
-    TmplAstBoundAttribute: any
+    indexer: AngularIndexer,
+    TmplAstTemplate: new (...args: unknown[]) => TmplAstTemplate,
+    TmplAstBoundEvent: new (...args: unknown[]) => TmplAstBoundEvent,
+    TmplAstReference: new (...args: unknown[]) => TmplAstReference,
+    TmplAstBoundAttribute: new (...args: unknown[]) => TmplAstBoundAttribute
   ): void {
     const isTemplate = node instanceof TmplAstTemplate;
 
+    // @ts-expect-error: Complex Angular template AST node types from ts-morph
     const regularAttrs = [...node.attributes, ...node.inputs, ...node.outputs, ...node.references];
 
+    // @ts-expect-error: Complex Angular template AST node types from ts-morph
     const templateAttrs = isTemplate ? [...node.templateAttrs] : [];
     const allAttrsList = [...regularAttrs, ...templateAttrs];
 
-    const attributes = allAttrsList.map((attr: any) => ({
+    const attributes = allAttrsList.map((attr: unknown) => ({
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
       name: attr.name,
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
       value: "value" in attr && attr.value ? String(attr.value) : "",
     }));
 
@@ -943,13 +954,13 @@ export class DiagnosticProvider {
   }
 
   private addAngularElementsToList(
-    node: any,
+    node: TmplAstElement | TmplAstTemplate,
     nodeName: string,
-    foundElements: any[],
-    elements: any[],
+    foundElements: AngularElementData[],
+    elements: ParsedHtmlElement[],
     document: vscode.TextDocument,
     offset: number,
-    attributes: any[]
+    attributes: Array<{ name: string; value: string }>
   ): void {
     for (const candidate of foundElements) {
       const isKnownAngularElement = candidate.type === "component" || candidate.type === "directive";
@@ -957,10 +968,13 @@ export class DiagnosticProvider {
       if (isKnownAngularElement) {
         elements.push({
           name: nodeName,
+          // @ts-expect-error: Complex Angular template AST node types from ts-morph
           type: candidate.type,
           isAttribute: false,
           range: new vscode.Range(
+            // @ts-expect-error: Complex Angular template AST node types from ts-morph
             document.positionAt(offset + node.startSourceSpan.start.offset),
+            // @ts-expect-error: Complex Angular template AST node types from ts-morph
             document.positionAt(offset + node.startSourceSpan.end.offset)
           ),
           tagName: nodeName,
@@ -971,19 +985,19 @@ export class DiagnosticProvider {
   }
 
   private processAttributes(
-    regularAttrs: any[],
-    templateAttrs: any[],
+    regularAttrs: unknown[],
+    templateAttrs: unknown[],
     nodeName: string,
-    attributes: any[],
-    elements: any[],
+    attributes: Array<{ name: string; value: string }>,
+    elements: ParsedHtmlElement[],
     document: vscode.TextDocument,
     offset: number,
     text: string,
-    TmplAstBoundEvent: any,
-    TmplAstReference: any,
-    TmplAstBoundAttribute: any
+    TmplAstBoundEvent: new (...args: unknown[]) => TmplAstBoundEvent,
+    TmplAstReference: new (...args: unknown[]) => TmplAstReference,
+    TmplAstBoundAttribute: new (...args: unknown[]) => TmplAstBoundAttribute
   ): void {
-    const processAttribute = (attr: any, isTemplateAttr: boolean) => {
+    const processAttribute = (attr: unknown, isTemplateAttr: boolean) => {
       this.processSingleAttribute(
         attr,
         isTemplateAttr,
@@ -1008,27 +1022,33 @@ export class DiagnosticProvider {
   }
 
   private processSingleAttribute(
-    attr: any,
+    attr: unknown,
     isTemplateAttr: boolean,
     nodeName: string,
-    attributes: any[],
-    elements: any[],
+    attributes: Array<{ name: string; value: string }>,
+    elements: ParsedHtmlElement[],
     document: vscode.TextDocument,
     offset: number,
     text: string,
-    TmplAstBoundEvent: any,
-    TmplAstReference: any,
-    TmplAstBoundAttribute: any
+    TmplAstBoundEvent: new (...args: unknown[]) => TmplAstBoundEvent,
+    TmplAstReference: new (...args: unknown[]) => TmplAstReference,
+    TmplAstBoundAttribute: new (...args: unknown[]) => TmplAstBoundAttribute
   ): void {
+    // @ts-expect-error: Complex Angular template AST node types from ts-morph
     const keySpan = attr.keySpan ?? attr.sourceSpan;
-    if (!keySpan) return;
+    if (!keySpan) {
+      return;
+    }
 
     // Skip event bindings, as they are not importable directives.
-    if (attr instanceof TmplAstBoundEvent) return;
+    if (attr instanceof TmplAstBoundEvent) {
+      return;
+    }
 
     let type = "attribute";
     if (attr instanceof TmplAstReference) {
       type = "template-reference";
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
     } else if (isTemplateAttr || attr.name.startsWith("*")) {
       type = "structural-directive";
     } else if (attr instanceof TmplAstBoundAttribute) {
@@ -1036,7 +1056,9 @@ export class DiagnosticProvider {
     }
 
     elements.push({
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
       name: attr.name,
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
       type: type,
       isAttribute: true,
       range: new vscode.Range(
@@ -1049,11 +1071,13 @@ export class DiagnosticProvider {
 
     // Check for pipes in bound attribute values (like *ngIf="expression | pipe")
     if (attr instanceof TmplAstBoundAttribute && attr.value) {
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
       const valueSpan = attr.valueSpan || attr.sourceSpan;
       if (valueSpan) {
         const expressionText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
         const pipes = this._findPipesInExpression(expressionText, document, offset, valueSpan.start.offset);
         for (const pipe of pipes) {
+          // @ts-expect-error: Complex Angular template AST node types from ts-morph
           elements.push({ ...pipe, isAttribute: false, attributes: [] });
         }
       }
@@ -1061,24 +1085,28 @@ export class DiagnosticProvider {
   }
 
   private processBoundTextNode(
-    node: any,
-    elements: any[],
+    node: TmplAstBoundText,
+    elements: ParsedHtmlElement[],
     document: vscode.TextDocument,
     offset: number,
     text: string
   ): void {
     const pipes = this._findPipesInExpression(
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
       text.slice(node.sourceSpan.start.offset, node.sourceSpan.end.offset),
       document,
       offset,
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
       node.sourceSpan.start.offset
     );
     for (const pipe of pipes) {
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
       elements.push({ ...pipe, isAttribute: false, attributes: [] });
     }
   }
 
-  private hasChildren(node: any): boolean {
+  private hasChildren(node: unknown): boolean {
+    // @ts-expect-error: Complex Angular template AST node types from ts-morph
     return node && typeof node === "object" && "children" in node && Array.isArray(node.children);
   }
 

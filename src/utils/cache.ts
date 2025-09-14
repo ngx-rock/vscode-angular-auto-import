@@ -11,8 +11,8 @@
  * @template V The type of the values in the cache.
  */
 export class LruCache<K, V> {
-  private capacity: number;
-  private cache = new Map<K, V>();
+  private readonly capacity: number;
+  private readonly cache = new Map<K, V>();
 
   /**
    * Creates an instance of LRUCache.

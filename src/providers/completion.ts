@@ -9,7 +9,7 @@ import * as path from "node:path";
 import type { SourceFile } from "ts-morph";
 import * as vscode from "vscode";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
-import { AngularElementData } from "../types";
+import { AngularElementData, type ProcessedTsConfig } from "../types";
 import { isStandalone, LruCache, switchFileType } from "../utils";
 import { isInsideTemplateString } from "../utils/template-detection";
 import type { ProviderContext } from "./index";
@@ -47,7 +47,7 @@ interface ProjectContextForCompletion {
     project: import("ts-morph").Project;
   };
   projectRootPath: string;
-  tsConfig: any;
+  tsConfig: ProcessedTsConfig | null;
 }
 
 /**
@@ -56,10 +56,10 @@ interface ProjectContextForCompletion {
  * high performance and prevent crashes from invalid template syntax during typing.
  */
 export class CompletionProvider implements vscode.CompletionItemProvider, vscode.Disposable {
-  private standaloneCache = new LruCache<string, boolean>(50);
-  private disposables: vscode.Disposable[] = [];
+  private readonly standaloneCache = new LruCache<string, boolean>(50);
+  private readonly disposables: vscode.Disposable[] = [];
 
-  constructor(private context: ProviderContext) {
+  constructor(private readonly context: ProviderContext) {
     this.disposables.push(
       vscode.workspace.onDidSaveTextDocument((document) => {
         this.standaloneCache.delete(document.fileName);

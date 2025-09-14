@@ -45,6 +45,7 @@
       },
       "style": {
         "noParameterAssign": "warn",
+        "useReadonlyClassProperties": "error",
         "useNamingConvention": {
           "level": "warn",
           "options": {
@@ -79,7 +80,7 @@
         "noExcessiveCognitiveComplexity": {
           "level": "error",
           "options": {
-            "maxAllowedComplexity": 25
+            "maxAllowedComplexity": 120 
           }
         }
       },

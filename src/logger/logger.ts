@@ -14,7 +14,7 @@ export class Logger {
   private readonly sessionId: string;
   private extensionVersion: string;
   private context: vscode.ExtensionContext | null = null;
-  private logPoints = new Map<string, LogPoint>();
+  private readonly logPoints = new Map<string, LogPoint>();
 
   private getLogLevelValue(level: LogLevel): number {
     switch (level) {

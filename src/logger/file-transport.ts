@@ -8,9 +8,9 @@ export class FileTransport implements Transport {
   private readonly context: vscode.ExtensionContext;
   private logDirectory!: string;
   private logFilePath!: string;
-  private buffer: LogEntry[] = [];
+  private readonly buffer: LogEntry[] = [];
   private isWriting = false;
-  private flushInterval: NodeJS.Timeout;
+  private readonly flushInterval: NodeJS.Timeout;
 
   constructor(config: LoggerConfig, context: vscode.ExtensionContext) {
     this.config = config;
