@@ -10,6 +10,7 @@ Streamline your Angular development with intelligent, automatic imports for comp
 ## Features
 
 - **⚡️ Automatic Imports**: Get quick fix suggestions to import Angular elements that are not yet included in your component's module.
+- **🚀 Fix All Command**: Automatically import all missing Angular elements in the current file with a single command.
 - **💡 Smart Completions**: Autocomplete for component tags, directives, and pipes in HTML templates (`.html`) and inline templates within TypeScript files.
 - **🔍 Diagnostics**: Identifies unknown Angular elements in your templates and provides quick fixes.
 - **📦 External Library Support**: Auto-import components, directives, and pipes from external packages (both standalone and module-based).
@@ -58,6 +59,16 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 - **Performance issues**: For very large projects, consider increasing `angular-auto-import.index.refreshInterval` or setting `angular-auto-import.projectPath` to a specific sub-project root (e.g., `src/` folder to skip node_modules).
 - **Incorrect imports**: Ensure your `tsconfig.json` `baseUrl` and `paths` are correctly configured.
  
+## Commands
+
+The following commands are available from the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
+
+- **Angular Auto Import: Fix all missing imports in current file**: Automatically imports all components, directives, and pipes that are used in the current file but not yet imported.
+- **Angular Auto Import: Reindex Project(s)**: Manually triggers a reindex of your project to discover all available Angular elements.
+- **Angular Auto Import: Clear Cache**: Clears the extension's cache. Use this if you encounter persistent issues.
+- **Angular Auto Import: Show Logs**: Opens the extension's output channel to view logs.
+- **Angular Auto Import: Show Performance Metrics**: Displays a panel with memory and CPU usage statistics.
+
 ---
 
 ## Limitations
@@ -66,8 +77,4 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 
 **Standalone Projects Only**: This extension is designed to work exclusively with standalone Angular projects. Traditional NgModule-based projects are not supported.
 
---- 
-
-## License
-
-[MIT License](LICENSE).
+ 

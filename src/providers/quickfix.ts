@@ -22,7 +22,7 @@ import type { ProviderContext } from "./index";
 export class QuickfixImportProvider implements vscode.CodeActionProvider {
   public static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
-  constructor(private context: ProviderContext) {}
+  constructor(private readonly context: ProviderContext) {}
 
   async provideCodeActions(
     document: vscode.TextDocument,
@@ -30,28 +30,13 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     context: vscode.CodeActionContext,
     token: vscode.CancellationToken
   ): Promise<(vscode.Command | vscode.CodeAction)[]> {
-    // Check for null context or diagnostics before proceeding
-    if (!context || !context.diagnostics || !Array.isArray(context.diagnostics)) {
+    const filteredDiagnostics = this.filterRelevantDiagnostics(context, range);
+    if (filteredDiagnostics.length === 0) {
       return [];
     }
-
-    // Correctly filter diagnostics: an intersection is enough to offer a fix.
-    const diagnosticsToFix = context.diagnostics.filter((diagnostic) => diagnostic.range.intersection(range));
-
-    if (diagnosticsToFix.length === 0) {
-      return [];
-    }
-
-    // Pass the filtered diagnostics to the rest of the function
-    const newContext = { ...context, diagnostics: diagnosticsToFix };
 
     try {
-      // Check for cancellation
       if (token?.isCancellationRequested) {
-        return [];
-      }
-
-      if (!newContext.diagnostics || !Array.isArray(newContext.diagnostics)) {
         return [];
       }
 
@@ -60,60 +45,93 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
         return [];
       }
 
-      const { indexer } = projCtx;
-      const actions: vscode.CodeAction[] = [];
-
-      for (const diagnostic of newContext.diagnostics) {
-        if (!diagnostic || !diagnostic.message) {
-          continue;
-        }
-
-        try {
-          if (this.isFixableDiagnostic(diagnostic)) {
-            const quickFixes = await this.createQuickFixesForDiagnostic(diagnostic, indexer, document);
-
-            actions.push(...quickFixes);
-          }
-        } catch (error) {
-          logger.error("QuickfixImportProvider: Error processing diagnostic:", error as Error);
-        }
-      }
-
-      // Deduplicate actions
-      const dedupedActionsMap = new Map<string, vscode.CodeAction>();
-      for (const action of actions) {
-        const cmd = action.command?.command || "";
-        const args = JSON.stringify(action.command?.arguments || []);
-        const key = `${cmd}:${args}`;
-
-        if (dedupedActionsMap.has(key)) {
-          const existingAction = dedupedActionsMap.get(key);
-          if (!existingAction) {
-            continue;
-          }
-          if (action.isPreferred && !existingAction.isPreferred) {
-            dedupedActionsMap.set(key, action);
-          }
-        } else {
-          dedupedActionsMap.set(key, action);
-        }
-      }
-
-      const uniqueActions = Array.from(dedupedActionsMap.values()).sort((a, b) => {
-        if (a.isPreferred && !b.isPreferred) {
-          return -1;
-        }
-        if (!a.isPreferred && b.isPreferred) {
-          return 1;
-        }
-        return a.title.localeCompare(b.title);
-      });
-
-      return uniqueActions;
+      const actions = await this.generateQuickFixActions(filteredDiagnostics, projCtx.indexer, document);
+      return this.deduplicateAndSortActions(actions);
     } catch (error) {
       logger.error("QuickfixImportProvider: Critical error in provideCodeActions:", error as Error);
       return [];
     }
+  }
+
+  /**
+   * Filters diagnostics that are relevant to the current range.
+   */
+  private filterRelevantDiagnostics(
+    context: vscode.CodeActionContext,
+    range: vscode.Range | vscode.Selection
+  ): vscode.Diagnostic[] {
+    if (!context || !context.diagnostics || !Array.isArray(context.diagnostics)) {
+      return [];
+    }
+
+    return context.diagnostics.filter((diagnostic) => diagnostic.range.intersection(range));
+  }
+
+  /**
+   * Generates quick fix actions for filtered diagnostics.
+   */
+  private async generateQuickFixActions(
+    diagnostics: vscode.Diagnostic[],
+    indexer: AngularIndexer,
+    document: vscode.TextDocument
+  ): Promise<vscode.CodeAction[]> {
+    const actions: vscode.CodeAction[] = [];
+
+    for (const diagnostic of diagnostics) {
+      if (!diagnostic || !diagnostic.message) {
+        continue;
+      }
+
+      try {
+        if (this.isFixableDiagnostic(diagnostic)) {
+          const quickFixes = await this.createQuickFixesForDiagnostic(diagnostic, indexer, document);
+          actions.push(...quickFixes);
+        }
+      } catch (error) {
+        logger.error("QuickfixImportProvider: Error processing diagnostic:", error as Error);
+      }
+    }
+
+    return actions;
+  }
+
+  /**
+   * Deduplicates and sorts code actions.
+   */
+  private deduplicateAndSortActions(actions: vscode.CodeAction[]): vscode.CodeAction[] {
+    const dedupedActionsMap = new Map<string, vscode.CodeAction>();
+
+    for (const action of actions) {
+      const key = this.getActionKey(action);
+      const existingAction = dedupedActionsMap.get(key);
+
+      if (existingAction) {
+        if (action.isPreferred && !existingAction.isPreferred) {
+          dedupedActionsMap.set(key, action);
+        }
+      } else {
+        dedupedActionsMap.set(key, action);
+      }
+    }
+
+    return Array.from(dedupedActionsMap.values()).sort((a, b) => {
+      if (a.isPreferred && !b.isPreferred) {
+        return -1;
+      }
+      if (!a.isPreferred && b.isPreferred) {
+        return 1;
+      }
+      return a.title.localeCompare(b.title);
+    });
+  }
+
+  /**
+   * Creates a unique key for an action for deduplication.
+   */
+  private getActionKey(action: vscode.CodeAction): string {
+    const cmd = action.command?.command || "";
+    const args = JSON.stringify(action.command?.arguments || []);
+    return `${cmd}:${args}`;
   }
 
   private isFixableDiagnostic(diagnostic: vscode.Diagnostic): boolean {

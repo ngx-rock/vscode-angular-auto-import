@@ -10,10 +10,12 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import type { ExtensionConfig } from "../config";
 import { logger } from "../logger";
+import type { DiagnosticProvider } from "../providers/diagnostics";
 import type { AngularIndexer } from "../services";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
-import { importElementToFile, switchFileType } from "../utils";
+import { importElementsToFile, switchFileType } from "../utils";
+import { getAngularElementAsync } from "../utils/angular";
 
 /**
  * Context object containing shared state and dependencies for extension commands.
@@ -35,6 +37,7 @@ export interface CommandContext {
   projectTsConfigs: Map<string, ProcessedTsConfig | null>;
   /** Current extension configuration settings */
   extensionConfig: ExtensionConfig;
+  diagnosticProvider?: DiagnosticProvider;
 }
 
 /**
@@ -60,63 +63,14 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
   // Re-index command
   const reindexCommand = vscode.commands.registerCommand("angular-auto-import.reindex", async () => {
     logger.info("Reindex command invoked by user");
-    const activeEditor = vscode.window.activeTextEditor;
-    const projectsToReindex: string[] = [];
-
-    if (activeEditor) {
-      const projCtx = getProjectContextForDocument(activeEditor.document, commandContext);
-      if (projCtx) {
-        projectsToReindex.push(projCtx.projectRootPath);
-        // Targeting active editor's project
-      }
-    }
-
-    if (projectsToReindex.length === 0) {
-      // If no active editor or not in a known project, reindex all
-      commandContext.projectIndexers.forEach((_, projectRootPath) => {
-        projectsToReindex.push(projectRootPath);
-      });
-      if (projectsToReindex.length > 0) {
-        // Targeting all known projects
-      }
-    }
+    const projectsToReindex = getProjectsToReindex(commandContext);
 
     if (projectsToReindex.length === 0) {
       vscode.window.showInformationMessage("Angular Auto-Import: No project found to reindex.");
       return;
     }
 
-    for (const projectRootPath of projectsToReindex) {
-      const result = await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: `Angular Auto-Import: Reindexing ${path.basename(projectRootPath)}`,
-          cancellable: false,
-        },
-        async (progress) => {
-          const indexer = commandContext.projectIndexers.get(projectRootPath);
-          if (indexer) {
-            TsConfigHelper.clearCache(projectRootPath);
-            const newTsConfig = await TsConfigHelper.findAndParseTsConfig(projectRootPath);
-            commandContext.projectTsConfigs.set(projectRootPath, newTsConfig);
-            await generateIndexForProject(projectRootPath, indexer, context, progress);
-            const newSize = Array.from(indexer.getAllSelectors()).length;
-            return { newSize, success: true };
-          }
-          return { newSize: 0, success: false };
-        }
-      );
-
-      if (result.success) {
-        vscode.window.showInformationMessage(
-          `✅ Reindex of ${path.basename(projectRootPath)} successful. Found ${result.newSize} elements.`
-        );
-      } else {
-        vscode.window.showWarningMessage(
-          `Indexer not found for project ${path.basename(projectRootPath)}. Cannot reindex.`
-        );
-      }
-    }
+    await reindexProjects(projectsToReindex, commandContext, context);
   });
   context.subscriptions.push(reindexCommand);
 
@@ -271,6 +225,24 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
     }
   });
   context.subscriptions.push(showMetricsCommand);
+
+  // Fix all diagnostics command
+  const fixAllCommand = vscode.commands.registerCommand("angular-auto-import.fix-all", async () => {
+    logger.info("Fix all command invoked by user");
+    const fixAllResult = await processFixAllCommand(commandContext);
+
+    if (!fixAllResult.success) {
+      vscode.window.showInformationMessage(fixAllResult.message || "Unknown error occurred.");
+      return;
+    }
+
+    const { elementsToImport, projectRootPath, tsConfig, indexer } = fixAllResult;
+
+    if (elementsToImport && projectRootPath && tsConfig && indexer) {
+      await importElementsCommandLogic(Array.from(elementsToImport.values()), projectRootPath, tsConfig, indexer);
+    }
+  });
+  context.subscriptions.push(fixAllCommand);
 }
 
 /**
@@ -380,6 +352,176 @@ function getWebviewContent(metricsReport: string): string {
  * await generateIndexForProject('/path/to/project', indexer, context);
  * ```
  */
+/**
+ * Gets the list of projects to reindex based on current context.
+ */
+function getProjectsToReindex(commandContext: CommandContext): string[] {
+  const projectsToReindex: string[] = [];
+  const activeEditor = vscode.window.activeTextEditor;
+
+  if (activeEditor) {
+    const projCtx = getProjectContextForDocument(activeEditor.document, commandContext);
+    if (projCtx) {
+      projectsToReindex.push(projCtx.projectRootPath);
+    }
+  }
+
+  if (projectsToReindex.length === 0) {
+    // If no active editor or not in a known project, reindex all
+    commandContext.projectIndexers.forEach((_, projectRootPath) => {
+      projectsToReindex.push(projectRootPath);
+    });
+  }
+
+  return projectsToReindex;
+}
+
+/**
+ * Reindexes the specified projects and shows appropriate feedback.
+ */
+async function reindexProjects(
+  projectsToReindex: string[],
+  commandContext: CommandContext,
+  context: vscode.ExtensionContext
+): Promise<void> {
+  for (const projectRootPath of projectsToReindex) {
+    const result = await reindexSingleProject(projectRootPath, commandContext, context);
+    showReindexResult(projectRootPath, result);
+  }
+}
+
+/**
+ * Reindexes a single project and returns the result.
+ */
+async function reindexSingleProject(
+  projectRootPath: string,
+  commandContext: CommandContext,
+  context: vscode.ExtensionContext
+): Promise<{ newSize: number; success: boolean }> {
+  return vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: `Angular Auto-Import: Reindexing ${path.basename(projectRootPath)}`,
+      cancellable: false,
+    },
+    async (progress) => {
+      const indexer = commandContext.projectIndexers.get(projectRootPath);
+      if (indexer) {
+        TsConfigHelper.clearCache(projectRootPath);
+        const newTsConfig = await TsConfigHelper.findAndParseTsConfig(projectRootPath);
+        commandContext.projectTsConfigs.set(projectRootPath, newTsConfig);
+        await generateIndexForProject(projectRootPath, indexer, context, progress);
+        const newSize = Array.from(indexer.getAllSelectors()).length;
+        return { newSize, success: true };
+      }
+      return { newSize: 0, success: false };
+    }
+  );
+}
+
+/**
+ * Shows appropriate feedback message for reindex result.
+ */
+function showReindexResult(projectRootPath: string, result: { newSize: number; success: boolean }): void {
+  if (result.success) {
+    vscode.window.showInformationMessage(
+      `✅ Reindex of ${path.basename(projectRootPath)} successful. Found ${result.newSize} elements.`
+    );
+  } else {
+    vscode.window.showWarningMessage(
+      `Indexer not found for project ${path.basename(projectRootPath)}. Cannot reindex.`
+    );
+  }
+}
+
+/**
+ * Processes the fix-all command and returns the result.
+ */
+async function processFixAllCommand(commandContext: CommandContext): Promise<{
+  success: boolean;
+  message?: string;
+  elementsToImport?: Map<string, AngularElementData>;
+  projectRootPath?: string;
+  tsConfig?: ProcessedTsConfig | null;
+  indexer?: AngularIndexer;
+}> {
+  const activeEditor = vscode.window.activeTextEditor;
+  if (!activeEditor) {
+    return { success: false, message: "No active editor to fix diagnostics for." };
+  }
+
+  const document = activeEditor.document;
+  if (commandContext.diagnosticProvider) {
+    await commandContext.diagnosticProvider.forceUpdateDiagnosticsForFile(document.fileName);
+  }
+  const diagnostics = getRelevantDiagnostics(document);
+
+  if (diagnostics.length === 0) {
+    return { success: false, message: "No auto-import diagnostics to fix." };
+  }
+
+  const projCtx = getProjectContextForDocument(document, commandContext);
+  if (!projCtx) {
+    return { success: false, message: "Could not determine project context for the active file." };
+  }
+
+  const elementsToImport = await resolveElementsFromDiagnostics(diagnostics, projCtx.indexer);
+
+  if (elementsToImport.size === 0) {
+    return { success: false, message: "Could not resolve any elements to import." };
+  }
+
+  return {
+    success: true,
+    elementsToImport,
+    projectRootPath: projCtx.projectRootPath,
+    tsConfig: projCtx.tsConfig,
+    indexer: projCtx.indexer,
+  };
+}
+
+/**
+ * Gets relevant auto-import diagnostics from a document.
+ */
+function getRelevantDiagnostics(document: vscode.TextDocument): vscode.Diagnostic[] {
+  return vscode.languages.getDiagnostics(document.uri).filter((d) => d.source === "angular-auto-import");
+}
+
+/**
+ * Resolves Angular elements from diagnostics.
+ */
+async function resolveElementsFromDiagnostics(
+  diagnostics: vscode.Diagnostic[],
+  indexer: AngularIndexer
+): Promise<Map<string, AngularElementData>> {
+  const elementsToImport = new Map<string, AngularElementData>();
+
+  for (const diagnostic of diagnostics) {
+    const selectorToSearch = extractSelectorFromDiagnostic(diagnostic);
+
+    if (selectorToSearch) {
+      const elementData = await getAngularElementAsync(selectorToSearch, indexer);
+      if (elementData && !elementsToImport.has(elementData.name)) {
+        elementsToImport.set(elementData.name, elementData);
+      }
+    }
+  }
+
+  return elementsToImport;
+}
+
+/**
+ * Extracts selector from diagnostic code.
+ */
+function extractSelectorFromDiagnostic(diagnostic: vscode.Diagnostic): string | null {
+  if (typeof diagnostic.code !== "string" || !diagnostic.code.includes(":")) {
+    return null;
+  }
+
+  const diagnosticCodeParts = (diagnostic.code as string).split(":");
+  return diagnosticCodeParts[1] || null;
+}
+
 async function generateIndexForProject(
   projectRootPath: string,
   indexer: AngularIndexer,
@@ -460,6 +602,65 @@ function getProjectContextForDocument(
 }
 
 /**
+ * Executes the core logic for importing one or more Angular elements into the current file.
+ *
+ * @param elements - An array of Angular elements to import.
+ * @param projectRootPath - Absolute path to the project root.
+ * @param tsConfig - Parsed TypeScript configuration for path resolution.
+ * @param indexer - Angular indexer containing the ts-morph project instance.
+ * @returns Promise that resolves to true if the import was successful, false otherwise.
+ */
+async function importElementsCommandLogic(
+  elements: AngularElementData[],
+  projectRootPath: string,
+  tsConfig: ProcessedTsConfig | null,
+  indexer: AngularIndexer
+): Promise<boolean> {
+  const activeEditor = vscode.window.activeTextEditor;
+  if (!activeEditor) {
+    vscode.window.showErrorMessage("No active file found.");
+    return false;
+  }
+  const currentFileAbs = activeEditor.document.fileName;
+
+  let activeComponentFileAbs = currentFileAbs;
+  if (currentFileAbs.endsWith(".html")) {
+    activeComponentFileAbs = switchFileType(currentFileAbs, ".ts");
+  }
+
+  if (!fs.existsSync(activeComponentFileAbs)) {
+    vscode.window.showErrorMessage(
+      `Component file not found for ${path.basename(currentFileAbs)}. Expected ${path.basename(
+        activeComponentFileAbs
+      )} or current file is not a .ts file.`
+    );
+    return false;
+  }
+
+  const success = await importElementsToFile(
+    elements,
+    activeComponentFileAbs,
+    projectRootPath,
+    indexer.project, // ts-morph Project instance
+    tsConfig
+  );
+
+  if (success) {
+    if (elements.length === 1) {
+      const elementData = elements[0];
+      vscode.window.showInformationMessage(
+        `${elementData.type} '${elementData.name}' processed for ${path.basename(activeComponentFileAbs)}.`
+      );
+    } else {
+      vscode.window.showInformationMessage(
+        `Successfully processed ${elements.length} elements for ${path.basename(activeComponentFileAbs)}.`
+      );
+    }
+  }
+  return success;
+}
+
+/**
  * Executes the core logic for importing an Angular element into the current file.
  *
  * This function handles the complete import workflow:
@@ -501,40 +702,5 @@ async function importElementCommandLogic(
     );
     return false;
   }
-
-  const activeEditor = vscode.window.activeTextEditor;
-  if (!activeEditor) {
-    vscode.window.showErrorMessage("No active file found.");
-    return false;
-  }
-  const currentFileAbs = activeEditor.document.fileName;
-
-  let activeComponentFileAbs = currentFileAbs;
-  if (currentFileAbs.endsWith(".html")) {
-    activeComponentFileAbs = switchFileType(currentFileAbs, ".ts");
-  }
-
-  if (!fs.existsSync(activeComponentFileAbs)) {
-    vscode.window.showErrorMessage(
-      `Component file not found for ${path.basename(currentFileAbs)}. Expected ${path.basename(
-        activeComponentFileAbs
-      )} or current file is not a .ts file.`
-    );
-    return false;
-  }
-
-  const success = await importElementToFile(
-    elementData,
-    activeComponentFileAbs,
-    projectRootPath,
-    indexer.project, // ts-morph Project instance
-    tsConfig
-  );
-
-  if (success) {
-    vscode.window.showInformationMessage(
-      `${elementData.type} '${elementData.name}' processed for ${path.basename(activeComponentFileAbs)}.`
-    );
-  }
-  return success;
+  return importElementsCommandLogic([elementData], projectRootPath, tsConfig, indexer);
 }

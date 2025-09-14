@@ -45,6 +45,7 @@
       },
       "style": {
         "noParameterAssign": "warn",
+        "useReadonlyClassProperties": "error",
         "useNamingConvention": {
           "level": "warn",
           "options": {
@@ -75,7 +76,13 @@
         "noUselessSwitchCase": "error",
         "noUselessTernary": "error",
         "noUselessThisAlias": "error",
-        "noUselessTypeConstraint": "error"
+        "noUselessTypeConstraint": "error",
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 120 
+          }
+        }
       },
       "suspicious": {
         "noExplicitAny": "error",

@@ -524,13 +524,14 @@ async function registerProvidersAndCommands(context: vscode.ExtensionContext): P
   };
 
   // Register providers first
-  registerProviders(context, providerContext);
+  const diagnosticProvider = registerProviders(context, providerContext);
 
   // Create command context
   const commandContext: CommandContext = {
     projectIndexers,
     projectTsConfigs,
     extensionConfig,
+    diagnosticProvider,
   };
 
   // Register commands

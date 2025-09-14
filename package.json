@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.11.2",
+  "version": "1.12.0",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"
@@ -68,6 +68,12 @@
         "title": "Show Performance Metrics",
         "category": "Angular Auto Import",
         "icon": "$(graph)"
+      },
+      {
+        "command": "angular-auto-import.fix-all",
+        "title": "Angular Auto Import: Fix all missing imports in current file",
+        "category": "Angular Auto Import",
+        "icon": "$(check-all)"
       }
     ],
     "configuration": {

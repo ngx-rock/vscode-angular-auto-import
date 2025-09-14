@@ -4,6 +4,12 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.12.0] - 2025-09-15
+
+### Added
+- **Fix All Command**: New command "Angular Auto Import: Fix all missing imports in current file" automatically imports all components, directives, and pipes that are used in the current file but not yet imported
+- **Improved Angular Import Path Handling**: Optimized Angular import path handling in indexer for better performance 
+
 ## [1.11.2] - 2025-09-12
 
 ### Fixed

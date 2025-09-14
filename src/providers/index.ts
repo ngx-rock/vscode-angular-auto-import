@@ -10,7 +10,6 @@ import type { ExtensionConfig } from "../config";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { ProcessedTsConfig } from "../types";
-import { setGlobalDiagnosticProvider } from "../utils";
 import { CompletionProvider } from "./completion";
 import { DiagnosticProvider } from "./diagnostics";
 import { QuickfixImportProvider } from "./quickfix";
@@ -42,7 +41,10 @@ export interface ProviderContext {
  * @param context The extension context.
  * @param providerContext The context to be shared among providers.
  */
-export function registerProviders(context: vscode.ExtensionContext, providerContext: ProviderContext): void {
+export function registerProviders(
+  context: vscode.ExtensionContext,
+  providerContext: ProviderContext
+): DiagnosticProvider | undefined {
   logger.info("🔌 Registering VSCode providers...");
 
   // Completion Provider
@@ -75,22 +77,25 @@ export function registerProviders(context: vscode.ExtensionContext, providerCont
   );
   context.subscriptions.push(quickfixDisposable);
 
+  let diagnosticProvider: DiagnosticProvider | undefined;
+
   // Diagnostic Provider (if enabled)
   if (providerContext.extensionConfig.diagnosticsEnabled) {
-    const diagnosticProvider = new DiagnosticProvider(providerContext);
+    diagnosticProvider = new DiagnosticProvider(providerContext);
     diagnosticProvider.activate();
 
     // Set global diagnostic provider for import utils
-    setGlobalDiagnosticProvider(diagnosticProvider);
+    // setGlobalDiagnosticProvider(diagnosticProvider); // This line is removed
 
     // Deactivate when the extension is deactivated
     context.subscriptions.push({
       dispose: () => {
-        diagnosticProvider.deactivate();
-        setGlobalDiagnosticProvider(null);
+        diagnosticProvider?.deactivate();
+        // setGlobalDiagnosticProvider(null); // This line is removed
       },
     });
   }
 
   logger.info("✅ All providers registered successfully");
+  return diagnosticProvider;
 }

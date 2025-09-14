@@ -243,15 +243,18 @@ export class AngularIndexer {
    * The ts-morph project instance.
    */
   project: Project;
+  // biome-ignore lint/style/useReadonlyClassProperties: This cache is cleared and reassigned in multiple methods
   private fileCache: Map<string, FileElementsInfo> = new Map();
-  private selectorTrie: SelectorTrie = new SelectorTrie();
+  private readonly selectorTrie: SelectorTrie = new SelectorTrie();
+
+  // biome-ignore lint/style/useReadonlyClassProperties: This map is cleared and reassigned in indexing methods
   private projectModuleMap: Map<string, { moduleName: string; importPath: string }> = new Map();
   /**
    * Index of external modules and their exported entities.
    * Key: module name (e.g., "MatTableModule")
    * Value: Set of exported entity names (e.g., Set(["MatTable", "MatHeaderCell", ...]))
    */
-  private externalModuleExportsIndex: Map<string, Set<string>> = new Map();
+  private readonly externalModuleExportsIndex: Map<string, Set<string>> = new Map();
   /**
    * The file watcher for the project.
    */
@@ -652,122 +655,166 @@ export class AngularIndexer {
     isExternal: boolean = false
   ): Promise<void> {
     try {
-      if (!fs.existsSync(filePath)) {
-        logger.warn(`File not found, cannot update index: ${filePath} for project ${this.projectRootPath}`);
-        return;
-      }
-      if (!this.projectRootPath) {
-        logger.error(`AngularIndexer.updateFileIndex: projectRootPath not set for ${filePath}. Aborting update.`);
-        return;
-      }
-      if (!filePath.startsWith(this.projectRootPath)) {
-        logger.warn(
-          `AngularIndexer.updateFileIndex: File ${filePath} is outside of project root ${this.projectRootPath}. Skipping.`
-        );
+      if (!this.validateFileForIndexing(filePath)) {
         return;
       }
 
-      const stats = fs.statSync(filePath);
-      const lastModified = stats.mtime.getTime();
-      const cachedFile = this.fileCache.get(filePath);
+      const { content, hash, lastModified, cachedFile } = this.readFileAndGetMetadata(filePath);
 
-      // Read content once
-      const content = fs.readFileSync(filePath, "utf-8");
-      const hash = this.generateHash(content);
-
-      if (cachedFile && cachedFile.lastModified >= lastModified && cachedFile.hash === hash) {
-        // If modification time is same or older, and hash is same, no need to parse
-        // Update lastModified just in case it was touched without content change
-        if (cachedFile.lastModified < lastModified) {
-          const updatedCache: FileElementsInfo = {
-            ...cachedFile,
-            lastModified: lastModified,
-          };
-          this.fileCache.set(filePath, updatedCache);
-        }
+      if (this.isFileUpToDate(cachedFile, lastModified, hash)) {
+        this.updateCacheTimestamp(filePath, cachedFile, lastModified);
         return;
       }
 
-      // If the file is a module, re-index project modules.
-      // This is now handled centrally in generateFullIndex to avoid redundant file searches.
-
-      // Before parsing, remove all existing selectors from this file to ensure clean update
-      if (cachedFile) {
-        for (const oldElement of cachedFile.elements) {
-          const individualSelectors = await parseAngularSelector(oldElement.selector);
-          for (const selector of individualSelectors) {
-            this.selectorTrie.remove(selector, filePath);
-          }
-        }
-      }
-
+      await this.removeOldSelectorsFromIndex(cachedFile);
       const parsedElements = this.parseAngularElementsWithTsMorph(filePath, content);
 
       if (parsedElements.length > 0) {
-        // Update file cache with all elements from this file
-        const fileElementsInfo: FileElementsInfo = {
-          filePath: filePath,
-          lastModified: lastModified,
-          hash: hash,
-          elements: parsedElements,
-        };
-        this.fileCache.set(filePath, fileElementsInfo);
-
-        // Add all parsed elements to the selector index
-        for (const parsed of parsedElements) {
-          // Parse the selector to get all individual selectors
-          const individualSelectors = await parseAngularSelector(parsed.selector);
-
-          let importPath = parsed.path;
-          let importName = parsed.name;
-          let moduleToImport: string | undefined;
-
-          if (!parsed.isStandalone) {
-            const moduleInfo = this.projectModuleMap.get(parsed.name);
-            if (moduleInfo) {
-              importPath = moduleInfo.importPath;
-              importName = moduleInfo.moduleName;
-              moduleToImport = moduleInfo.moduleName;
-            }
-          }
-
-          const elementData = new AngularElementData(
-            importPath,
-            importName,
-            parsed.type,
-            parsed.selector, // original selector
-            individualSelectors,
-            parsed.isStandalone,
-            isExternal, // isExternal
-            moduleToImport
-          );
-
-          // Index the element under each individual selector
-          for (const selector of individualSelectors) {
-            this.selectorTrie.insert(selector, elementData);
-            logger.info(`Updated index for ${this.projectRootPath}: ${selector} (${parsed.type}) -> ${parsed.path}`);
-          }
-        }
+        await this.processAndIndexElements(filePath, parsedElements, lastModified, hash, isExternal);
       } else {
-        // Parsing failed or not an Angular element - remove from file cache and trie
-        this.fileCache.delete(filePath);
-        try {
-          const sourceFile = this.project.getSourceFile(filePath);
-          if (sourceFile) {
-            // Check if the sourceFile is still valid before removing
-            sourceFile.getFilePath(); // This will throw if the node is forgotten
-            this.project.removeSourceFile(sourceFile); // or sourceFile.forget()
-          }
-        } catch (_nodeError) {
-          // If the sourceFile node is already forgotten, log it but don't fail
-          logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
-        }
-        logger.info(`No Angular elements found in ${filePath} for ${this.projectRootPath}`);
+        await this.handleNoElementsFound(filePath);
       }
+
       await this.saveIndexToWorkspace(context);
     } catch (error) {
       logger.error(`Error updating index for ${filePath} in project ${this.projectRootPath}:`, error as Error);
     }
+  }
+
+  private validateFileForIndexing(filePath: string): boolean {
+    if (!fs.existsSync(filePath)) {
+      logger.warn(`File not found, cannot update index: ${filePath} for project ${this.projectRootPath}`);
+      return false;
+    }
+    if (!this.projectRootPath) {
+      logger.error(`AngularIndexer.updateFileIndex: projectRootPath not set for ${filePath}. Aborting update.`);
+      return false;
+    }
+    if (!filePath.startsWith(this.projectRootPath)) {
+      logger.warn(
+        `AngularIndexer.updateFileIndex: File ${filePath} is outside of project root ${this.projectRootPath}. Skipping.`
+      );
+      return false;
+    }
+    return true;
+  }
+
+  private readFileAndGetMetadata(filePath: string): {
+    content: string;
+    hash: string;
+    lastModified: number;
+    cachedFile: FileElementsInfo | undefined;
+  } {
+    const stats = fs.statSync(filePath);
+    const lastModified = stats.mtime.getTime();
+    const cachedFile = this.fileCache.get(filePath);
+    const content = fs.readFileSync(filePath, "utf-8");
+    const hash = this.generateHash(content);
+
+    return { content, hash, lastModified, cachedFile };
+  }
+
+  private isFileUpToDate(cachedFile: FileElementsInfo | undefined, lastModified: number, hash: string): boolean {
+    return cachedFile !== undefined && cachedFile.lastModified >= lastModified && cachedFile.hash === hash;
+  }
+
+  private updateCacheTimestamp(filePath: string, cachedFile: FileElementsInfo | undefined, lastModified: number): void {
+    if (cachedFile && cachedFile.lastModified < lastModified) {
+      const updatedCache: FileElementsInfo = {
+        ...cachedFile,
+        lastModified: lastModified,
+      };
+      this.fileCache.set(filePath, updatedCache);
+    }
+  }
+
+  private async removeOldSelectorsFromIndex(cachedFile: FileElementsInfo | undefined): Promise<void> {
+    if (!cachedFile) {
+      return;
+    }
+
+    for (const oldElement of cachedFile.elements) {
+      const individualSelectors = await parseAngularSelector(oldElement.selector);
+      for (const selector of individualSelectors) {
+        this.selectorTrie.remove(selector, cachedFile.filePath);
+      }
+    }
+  }
+
+  private async processAndIndexElements(
+    filePath: string,
+    parsedElements: ComponentInfo[],
+    lastModified: number,
+    hash: string,
+    isExternal: boolean
+  ): Promise<void> {
+    const fileElementsInfo: FileElementsInfo = {
+      filePath: filePath,
+      lastModified: lastModified,
+      hash: hash,
+      elements: parsedElements,
+    };
+    this.fileCache.set(filePath, fileElementsInfo);
+
+    for (const parsed of parsedElements) {
+      await this.indexSingleElement(parsed, isExternal);
+    }
+  }
+
+  private async indexSingleElement(parsed: ComponentInfo, isExternal: boolean): Promise<void> {
+    const individualSelectors = await parseAngularSelector(parsed.selector);
+    const { importPath, importName, moduleToImport } = this.resolveElementImportInfo(parsed);
+
+    const elementData = new AngularElementData(
+      importPath,
+      importName,
+      parsed.type,
+      parsed.selector,
+      individualSelectors,
+      parsed.isStandalone,
+      isExternal,
+      moduleToImport
+    );
+
+    for (const selector of individualSelectors) {
+      this.selectorTrie.insert(selector, elementData);
+      logger.info(`Updated index for ${this.projectRootPath}: ${selector} (${parsed.type}) -> ${parsed.path}`);
+    }
+  }
+
+  private resolveElementImportInfo(parsed: ComponentInfo): {
+    importPath: string;
+    importName: string;
+    moduleToImport: string | undefined;
+  } {
+    let importPath = parsed.path;
+    let importName = parsed.name;
+    let moduleToImport: string | undefined;
+
+    if (!parsed.isStandalone) {
+      const moduleInfo = this.projectModuleMap.get(parsed.name);
+      if (moduleInfo) {
+        importPath = moduleInfo.importPath;
+        importName = moduleInfo.moduleName;
+        moduleToImport = moduleInfo.moduleName;
+      }
+    }
+
+    return { importPath, importName, moduleToImport };
+  }
+
+  private async handleNoElementsFound(filePath: string): Promise<void> {
+    this.fileCache.delete(filePath);
+    try {
+      const sourceFile = this.project.getSourceFile(filePath);
+      if (sourceFile) {
+        sourceFile.getFilePath();
+        this.project.removeSourceFile(sourceFile);
+      }
+    } catch (_nodeError) {
+      logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
+    }
+    logger.info(`No Angular elements found in ${filePath} for ${this.projectRootPath}`);
   }
 
   /**
@@ -1302,14 +1349,30 @@ export class AngularIndexer {
    * @internal
    */
   private async _indexLibrary(entryPoints: Map<string, string>): Promise<void> {
+    const libraryFiles = this.loadLibrarySourceFiles(entryPoints);
+
+    if (libraryFiles.length === 0) {
+      return;
+    }
+
+    const typeChecker = this.project.getTypeChecker();
+    const allLibraryClasses = this.collectAllLibraryClasses(libraryFiles);
+    const componentToModuleMap = this.buildLibraryComponentToModuleMap(libraryFiles, allLibraryClasses, typeChecker);
+
+    await this.indexLibraryDeclarations(libraryFiles, componentToModuleMap);
+  }
+
+  private loadLibrarySourceFiles(
+    entryPoints: Map<string, string>
+  ): Array<{ importPath: string; sourceFile: SourceFile }> {
     const libraryFiles: { importPath: string; sourceFile: SourceFile }[] = [];
+
     for (const [importPath, filePath] of entryPoints.entries()) {
       try {
         const sourceFile = this.project.addSourceFileAtPathIfExists(filePath);
         if (sourceFile) {
           try {
-            // Check if the sourceFile is still valid
-            sourceFile.getFilePath(); // This will throw if the node is forgotten
+            sourceFile.getFilePath();
             libraryFiles.push({ importPath, sourceFile });
           } catch (_nodeError) {
             logger.warn(`[Indexer] SourceFile node forgotten for library file ${filePath}, skipping`);
@@ -1320,59 +1383,74 @@ export class AngularIndexer {
       }
     }
 
-    if (libraryFiles.length === 0) {
-      return;
-    }
-    const typeChecker = this.project.getTypeChecker();
+    return libraryFiles;
+  }
 
+  private collectAllLibraryClasses(
+    libraryFiles: Array<{ importPath: string; sourceFile: SourceFile }>
+  ): Map<string, ClassDeclaration> {
     const allLibraryClasses = new Map<string, ClassDeclaration>();
-    // Pass 0: Collect all class declarations from all files in the library for easy lookup.
+
     for (const { sourceFile } of libraryFiles) {
       try {
-        // Check if the sourceFile is still valid
-        sourceFile.getFilePath(); // This will throw if the node is forgotten
-
-        const exportedDeclarations = sourceFile.getExportedDeclarations();
-        for (const declarations of exportedDeclarations.values()) {
-          for (const declaration of declarations) {
-            if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
-              const classDecl = declaration as ClassDeclaration;
-              const name = classDecl.getName();
-              if (name && !allLibraryClasses.has(name)) {
-                allLibraryClasses.set(name, classDecl);
-              }
-            }
-          }
-        }
-        for (const classDecl of sourceFile.getClasses()) {
-          const name = classDecl.getName();
-          if (name && !allLibraryClasses.has(name)) {
-            allLibraryClasses.set(name, classDecl);
-          }
-        }
+        sourceFile.getFilePath();
+        this.collectClassesFromSourceFile(sourceFile, allLibraryClasses);
       } catch (_nodeError) {
         logger.warn(`[Indexer] SourceFile node forgotten during class collection, skipping file`);
       }
     }
 
+    return allLibraryClasses;
+  }
+
+  private collectClassesFromSourceFile(sourceFile: SourceFile, allLibraryClasses: Map<string, ClassDeclaration>): void {
+    const exportedDeclarations = sourceFile.getExportedDeclarations();
+    for (const declarations of exportedDeclarations.values()) {
+      for (const declaration of declarations) {
+        if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
+          const classDecl = declaration as ClassDeclaration;
+          const name = classDecl.getName();
+          if (name && !allLibraryClasses.has(name)) {
+            allLibraryClasses.set(name, classDecl);
+          }
+        }
+      }
+    }
+
+    for (const classDecl of sourceFile.getClasses()) {
+      const name = classDecl.getName();
+      if (name && !allLibraryClasses.has(name)) {
+        allLibraryClasses.set(name, classDecl);
+      }
+    }
+  }
+
+  private buildLibraryComponentToModuleMap(
+    libraryFiles: Array<{ importPath: string; sourceFile: SourceFile }>,
+    allLibraryClasses: Map<string, ClassDeclaration>,
+    typeChecker: import("ts-morph").TypeChecker
+  ): Map<string, { moduleName: string; importPath: string }> {
     const componentToModuleMap = new Map<string, { moduleName: string; importPath: string }>();
 
-    // Pass 1: Build a complete map of all modules and their exports for the entire library
     for (const { importPath, sourceFile } of libraryFiles) {
       try {
-        // Check if the sourceFile is still valid
-        sourceFile.getFilePath(); // This will throw if the node is forgotten
+        sourceFile.getFilePath();
         this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap, allLibraryClasses, typeChecker);
       } catch (_nodeError) {
         logger.warn(`[Indexer] SourceFile node forgotten during module mapping for ${importPath}, skipping`);
       }
     }
 
-    // Pass 2: Index all components/directives/pipes using the complete map
+    return componentToModuleMap;
+  }
+
+  private async indexLibraryDeclarations(
+    libraryFiles: Array<{ importPath: string; sourceFile: SourceFile }>,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
+  ): Promise<void> {
     for (const { importPath, sourceFile } of libraryFiles) {
       try {
-        // Check if the sourceFile is still valid
-        sourceFile.getFilePath(); // This will throw if the node is forgotten
+        sourceFile.getFilePath();
         await this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap);
       } catch (_nodeError) {
         logger.warn(`[Indexer] SourceFile node forgotten during declarations indexing for ${importPath}, skipping`);
@@ -1467,12 +1545,13 @@ export class AngularIndexer {
       }
 
       for (const componentName of exportedIdentifiers) {
-        // Simple mapping, assumes component is declared in the same module if exported.
-        // A more complex implementation would also check the `declarations` array.
-        if (!this.projectModuleMap.has(componentName)) {
+        const newImportPath = path.relative(this.projectRootPath, sourceFile.getFilePath()).replace(/\\/g, "/");
+        const existing = this.projectModuleMap.get(componentName);
+
+        if (!existing || newImportPath.length < existing.importPath.length) {
           this.projectModuleMap.set(componentName, {
             moduleName,
-            importPath: path.relative(this.projectRootPath, sourceFile.getFilePath()).replace(/\\/g, "/"),
+            importPath: newImportPath,
           });
         }
       }
@@ -1667,8 +1746,9 @@ export class AngularIndexer {
           }
         } else {
           // It's a component/directive/pipe. Map it to the current module.
-          // Do not overwrite. First module found that exports a component 'wins'.
-          if (!componentToModuleMap.has(exportedClassName)) {
+          // Prefer shorter import paths if a component is exported from multiple entry points.
+          const existing = componentToModuleMap.get(exportedClassName);
+          if (!existing || importPath.length < existing.importPath.length) {
             componentToModuleMap.set(exportedClassName, {
               moduleName: moduleName,
               importPath,
