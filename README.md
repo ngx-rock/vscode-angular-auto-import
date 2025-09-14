@@ -10,6 +10,7 @@ Streamline your Angular development with intelligent, automatic imports for comp
 ## Features
 
 - **⚡️ Automatic Imports**: Get quick fix suggestions to import Angular elements that are not yet included in your component's module.
+- **🚀 Fix All Command**: Automatically import all missing Angular elements in the current file with a single command.
 - **💡 Smart Completions**: Autocomplete for component tags, directives, and pipes in HTML templates (`.html`) and inline templates within TypeScript files.
 - **🔍 Diagnostics**: Identifies unknown Angular elements in your templates and provides quick fixes.
 - **📦 External Library Support**: Auto-import components, directives, and pipes from external packages (both standalone and module-based).
@@ -76,8 +77,4 @@ The following commands are available from the Command Palette (`Ctrl+Shift+P` or
 
 **Standalone Projects Only**: This extension is designed to work exclusively with standalone Angular projects. Traditional NgModule-based projects are not supported.
 
---- 
-
-## License
-
-[MIT License](LICENSE).
+ 
