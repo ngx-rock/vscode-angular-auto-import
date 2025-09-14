@@ -1467,12 +1467,13 @@ export class AngularIndexer {
       }
 
       for (const componentName of exportedIdentifiers) {
-        // Simple mapping, assumes component is declared in the same module if exported.
-        // A more complex implementation would also check the `declarations` array.
-        if (!this.projectModuleMap.has(componentName)) {
+        const newImportPath = path.relative(this.projectRootPath, sourceFile.getFilePath()).replace(/\\/g, "/");
+        const existing = this.projectModuleMap.get(componentName);
+
+        if (!existing || newImportPath.length < existing.importPath.length) {
           this.projectModuleMap.set(componentName, {
             moduleName,
-            importPath: path.relative(this.projectRootPath, sourceFile.getFilePath()).replace(/\\/g, "/"),
+            importPath: newImportPath,
           });
         }
       }
@@ -1667,8 +1668,9 @@ export class AngularIndexer {
           }
         } else {
           // It's a component/directive/pipe. Map it to the current module.
-          // Do not overwrite. First module found that exports a component 'wins'.
-          if (!componentToModuleMap.has(exportedClassName)) {
+          // Prefer shorter import paths if a component is exported from multiple entry points.
+          const existing = componentToModuleMap.get(exportedClassName);
+          if (!existing || importPath.length < existing.importPath.length) {
             componentToModuleMap.set(exportedClassName, {
               moduleName: moduleName,
               importPath,
