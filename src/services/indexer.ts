@@ -1798,6 +1798,202 @@ export class AngularIndexer {
   }
 
   /**
+   * Collects all class declarations from a source file.
+   * @param sourceFile The source file to collect classes from.
+   * @returns A map of class names to their declarations.
+   * @internal
+   */
+  private _collectClassDeclarations(sourceFile: SourceFile): Map<string, ClassDeclaration> {
+    const classDeclarations = new Map<string, ClassDeclaration>();
+
+    // This logic is duplicated from _buildComponentToModuleMap to ensure we have all class definitions.
+    // A more optimized approach could pass this data from the first pass, but this is safer.
+    const exportedDeclarations = sourceFile.getExportedDeclarations();
+    for (const declarations of exportedDeclarations.values()) {
+      for (const declaration of declarations) {
+        if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
+          const classDecl = declaration as ClassDeclaration;
+          const name = classDecl.getName();
+          if (name && !classDeclarations.has(name)) {
+            classDeclarations.set(name, classDecl);
+          }
+        }
+      }
+    }
+    for (const classDecl of sourceFile.getClasses()) {
+      const name = classDecl.getName();
+      if (name && !classDeclarations.has(name)) {
+        classDeclarations.set(name, classDecl);
+      }
+    }
+
+    return classDeclarations;
+  }
+
+  /**
+   * Recursively searches for a static property (e.g., ɵcmp) in the inheritance chain.
+   * @param cls The class to search in.
+   * @param propName The property name to search for.
+   * @returns An object containing the owner class and the property declaration.
+   * @internal
+   */
+  private _findInheritedStaticProperty(
+    cls: ClassDeclaration,
+    propName: "ɵcmp" | "ɵdir" | "ɵpipe"
+  ): { owner: ClassDeclaration; prop: import("ts-morph").PropertyDeclaration | undefined } {
+    let current: ClassDeclaration | undefined = cls;
+    while (current) {
+      const prop = current.getStaticProperty(propName);
+      if (prop?.isKind(SyntaxKind.PropertyDeclaration)) {
+        return { owner: current, prop };
+      }
+      current = current.getBaseClass();
+    }
+    return { owner: cls, prop: undefined };
+  }
+
+  /**
+   * Extracts selector from a type reference node.
+   * @param typeRef The type reference node.
+   * @returns The selector string or undefined.
+   * @internal
+   */
+  private _extractSelectorFromTypeReference(typeRef: TypeReferenceNode): string | undefined {
+    const typeArgs = typeRef.getTypeArguments();
+    if (typeArgs.length > 1) {
+      const selectorNode = typeArgs[1];
+      if (selectorNode.isKind(SyntaxKind.LiteralType)) {
+        const literal = selectorNode.getLiteral();
+        if (literal.isKind(SyntaxKind.StringLiteral)) {
+          return literal.getLiteralText();
+        }
+      } else if (selectorNode.isKind(SyntaxKind.TemplateLiteralType)) {
+        // Handle template literals like `button[mat-icon-button]`
+        return selectorNode.getText().slice(1, -1);
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Analyzes a class declaration to extract Angular element information.
+   * @param classDecl The class declaration to analyze.
+   * @returns The element information or null if not an Angular element.
+   * @internal
+   */
+  private _analyzeAngularElement(classDecl: ClassDeclaration): {
+    elementType: "component" | "directive" | "pipe";
+    selector: string;
+    isStandalone: boolean;
+  } | null {
+    // Check for component, then directive, then pipe
+    const { prop: cmpDef } = this._findInheritedStaticProperty(classDecl, "ɵcmp");
+    if (cmpDef) {
+      const typeNode = cmpDef.getTypeNode();
+      if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+        const typeRef = typeNode as TypeReferenceNode;
+        const selector = this._extractSelectorFromTypeReference(typeRef);
+        if (selector) {
+          return {
+            elementType: "component",
+            selector,
+            isStandalone: this._isStandaloneFromTypeReference(typeRef, "component"),
+          };
+        }
+      }
+    }
+
+    const { prop: dirDef } = this._findInheritedStaticProperty(classDecl, "ɵdir");
+    if (dirDef) {
+      const typeNode = dirDef.getTypeNode();
+      if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+        const typeRef = typeNode as TypeReferenceNode;
+        const selector = this._extractSelectorFromTypeReference(typeRef);
+        if (selector) {
+          return {
+            elementType: "directive",
+            selector,
+            isStandalone: this._isStandaloneFromTypeReference(typeRef, "directive"),
+          };
+        }
+      }
+    }
+
+    const { prop: pipeDef } = this._findInheritedStaticProperty(classDecl, "ɵpipe");
+    if (pipeDef) {
+      const typeNode = pipeDef.getTypeNode();
+      if (typeNode?.isKind(SyntaxKind.TypeReference)) {
+        const typeRef = typeNode as TypeReferenceNode;
+        const typeArgs = typeRef.getTypeArguments();
+        if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
+          const literal = (typeArgs[1] as LiteralTypeNode).getLiteral();
+          if (literal.isKind(SyntaxKind.StringLiteral)) {
+            const selector = literal.getLiteralText();
+            return {
+              elementType: "pipe",
+              selector,
+              isStandalone: this._isStandaloneFromTypeReference(typeRef, "pipe"),
+            };
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Creates and indexes Angular element data.
+   * @param className The class name.
+   * @param elementType The element type.
+   * @param selector The selector string.
+   * @param isStandalone Whether the element is standalone.
+   * @param importPath The original import path.
+   * @param componentToModuleMap Map of components to modules.
+   * @internal
+   */
+  private async _createAndIndexElementData(
+    className: string,
+    elementType: "component" | "directive" | "pipe",
+    selector: string,
+    isStandalone: boolean,
+    importPath: string,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
+  ): Promise<void> {
+    const exportingModule = componentToModuleMap.get(className);
+    const individualSelectors = await parseAngularSelector(selector);
+
+    let finalImportPath = importPath;
+    let finalImportName = className;
+
+    if (exportingModule) {
+      finalImportPath = exportingModule.importPath;
+      finalImportName = isStandalone ? className : exportingModule.moduleName;
+    }
+
+    const elementData = new AngularElementData(
+      finalImportPath,
+      finalImportName,
+      elementType,
+      selector,
+      individualSelectors,
+      isStandalone,
+      true, // isExternal
+      !isStandalone && exportingModule ? exportingModule.moduleName : undefined
+    );
+
+    for (const sel of individualSelectors) {
+      this.selectorTrie.insert(sel, elementData);
+    }
+
+    const via = exportingModule ? `via ${exportingModule.moduleName}` : "directly";
+    const standaloneTag = isStandalone ? "standalone" : "non-standalone";
+    logger.info(
+      `[NodeModulesIndexer] Indexed ${standaloneTag} ${elementType}: ${className} (${selector}) ${via} from ${finalImportPath}. Import target: ${finalImportName}`
+    );
+  }
+
+  /**
    * Indexes the declarations in a file.
    * @param sourceFile The source file to process.
    * @param importPath The import path of the source file.
@@ -1810,46 +2006,7 @@ export class AngularIndexer {
     componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
   ) {
     try {
-      const classDeclarations = new Map<string, ClassDeclaration>();
-
-      // This logic is duplicated from _buildComponentToModuleMap to ensure we have all class definitions.
-      // A more optimized approach could pass this data from the first pass, but this is safer.
-      const exportedDeclarations = sourceFile.getExportedDeclarations();
-      for (const declarations of exportedDeclarations.values()) {
-        for (const declaration of declarations) {
-          if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
-            const classDecl = declaration as ClassDeclaration;
-            const name = classDecl.getName();
-            if (name && !classDeclarations.has(name)) {
-              classDeclarations.set(name, classDecl);
-            }
-          }
-        }
-      }
-      for (const classDecl of sourceFile.getClasses()) {
-        const name = classDecl.getName();
-        if (name && !classDeclarations.has(name)) {
-          classDeclarations.set(name, classDecl);
-        }
-      }
-
-      /**
-       * Recursively searches for a static property (e.g., ɵcmp) in the inheritance chain.
-       */
-      const findInheritedStaticProperty = (
-        cls: ClassDeclaration,
-        propName: "ɵcmp" | "ɵdir" | "ɵpipe"
-      ): { owner: ClassDeclaration; prop: import("ts-morph").PropertyDeclaration | undefined } => {
-        let current: ClassDeclaration | undefined = cls;
-        while (current) {
-          const prop = current.getStaticProperty(propName);
-          if (prop?.isKind(SyntaxKind.PropertyDeclaration)) {
-            return { owner: current, prop };
-          }
-          current = current.getBaseClass();
-        }
-        return { owner: cls, prop: undefined };
-      };
+      const classDeclarations = this._collectClassDeclarations(sourceFile);
 
       // Find all Components, Directives, and Pipes
       for (const classDecl of classDeclarations.values()) {
@@ -1859,105 +2016,15 @@ export class AngularIndexer {
           continue;
         }
 
-        // Reset for each class
-        let elementType: "component" | "directive" | "pipe" | null = null;
-        let selector: string | undefined;
-        let isStandalone = false;
-
-        // Check for component, then directive, then pipe
-        const { prop: cmpDef } = findInheritedStaticProperty(classDecl, "ɵcmp");
-        if (cmpDef) {
-          elementType = "component";
-          const typeNode = cmpDef.getTypeNode();
-          if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-            const typeRef = typeNode as TypeReferenceNode;
-            const typeArgs = typeRef.getTypeArguments();
-            if (typeArgs.length > 1) {
-              const selectorNode = typeArgs[1];
-              if (selectorNode.isKind(SyntaxKind.LiteralType)) {
-                const literal = selectorNode.getLiteral();
-                if (literal.isKind(SyntaxKind.StringLiteral)) {
-                  selector = literal.getLiteralText();
-                }
-              } else if (selectorNode.isKind(SyntaxKind.TemplateLiteralType)) {
-                // Handle template literals like `button[mat-icon-button]`
-                selector = selectorNode.getText().slice(1, -1);
-              }
-            }
-            isStandalone = this._isStandaloneFromTypeReference(typeRef, "component");
-          }
-        } else {
-          const { prop: dirDef } = findInheritedStaticProperty(classDecl, "ɵdir");
-          if (dirDef) {
-            elementType = "directive";
-            const typeNode = dirDef.getTypeNode();
-            if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-              const typeRef = typeNode as TypeReferenceNode;
-              const typeArgs = typeRef.getTypeArguments();
-              if (typeArgs.length > 1) {
-                const selectorNode = typeArgs[1];
-                if (selectorNode.isKind(SyntaxKind.LiteralType)) {
-                  const literal = selectorNode.getLiteral();
-                  if (literal.isKind(SyntaxKind.StringLiteral)) {
-                    selector = literal.getLiteralText();
-                  }
-                } else if (selectorNode.isKind(SyntaxKind.TemplateLiteralType)) {
-                  selector = selectorNode.getText().slice(1, -1);
-                }
-              }
-              isStandalone = this._isStandaloneFromTypeReference(typeRef, "directive");
-            }
-          } else {
-            const { prop: pipeDef } = findInheritedStaticProperty(classDecl, "ɵpipe");
-            if (pipeDef) {
-              elementType = "pipe";
-              const typeNode = pipeDef.getTypeNode();
-              if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-                const typeRef = typeNode as TypeReferenceNode;
-                const typeArgs = typeRef.getTypeArguments();
-                if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
-                  const literal = (typeArgs[1] as LiteralTypeNode).getLiteral();
-                  if (literal.isKind(SyntaxKind.StringLiteral)) {
-                    selector = literal.getLiteralText();
-                  }
-                }
-                isStandalone = this._isStandaloneFromTypeReference(typeRef, "pipe");
-              }
-            }
-          }
-        }
-
-        if (elementType && selector) {
-          const exportingModule = componentToModuleMap.get(className);
-          const individualSelectors = await parseAngularSelector(selector);
-
-          let finalImportPath = importPath;
-          let finalImportName = className;
-
-          if (exportingModule) {
-            finalImportPath = exportingModule.importPath;
-            finalImportName = isStandalone ? className : exportingModule.moduleName;
-          }
-
-          const elementData = new AngularElementData(
-            finalImportPath,
-            finalImportName,
-            elementType,
-            selector,
-            individualSelectors,
-            isStandalone,
-            true, // isExternal
-            !isStandalone && exportingModule ? exportingModule.moduleName : undefined
-          );
-
-          for (const sel of individualSelectors) {
-            this.selectorTrie.insert(sel, elementData);
-          }
-
-          const via = exportingModule ? `via ${exportingModule.moduleName}` : "directly";
-          const standaloneTag = isStandalone ? "standalone" : "non-standalone";
-          logger.info(
-            `[NodeModulesIndexer] Indexed ${standaloneTag} ${elementType}: ${className} (${selector}) ${via} from ${finalImportPath}. Import target: ${finalImportName}`
+        const elementInfo = this._analyzeAngularElement(classDecl);
+        if (elementInfo) {
+          await this._createAndIndexElementData(
+            className,
+            elementInfo.elementType,
+            elementInfo.selector,
+            elementInfo.isStandalone,
+            importPath,
+            componentToModuleMap
           );
         }
       }
