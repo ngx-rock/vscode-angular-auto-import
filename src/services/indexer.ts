@@ -1701,66 +1701,143 @@ export class AngularIndexer {
     moduleExports?: Set<string>
   ) {
     for (const element of exportsTuple.getElements()) {
-      let exportedClassName: string | undefined;
-
-      // Semantic resolution using TypeChecker
-      const exprName = element.isKind(SyntaxKind.TypeQuery)
-        ? element.asKindOrThrow(SyntaxKind.TypeQuery).getExprName()
-        : element.asKindOrThrow(SyntaxKind.TypeReference).getTypeName();
-      const type = typeChecker.getTypeAtLocation(exprName);
-      const symbol = type.getSymbol() ?? type.getAliasSymbol();
-      if (symbol) {
-        const aliased = symbol.getAliasedSymbol();
-        const finalSymbol = aliased || symbol;
-        exportedClassName = finalSymbol.getName();
+      const exportedClassName = this._resolveExportedClassName(element, typeChecker);
+      if (!exportedClassName) {
+        continue;
       }
 
-      if (exportedClassName) {
-        const exportedClassDecl = allLibraryClasses.get(exportedClassName);
-
-        // Check if the exported item is another NgModule
-        if (exportedClassDecl?.getStaticProperty("ɵmod")) {
-          // It's a re-exported module. Recursively process its exports.
-          const modDef = exportedClassDecl.getStaticProperty("ɵmod");
-          if (modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
-            const typeNode = modDef.getTypeNode();
-            if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-              const typeRef = typeNode as TypeReferenceNode;
-              const typeArgs = typeRef.getTypeArguments();
-
-              if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
-                const innerExportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
-                // RECURSION: Process the inner module's exports, but attribute them
-                // to the *current* moduleName that is doing the re-exporting.
-                this._processModuleExports(
-                  innerExportsTuple,
-                  moduleName,
-                  importPath,
-                  componentToModuleMap,
-                  allLibraryClasses,
-                  typeChecker,
-                  moduleExports
-                );
-              }
-            }
-          }
-        } else {
-          // It's a component/directive/pipe. Map it to the current module.
-          // Prefer shorter import paths if a component is exported from multiple entry points.
-          const existing = componentToModuleMap.get(exportedClassName);
-          if (!existing || importPath.length < existing.importPath.length) {
-            componentToModuleMap.set(exportedClassName, {
-              moduleName: moduleName,
-              importPath,
-            });
-          }
-
-          // Add to module exports if Set is provided
-          if (moduleExports) {
-            moduleExports.add(exportedClassName);
-          }
-        }
+      const exportedClassDecl = allLibraryClasses.get(exportedClassName);
+      if (!exportedClassDecl) {
+        continue;
       }
+
+      if (this._isReexportedModule(exportedClassDecl)) {
+        this._processReexportedModule(
+          exportedClassDecl,
+          moduleName,
+          importPath,
+          componentToModuleMap,
+          allLibraryClasses,
+          typeChecker,
+          moduleExports
+        );
+      } else {
+        this._mapComponentToModule(exportedClassName, moduleName, importPath, componentToModuleMap, moduleExports);
+      }
+    }
+  }
+
+  /**
+   * Resolves the exported class name from a tuple element using TypeChecker.
+   * @param element The tuple element to resolve.
+   * @param typeChecker The type checker to use.
+   * @returns The exported class name or undefined.
+   * @internal
+   */
+  private _resolveExportedClassName(
+    element: import("ts-morph").TypeNode,
+    typeChecker: TypeChecker
+  ): string | undefined {
+    const exprName = element.isKind(SyntaxKind.TypeQuery)
+      ? element.asKindOrThrow(SyntaxKind.TypeQuery).getExprName()
+      : element.asKindOrThrow(SyntaxKind.TypeReference).getTypeName();
+
+    const type = typeChecker.getTypeAtLocation(exprName);
+    const symbol = type.getSymbol() ?? type.getAliasSymbol();
+    if (!symbol) {
+      return undefined;
+    }
+
+    const aliased = symbol.getAliasedSymbol();
+    const finalSymbol = aliased || symbol;
+    return finalSymbol.getName();
+  }
+
+  /**
+   * Checks if the exported class declaration is a re-exported NgModule.
+   * @param exportedClassDecl The class declaration to check.
+   * @returns True if it's a re-exported module.
+   * @internal
+   */
+  private _isReexportedModule(exportedClassDecl: ClassDeclaration): boolean {
+    return !!exportedClassDecl.getStaticProperty("ɵmod");
+  }
+
+  /**
+   * Processes a re-exported module by recursively processing its exports.
+   * @param exportedClassDecl The re-exported module class declaration.
+   * @param moduleName The current module name.
+   * @param importPath The import path.
+   * @param componentToModuleMap The component-to-module mapping.
+   * @param allLibraryClasses Map of all class declarations.
+   * @param typeChecker The type checker.
+   * @param moduleExports Optional set to accumulate exports.
+   * @internal
+   */
+  private _processReexportedModule(
+    exportedClassDecl: ClassDeclaration,
+    moduleName: string,
+    importPath: string,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    allLibraryClasses: Map<string, ClassDeclaration>,
+    typeChecker: TypeChecker,
+    moduleExports?: Set<string>
+  ) {
+    const modDef = exportedClassDecl.getStaticProperty("ɵmod");
+    if (!modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
+      return;
+    }
+
+    const typeNode = modDef.getTypeNode();
+    if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
+      return;
+    }
+
+    const typeRef = typeNode as TypeReferenceNode;
+    const typeArgs = typeRef.getTypeArguments();
+
+    if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
+      const innerExportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+      this._processModuleExports(
+        innerExportsTuple,
+        moduleName,
+        importPath,
+        componentToModuleMap,
+        allLibraryClasses,
+        typeChecker,
+        moduleExports
+      );
+    }
+  }
+
+  /**
+   * Maps a component/directive/pipe to its module.
+   * @param exportedClassName The name of the exported class.
+   * @param moduleName The module name.
+   * @param importPath The import path.
+   * @param componentToModuleMap The mapping to update.
+   * @param moduleExports Optional set to add exports to.
+   * @internal
+   */
+  private _mapComponentToModule(
+    exportedClassName: string,
+    moduleName: string,
+    importPath: string,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    moduleExports?: Set<string>
+  ) {
+    // Prefer shorter import paths if a component is exported from multiple entry points.
+    const existing = componentToModuleMap.get(exportedClassName);
+    if (!existing || importPath.length < existing.importPath.length) {
+      componentToModuleMap.set(exportedClassName, {
+        moduleName: moduleName,
+        importPath,
+      });
+    }
+
+    // Add to module exports if Set is provided
+    if (moduleExports) {
+      moduleExports.add(exportedClassName);
     }
   }
 
