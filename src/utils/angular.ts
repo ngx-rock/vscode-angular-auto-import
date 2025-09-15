@@ -213,11 +213,8 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
  * @returns An array of `AngularElementData` that match the selector.
  */
 export function getAngularElements(selector: string, indexer: AngularIndexer): AngularElementData[] {
-  if (!selector || typeof selector !== "string") {
-    return [];
-  }
-
-  if (!indexer) {
+  // Basic validation
+  if (!selector || typeof selector !== "string" || !indexer) {
     return [];
   }
 
@@ -226,10 +223,29 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
     return [];
   }
 
+  // Generate selector variants
+  const uniqueSelectors = generateSelectorVariants(originalSelector);
+
+  // Find elements for all selectors
+  return findElementsForSelectors(uniqueSelectors, indexer);
+}
+
+function generateSelectorVariants(originalSelector: string): string[] {
   const selectorsToTry: string[] = [originalSelector];
 
-  // Generate variants from a base form (e.g., 'ngIf' from '*ngIf' or '[ngIf]')
-  let base = originalSelector;
+  // Generate base form and variants
+  const base = extractBaseSelector(originalSelector);
+  selectorsToTry.push(base, `*${base}`, `[${base}]`);
+
+  // Special handling for ngFor <-> ngForOf mapping
+  addNgForVariants(base, selectorsToTry);
+
+  return [...new Set(selectorsToTry)];
+}
+
+function extractBaseSelector(selector: string): string {
+  let base = selector;
+
   if (base.startsWith("*")) {
     base = base.slice(1);
   } else if (base.startsWith("[") && base.endsWith("]")) {
@@ -242,56 +258,81 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
     }
   }
 
-  // Add variants for the base
-  selectorsToTry.push(base, `*${base}`, `[${base}]`);
+  return base;
+}
 
-  // Special handling for ngFor <-> ngForOf mapping
+function addNgForVariants(base: string, selectorsToTry: string[]): void {
   if (base === "ngFor" || base === "ngForOf") {
     selectorsToTry.push("ngForOf", "[ngForOf]");
   }
+}
 
-  const uniqueSelectors = [...new Set(selectorsToTry)];
+function findElementsForSelectors(uniqueSelectors: string[], indexer: AngularIndexer): AngularElementData[] {
   const foundElements: AngularElementData[] = [];
   const seenElements = new Set<string>(); // path:name to avoid duplicates
 
   for (const sel of uniqueSelectors) {
     // 1. Standard Angular elements first
-    const std = STANDARD_ANGULAR_ELEMENTS[sel];
-    if (std) {
-      const key = `${std.importPath}:${std.name}`;
-      if (!seenElements.has(key)) {
-        const element = new AngularElementData(
-          std.importPath,
-          std.name,
-          std.type,
-          std.originalSelector,
-          std.selectors,
-          !std.name.endsWith("Module"), // Heuristic for standard elements
-          true // isExternal - standard Angular elements are always external
-        );
-        foundElements.push(element);
-        seenElements.add(key);
-      }
-      // Skip indexed elements for this selector since standard takes precedence
-      continue;
+    const standardElement = findStandardElement(sel, seenElements);
+    if (standardElement) {
+      foundElements.push(standardElement);
+      continue; // Skip indexed elements for this selector since standard takes precedence
     }
 
     // 2. Then try project index
-    try {
-      const foundInIndex = indexer.getElements(sel);
-      for (const element of foundInIndex) {
-        const key = `${element.path}:${element.name}`;
-        if (!seenElements.has(key)) {
-          foundElements.push(element);
-          seenElements.add(key);
-        }
-      }
-    } catch (error) {
-      logger.warn(`Error getting element from indexer for selector '${sel}': ${(error as Error).message}`);
-    }
+    const indexedElements = findIndexedElements(sel, indexer, seenElements);
+    foundElements.push(...indexedElements);
   }
 
   return foundElements;
+}
+
+function findStandardElement(selector: string, seenElements: Set<string>): AngularElementData | null {
+  const std = STANDARD_ANGULAR_ELEMENTS[selector];
+  if (!std) {
+    return null;
+  }
+
+  const key = `${std.importPath}:${std.name}`;
+  if (seenElements.has(key)) {
+    return null;
+  }
+
+  const element = new AngularElementData(
+    std.importPath,
+    std.name,
+    std.type,
+    std.originalSelector,
+    std.selectors,
+    !std.name.endsWith("Module"), // Heuristic for standard elements
+    true // isExternal - standard Angular elements are always external
+  );
+  seenElements.add(key);
+  return element;
+}
+
+function findIndexedElements(
+  selector: string,
+  indexer: AngularIndexer,
+  seenElements: Set<string>
+): AngularElementData[] {
+  try {
+    const foundInIndex = indexer.getElements(selector);
+    const uniqueElements: AngularElementData[] = [];
+
+    for (const element of foundInIndex) {
+      const key = `${element.path}:${element.name}`;
+      if (!seenElements.has(key)) {
+        uniqueElements.push(element);
+        seenElements.add(key);
+      }
+    }
+
+    return uniqueElements;
+  } catch (error) {
+    logger.warn(`Error getting element from indexer for selector '${selector}': ${(error as Error).message}`);
+    return [];
+  }
 }
 
 /**

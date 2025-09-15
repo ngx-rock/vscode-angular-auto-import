@@ -859,27 +859,50 @@ export class DiagnosticProvider {
     extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
   ): void {
     // Handle branches (@if/@else/@else if)
-    if (controlFlowNode.branches && Array.isArray(controlFlowNode.branches)) {
-      for (const branch of controlFlowNode.branches) {
-        if (branch.expression) {
-          extractPipesFromExpression(branch.expression);
-        }
-        if (branch.children && Array.isArray(branch.children)) {
-          visit(branch.children);
-        }
-      }
-    }
+    this.processBranchesArray(controlFlowNode.branches, visit, extractPipesFromExpression);
 
     // Handle cases (@switch)
-    if (controlFlowNode.cases && Array.isArray(controlFlowNode.cases)) {
-      for (const caseBlock of controlFlowNode.cases) {
-        if (caseBlock.expression) {
-          extractPipesFromExpression(caseBlock.expression);
-        }
-        if (caseBlock.children && Array.isArray(caseBlock.children)) {
-          visit(caseBlock.children);
-        }
-      }
+    this.processCasesArray(controlFlowNode.cases, visit, extractPipesFromExpression);
+  }
+
+  private processBranchesArray(
+    branches: unknown,
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
+  ): void {
+    if (!branches || !Array.isArray(branches)) {
+      return;
+    }
+
+    for (const branch of branches) {
+      this.processBranchOrCase(branch, visit, extractPipesFromExpression);
+    }
+  }
+
+  private processCasesArray(
+    cases: unknown,
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
+  ): void {
+    if (!cases || !Array.isArray(cases)) {
+      return;
+    }
+
+    for (const caseBlock of cases) {
+      this.processBranchOrCase(caseBlock, visit, extractPipesFromExpression);
+    }
+  }
+
+  private processBranchOrCase(
+    item: { expression?: unknown; children?: TemplateAstNode[] },
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
+  ): void {
+    if (item.expression) {
+      extractPipesFromExpression(item.expression);
+    }
+    if (item.children && Array.isArray(item.children)) {
+      visit(item.children);
     }
   }
 

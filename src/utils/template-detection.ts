@@ -170,29 +170,27 @@ function findMatchingBrace(text: string, openBracePos: number): number {
   for (let i = openBracePos + 1; i < text.length; i++) {
     const char = text[i];
 
-    if (escaped) {
-      escaped = false;
+    // Handle escape sequences
+    if (handleEscapeSequence(char, escaped)) {
+      escaped = !escaped;
       continue;
     }
+    escaped = false;
 
-    if (char === "\\") {
-      escaped = true;
-      continue;
-    }
-
+    // Process character based on string context
     if (inString) {
-      if (char === stringChar) {
+      const stringState = handleStringChar(char, stringChar);
+      if (stringState.endString) {
         inString = false;
         stringChar = "";
       }
     } else {
-      if (char === '"' || char === "'" || char === "`") {
+      const result = handleNonStringChar(char, braceCount);
+      if (result.startString) {
         inString = true;
         stringChar = char;
-      } else if (char === "{") {
-        braceCount++;
-      } else if (char === "}") {
-        braceCount--;
+      } else if (result.braceChange !== 0) {
+        braceCount += result.braceChange;
         if (braceCount === 0) {
           return i;
         }
@@ -201,6 +199,33 @@ function findMatchingBrace(text: string, openBracePos: number): number {
   }
 
   return -1; // No matching brace found
+}
+
+function handleEscapeSequence(char: string, currentlyEscaped: boolean): boolean {
+  if (currentlyEscaped) {
+    return false; // Reset escape state
+  }
+  return char === "\\";
+}
+
+function handleStringChar(char: string, stringChar: string): { endString: boolean } {
+  return { endString: char === stringChar };
+}
+
+function handleNonStringChar(char: string, _braceCount: number): { startString: boolean; braceChange: number } {
+  if (char === '"' || char === "'" || char === "`") {
+    return { startString: true, braceChange: 0 };
+  }
+
+  if (char === "{") {
+    return { startString: false, braceChange: 1 };
+  }
+
+  if (char === "}") {
+    return { startString: false, braceChange: -1 };
+  }
+
+  return { startString: false, braceChange: 0 };
 }
 
 /**

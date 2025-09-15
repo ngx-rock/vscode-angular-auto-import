@@ -112,34 +112,82 @@ export async function findAngularDependencies(projectRootPath: string): Promise<
  */
 export async function getLibraryEntryPoints(library: AngularDependency): Promise<Map<string, string>> {
   const entryPoints = new Map<string, string>();
-  try {
-    const packageJsonPath = path.join(library.path, "package.json");
-    const packageJsonContent = await fs.readFile(packageJsonPath, "utf-8");
-    const packageJson = JSON.parse(packageJsonContent) as PackageJson;
 
-    if (packageJson.exports) {
-      // Process the "exports" field
-      for (const [exportPath, target] of Object.entries(packageJson.exports)) {
-        if (typeof target === "string" && target.endsWith(".d.ts")) {
-          const importPath = path.join(library.name, exportPath).replace(/\\/g, "/");
-          entryPoints.set(importPath, path.resolve(library.path, target));
-        } else if (typeof target === "object" && target !== null && target.types) {
-          const typesPath = target.types;
-          if (typeof typesPath === "string" && typesPath.endsWith(".d.ts")) {
-            const importPath = path.join(library.name, exportPath).replace(/\\/g, "/");
-            entryPoints.set(importPath, path.resolve(library.path, typesPath));
-          }
-        }
-      }
-    } else if (packageJson.types || packageJson.typings) {
-      // Fallback to "types" or "typings"
-      const typesFile = packageJson.types || packageJson.typings;
-      if (typeof typesFile === "string" && typesFile.endsWith(".d.ts")) {
-        entryPoints.set(library.name, path.resolve(library.path, typesFile));
-      }
-    }
+  try {
+    const packageJson = await loadPackageJson(library.path);
+    processPackageJsonEntryPoints(packageJson, library, entryPoints);
   } catch (error) {
     logger.error(`[PackageJson] Error getting entry points for ${library.name}`, error as Error);
   }
+
   return entryPoints;
+}
+
+async function loadPackageJson(libraryPath: string): Promise<PackageJson> {
+  const packageJsonPath = path.join(libraryPath, "package.json");
+  const packageJsonContent = await fs.readFile(packageJsonPath, "utf-8");
+  return JSON.parse(packageJsonContent) as PackageJson;
+}
+
+function processPackageJsonEntryPoints(
+  packageJson: PackageJson,
+  library: AngularDependency,
+  entryPoints: Map<string, string>
+): void {
+  if (packageJson.exports) {
+    processExportsField(packageJson.exports, library, entryPoints);
+  } else {
+    processFallbackTypes(packageJson, library, entryPoints);
+  }
+}
+
+function processExportsField(
+  exports: Record<string, unknown>,
+  library: AngularDependency,
+  entryPoints: Map<string, string>
+): void {
+  for (const [exportPath, target] of Object.entries(exports)) {
+    processExportTarget(exportPath, target, library, entryPoints);
+  }
+}
+
+function processExportTarget(
+  exportPath: string,
+  target: unknown,
+  library: AngularDependency,
+  entryPoints: Map<string, string>
+): void {
+  if (typeof target === "string" && target.endsWith(".d.ts")) {
+    addEntryPoint(exportPath, target, library, entryPoints);
+  } else if (isObjectWithTypes(target)) {
+    const typesPath = target.types;
+    if (typeof typesPath === "string" && typesPath.endsWith(".d.ts")) {
+      addEntryPoint(exportPath, typesPath, library, entryPoints);
+    }
+  }
+}
+
+function isObjectWithTypes(target: unknown): target is { types: unknown } {
+  return typeof target === "object" && target !== null && "types" in target;
+}
+
+function addEntryPoint(
+  exportPath: string,
+  typesPath: string,
+  library: AngularDependency,
+  entryPoints: Map<string, string>
+): void {
+  const importPath = path.join(library.name, exportPath).replace(/\\/g, "/");
+  entryPoints.set(importPath, path.resolve(library.path, typesPath));
+}
+
+function processFallbackTypes(
+  packageJson: PackageJson,
+  library: AngularDependency,
+  entryPoints: Map<string, string>
+): void {
+  const typesFile = packageJson.types || packageJson.typings;
+  if (typeof typesFile === "string" && typesFile.endsWith(".d.ts")) {
+    entryPoints.set(library.name, path.resolve(library.path, typesFile));
+  }
 }

@@ -346,60 +346,108 @@ export async function resolveImportPath(
     return ".";
   }
 
-  // Check that files are within the project boundaries
-  if (!absoluteTargetModulePathNoExt.startsWith(projectRoot)) {
-    logger.warn(`[TsConfigHelper] Target file is outside project root, using absolute path`);
-    return absoluteTargetModulePathNoExt;
+  // Validate paths are within project boundaries
+  const pathValidation = validateProjectPaths(absoluteTargetModulePathNoExt, absoluteCurrentFilePath, projectRoot);
+  if (pathValidation.shouldReturn) {
+    return pathValidation.path;
   }
 
-  if (!absoluteCurrentFilePath.startsWith(projectRoot)) {
-    logger.warn(`[TsConfigHelper] Current file is outside project root, using relative path fallback`);
-    const relativePath = getRelativeFilePath(absoluteCurrentFilePath, absoluteTargetModulePathNoExt);
-    return relativePath;
-  }
+  // Get or create path alias trie
+  const trie = await getOrCreateTrie(projectRoot);
 
-  let trie = trieCache.get(projectRoot);
-
-  if (!trie) {
-    // Attempt to load tsconfig and create the trie
-    let tsconfig = tsConfigCache.get(projectRoot);
-
-    if (!tsconfig) {
-      try {
-        tsconfig = await findAndParseTsConfig(projectRoot);
-      } catch (error) {
-        logger.error(`[TsConfigHelper] Error loading tsconfig from disk:`, error as Error);
-      }
-    }
-
-    if (tsconfig) {
-      try {
-        const newTrie = new PathAliasTrie(tsconfig);
-        trieCache.set(projectRoot, newTrie);
-        trie = newTrie;
-      } catch (error) {
-        logger.error(`[TsConfigHelper] Error creating new trie:`, error as Error);
-      }
-    }
-  }
-
-  // Calculate relative path first to compare with alias
+  // Calculate relative path
   const relativePath = getRelativeFilePath(absoluteCurrentFilePath, absoluteTargetModulePathNoExt);
 
-  if (trie) {
-    const match = trie.findLongestPrefixMatch(absoluteTargetModulePathNoExt, projectRoot);
-    if (match) {
-      // Always prefer barrel imports over relative paths
-      if (match.isBarrel) {
-        return match.importPath;
-      }
-
-      // For non-barrel (wildcard) aliases, always prefer aliases over relative paths
-      // according to the configured priority which expects clean imports
-      return match.importPath;
-    }
+  // Try to find alias match
+  const aliasMatch = findAliasMatch(trie, absoluteTargetModulePathNoExt, projectRoot);
+  if (aliasMatch) {
+    return aliasMatch;
   }
 
   // Fallback: calculate relative path
   return relativePath;
+}
+
+function validateProjectPaths(
+  absoluteTargetModulePathNoExt: string,
+  absoluteCurrentFilePath: string,
+  projectRoot: string
+): { shouldReturn: boolean; path: string } {
+  // Check that target file is within the project boundaries
+  if (!absoluteTargetModulePathNoExt.startsWith(projectRoot)) {
+    logger.warn(`[TsConfigHelper] Target file is outside project root, using absolute path`);
+    return { shouldReturn: true, path: absoluteTargetModulePathNoExt };
+  }
+
+  // Check that current file is within the project boundaries
+  if (!absoluteCurrentFilePath.startsWith(projectRoot)) {
+    logger.warn(`[TsConfigHelper] Current file is outside project root, using relative path fallback`);
+    const relativePath = getRelativeFilePath(absoluteCurrentFilePath, absoluteTargetModulePathNoExt);
+    return { shouldReturn: true, path: relativePath };
+  }
+
+  return { shouldReturn: false, path: "" };
+}
+
+async function getOrCreateTrie(projectRoot: string): Promise<PathAliasTrie | null> {
+  const trie = trieCache.get(projectRoot);
+
+  if (trie) {
+    return trie;
+  }
+
+  // Attempt to load tsconfig and create the trie
+  const tsconfig = await loadTsConfig(projectRoot);
+  if (!tsconfig) {
+    return null;
+  }
+
+  try {
+    const newTrie = new PathAliasTrie(tsconfig);
+    trieCache.set(projectRoot, newTrie);
+    return newTrie;
+  } catch (error) {
+    logger.error(`[TsConfigHelper] Error creating new trie:`, error as Error);
+    return null;
+  }
+}
+
+async function loadTsConfig(projectRoot: string): Promise<ProcessedTsConfig | null> {
+  let tsconfig = tsConfigCache.get(projectRoot);
+
+  if (tsconfig) {
+    return tsconfig;
+  }
+
+  try {
+    tsconfig = await findAndParseTsConfig(projectRoot);
+    return tsconfig;
+  } catch (error) {
+    logger.error(`[TsConfigHelper] Error loading tsconfig from disk:`, error as Error);
+    return null;
+  }
+}
+
+function findAliasMatch(
+  trie: PathAliasTrie | null,
+  absoluteTargetModulePathNoExt: string,
+  projectRoot: string
+): string | null {
+  if (!trie) {
+    return null;
+  }
+
+  const match = trie.findLongestPrefixMatch(absoluteTargetModulePathNoExt, projectRoot);
+  if (!match) {
+    return null;
+  }
+
+  // Always prefer barrel imports over relative paths
+  if (match.isBarrel) {
+    return match.importPath;
+  }
+
+  // For non-barrel (wildcard) aliases, always prefer aliases over relative paths
+  // according to the configured priority which expects clean imports
+  return match.importPath;
 }

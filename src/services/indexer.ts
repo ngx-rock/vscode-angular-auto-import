@@ -243,11 +243,9 @@ export class AngularIndexer {
    * The ts-morph project instance.
    */
   project: Project;
-  // biome-ignore lint/style/useReadonlyClassProperties: This cache is cleared and reassigned in multiple methods
   private fileCache: Map<string, FileElementsInfo> = new Map();
   private readonly selectorTrie: SelectorTrie = new SelectorTrie();
 
-  // biome-ignore lint/style/useReadonlyClassProperties: This map is cleared and reassigned in indexing methods
   private projectModuleMap: Map<string, { moduleName: string; importPath: string }> = new Map();
   /**
    * Index of external modules and their exported entities.
@@ -1077,87 +1075,132 @@ export class AngularIndexer {
       logger.error("AngularIndexer.loadFromWorkspace: projectRootPath or cache keys not set. Cannot load.");
       return false;
     }
+
     try {
-      const storedCache = context.workspaceState.get<Record<string, FileElementsInfo | ComponentInfo>>(
-        this.workspaceFileCacheKey
-      );
-      const storedIndex = context.workspaceState.get<Record<string, AngularElementData>>(this.workspaceIndexCacheKey);
-      const storedModules = context.workspaceState.get<Record<string, { moduleName: string; importPath: string }>>(
-        this.workspaceModulesCacheKey
-      );
-      const storedExternalModulesExports = context.workspaceState.get<Record<string, string[]>>(
-        this.workspaceExternalModulesExportsCacheKey
-      );
-
-      if (storedCache && storedIndex) {
-        // Convert old ComponentInfo format to new FileElementsInfo format if needed
-        const convertedCache = new Map<string, FileElementsInfo>();
-        for (const [filePath, cacheEntry] of Object.entries(storedCache)) {
-          if ("elements" in cacheEntry) {
-            // New format - already FileElementsInfo
-            convertedCache.set(filePath, cacheEntry as FileElementsInfo);
-          } else {
-            // Old format - convert ComponentInfo to FileElementsInfo
-            const componentInfo = cacheEntry as ComponentInfo;
-            const fileElementsInfo: FileElementsInfo = {
-              filePath: filePath,
-              lastModified: componentInfo.lastModified,
-              hash: componentInfo.hash,
-              elements: [componentInfo],
-            };
-            convertedCache.set(filePath, fileElementsInfo);
-          }
-        }
-        this.fileCache = convertedCache;
-
-        this.selectorTrie.clear();
-        this.externalModuleExportsIndex.clear();
-        for (const [key, value] of Object.entries(storedIndex)) {
-          const elementData = new AngularElementData(
-            value.path,
-            value.name,
-            value.type,
-            value.originalSelector || key,
-            await parseAngularSelector(value.originalSelector || key),
-            value.isStandalone,
-            value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
-            value.exportingModuleName
-          );
-          // Index under all its selectors
-          for (const selector of elementData.selectors) {
-            this.selectorTrie.insert(selector, elementData);
-          }
-        }
-        // Note: This does not repopulate the ts-morph Project.
-        // A full scan or lazy loading of files into ts-morph Project is still needed if AST is required later.
-        // For now, the index is used for lookups, and files are added to ts-morph Project on demand (e.g. during updateFileIndex or importElementToFile).
-
-        if (storedModules) {
-          this.projectModuleMap = new Map(Object.entries(storedModules));
-        }
-
-        if (storedExternalModulesExports) {
-          // Convert stored string arrays back to Sets
-          this.externalModuleExportsIndex.clear();
-          for (const [moduleName, exports] of Object.entries(storedExternalModulesExports)) {
-            this.externalModuleExportsIndex.set(moduleName, new Set(exports));
-          }
-        }
-        logger.info(
-          `AngularIndexer (${path.basename(this.projectRootPath)}): Loaded ${
-            this.selectorTrie.size
-          } elements from workspace cache.`
-        );
-        return true;
+      const workspaceData = this.retrieveWorkspaceData(context);
+      if (!workspaceData.storedCache || !workspaceData.storedIndex) {
+        logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): No valid cache found in workspace.`);
+        return false;
       }
+
+      await this.loadCacheData(workspaceData);
+      this.loadModuleData(workspaceData);
+      this.loadExternalModuleExports(workspaceData);
+
+      logger.info(
+        `AngularIndexer (${path.basename(this.projectRootPath)}): Loaded ${
+          this.selectorTrie.size
+        } elements from workspace cache.`
+      );
+      return true;
     } catch (error) {
       logger.error(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Error loading index from workspace:`,
         error as Error
       );
+      logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): No valid cache found in workspace.`);
+      return false;
     }
-    logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): No valid cache found in workspace.`);
-    return false;
+  }
+
+  private retrieveWorkspaceData(context: vscode.ExtensionContext) {
+    return {
+      storedCache: context.workspaceState.get<Record<string, FileElementsInfo | ComponentInfo>>(
+        this.workspaceFileCacheKey
+      ),
+      storedIndex: context.workspaceState.get<Record<string, AngularElementData>>(this.workspaceIndexCacheKey),
+      storedModules: context.workspaceState.get<Record<string, { moduleName: string; importPath: string }>>(
+        this.workspaceModulesCacheKey
+      ),
+      storedExternalModulesExports: context.workspaceState.get<Record<string, string[]>>(
+        this.workspaceExternalModulesExportsCacheKey
+      ),
+    };
+  }
+
+  private async loadCacheData(workspaceData: {
+    storedCache: Record<string, FileElementsInfo | ComponentInfo> | undefined;
+    storedIndex: Record<string, AngularElementData> | undefined;
+    storedModules?: Record<string, { moduleName: string; importPath: string }>;
+    storedExternalModulesExports?: Record<string, string[]>;
+  }): Promise<void> {
+    if (!workspaceData.storedCache || !workspaceData.storedIndex) {
+      return;
+    }
+
+    // Convert old ComponentInfo format to new FileElementsInfo format if needed
+    this.fileCache = this.convertCacheFormat(workspaceData.storedCache);
+
+    // Load index data
+    this.selectorTrie.clear();
+    this.externalModuleExportsIndex.clear();
+
+    for (const [key, value] of Object.entries(workspaceData.storedIndex)) {
+      await this.loadIndexElement(key, value);
+    }
+  }
+
+  private convertCacheFormat(
+    storedCache: Record<string, FileElementsInfo | ComponentInfo>
+  ): Map<string, FileElementsInfo> {
+    const convertedCache = new Map<string, FileElementsInfo>();
+
+    for (const [filePath, cacheEntry] of Object.entries(storedCache)) {
+      if ("elements" in cacheEntry) {
+        // New format - already FileElementsInfo
+        convertedCache.set(filePath, cacheEntry as FileElementsInfo);
+      } else {
+        // Old format - convert ComponentInfo to FileElementsInfo
+        const componentInfo = cacheEntry as ComponentInfo;
+        const fileElementsInfo: FileElementsInfo = {
+          filePath: filePath,
+          lastModified: componentInfo.lastModified,
+          hash: componentInfo.hash,
+          elements: [componentInfo],
+        };
+        convertedCache.set(filePath, fileElementsInfo);
+      }
+    }
+
+    return convertedCache;
+  }
+
+  private async loadIndexElement(key: string, value: AngularElementData): Promise<void> {
+    const elementData = new AngularElementData(
+      value.path,
+      value.name,
+      value.type,
+      value.originalSelector || key,
+      await parseAngularSelector(value.originalSelector || key),
+      value.isStandalone,
+      value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
+      value.exportingModuleName
+    );
+
+    // Index under all its selectors
+    for (const selector of elementData.selectors) {
+      this.selectorTrie.insert(selector, elementData);
+    }
+  }
+
+  private loadModuleData(workspaceData: {
+    storedModules?: Record<string, { moduleName: string; importPath: string }>;
+  }): void {
+    if (workspaceData.storedModules) {
+      this.projectModuleMap = new Map(Object.entries(workspaceData.storedModules));
+    }
+  }
+
+  private loadExternalModuleExports(workspaceData: { storedExternalModulesExports?: Record<string, string[]> }): void {
+    if (!workspaceData.storedExternalModulesExports) {
+      return;
+    }
+
+    // Convert stored string arrays back to Sets
+    this.externalModuleExportsIndex.clear();
+    for (const [moduleName, exports] of Object.entries(workspaceData.storedExternalModulesExports)) {
+      this.externalModuleExportsIndex.set(moduleName, new Set(exports));
+    }
   }
 
   /**
@@ -1999,59 +2042,90 @@ export class AngularIndexer {
     isStandalone: boolean;
   } | null {
     // Check for component, then directive, then pipe
-    const { prop: cmpDef } = this._findInheritedStaticProperty(classDecl, "ɵcmp");
-    if (cmpDef) {
-      const typeNode = cmpDef.getTypeNode();
-      if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-        const typeRef = typeNode as TypeReferenceNode;
-        const selector = this._extractSelectorFromTypeReference(typeRef);
-        if (selector) {
-          return {
-            elementType: "component",
-            selector,
-            isStandalone: this._isStandaloneFromTypeReference(typeRef, "component"),
-          };
-        }
-      }
+    const componentResult = this._analyzeElementType(classDecl, "ɵcmp", "component");
+    if (componentResult) {
+      return componentResult;
     }
 
-    const { prop: dirDef } = this._findInheritedStaticProperty(classDecl, "ɵdir");
-    if (dirDef) {
-      const typeNode = dirDef.getTypeNode();
-      if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-        const typeRef = typeNode as TypeReferenceNode;
-        const selector = this._extractSelectorFromTypeReference(typeRef);
-        if (selector) {
-          return {
-            elementType: "directive",
-            selector,
-            isStandalone: this._isStandaloneFromTypeReference(typeRef, "directive"),
-          };
-        }
-      }
+    const directiveResult = this._analyzeElementType(classDecl, "ɵdir", "directive");
+    if (directiveResult) {
+      return directiveResult;
     }
 
-    const { prop: pipeDef } = this._findInheritedStaticProperty(classDecl, "ɵpipe");
-    if (pipeDef) {
-      const typeNode = pipeDef.getTypeNode();
-      if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-        const typeRef = typeNode as TypeReferenceNode;
-        const typeArgs = typeRef.getTypeArguments();
-        if (typeArgs.length > 1 && typeArgs[1].isKind(SyntaxKind.LiteralType)) {
-          const literal = (typeArgs[1] as LiteralTypeNode).getLiteral();
-          if (literal.isKind(SyntaxKind.StringLiteral)) {
-            const selector = literal.getLiteralText();
-            return {
-              elementType: "pipe",
-              selector,
-              isStandalone: this._isStandaloneFromTypeReference(typeRef, "pipe"),
-            };
-          }
-        }
-      }
+    const pipeResult = this._analyzePipeElement(classDecl);
+    if (pipeResult) {
+      return pipeResult;
     }
 
     return null;
+  }
+
+  private _analyzeElementType(
+    classDecl: ClassDeclaration,
+    propertyName: "ɵcmp" | "ɵdir",
+    elementType: "component" | "directive"
+  ): { elementType: "component" | "directive"; selector: string; isStandalone: boolean } | null {
+    const { prop } = this._findInheritedStaticProperty(classDecl, propertyName);
+    if (!prop) {
+      return null;
+    }
+
+    const typeNode = prop.getTypeNode();
+    if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
+      return null;
+    }
+
+    const typeRef = typeNode as TypeReferenceNode;
+    const selector = this._extractSelectorFromTypeReference(typeRef);
+    if (!selector) {
+      return null;
+    }
+
+    return {
+      elementType,
+      selector,
+      isStandalone: this._isStandaloneFromTypeReference(typeRef, elementType),
+    };
+  }
+
+  private _analyzePipeElement(
+    classDecl: ClassDeclaration
+  ): { elementType: "pipe"; selector: string; isStandalone: boolean } | null {
+    const { prop: pipeDef } = this._findInheritedStaticProperty(classDecl, "ɵpipe");
+    if (!pipeDef) {
+      return null;
+    }
+
+    const typeNode = pipeDef.getTypeNode();
+    if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
+      return null;
+    }
+
+    const typeRef = typeNode as TypeReferenceNode;
+    const selector = this._extractPipeSelectorFromTypeReference(typeRef);
+    if (!selector) {
+      return null;
+    }
+
+    return {
+      elementType: "pipe",
+      selector,
+      isStandalone: this._isStandaloneFromTypeReference(typeRef, "pipe"),
+    };
+  }
+
+  private _extractPipeSelectorFromTypeReference(typeRef: TypeReferenceNode): string | null {
+    const typeArgs = typeRef.getTypeArguments();
+    if (typeArgs.length <= 1 || !typeArgs[1].isKind(SyntaxKind.LiteralType)) {
+      return null;
+    }
+
+    const literal = (typeArgs[1] as LiteralTypeNode).getLiteral();
+    if (!literal.isKind(SyntaxKind.StringLiteral)) {
+      return null;
+    }
+
+    return literal.getLiteralText();
   }
 
   /**
