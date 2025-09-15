@@ -518,44 +518,91 @@ export function resolveRelativePath(from: string, to: string): string {
 
 function readAngularCoreMajorFromFilePath(filePath: string): number | null {
   try {
-    // Walk up to find a node_modules/@angular/core/package.json or nearest package.json with @angular/core dep
-    let currentDir: string | undefined = path.dirname(filePath);
-    const visited = new Set<string>();
-    for (let i = 0; i < 10 && currentDir && !visited.has(currentDir); i++) {
-      visited.add(currentDir);
-
-      const corePkgPath = path.join(currentDir, "node_modules", "@angular", "core", "package.json");
-      if (fs.existsSync(corePkgPath)) {
-        const json = JSON.parse(fs.readFileSync(corePkgPath, "utf-8")) as { version?: string };
-        const major = parseSemverMajor(json.version ?? "");
-        if (typeof major === "number") {
-          return major;
-        }
-      }
-
-      const pkgPath = path.join(currentDir, "package.json");
-      if (fs.existsSync(pkgPath)) {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as {
-          dependencies?: Record<string, string>;
-          devDependencies?: Record<string, string>;
-        };
-        const ver = pkg.dependencies?.["@angular/core"] || pkg.devDependencies?.["@angular/core"] || "";
-        const major = parseSemverMajor(ver);
-        if (typeof major === "number") {
-          return major;
-        }
-      }
-
-      const parent = path.dirname(currentDir);
-      if (!parent || parent === currentDir) {
-        break;
-      }
-      currentDir = parent;
-    }
-  } catch (_err) {
-    // noop
+    return walkUpDirectoryTree(path.dirname(filePath));
+  } catch  {
+    return null;
   }
+}
+
+/**
+ * Walks up the directory tree to find Angular core version.
+ */
+function walkUpDirectoryTree(startDir: string): number | null {
+  let currentDir: string | null = startDir;
+  const visited = new Set<string>();
+
+  for (let i = 0; i < 10 && currentDir && !visited.has(currentDir); i++) {
+    visited.add(currentDir);
+
+    const version = findAngularVersionInDirectory(currentDir);
+    if (version !== null) {
+      return version;
+    }
+
+    currentDir = getParentDirectory(currentDir);
+  }
+
   return null;
+}
+
+/**
+ * Finds Angular version in a specific directory.
+ */
+function findAngularVersionInDirectory(dir: string): number | null {
+  // First check node_modules/@angular/core/package.json
+  const coreVersion = readAngularCorePackageVersion(dir);
+  if (coreVersion !== null) {
+    return coreVersion;
+  }
+
+  // Then check local package.json dependencies
+  return readAngularVersionFromPackageJson(dir);
+}
+
+/**
+ * Reads Angular core version from node_modules.
+ */
+function readAngularCorePackageVersion(dir: string): number | null {
+  const corePkgPath = path.join(dir, "node_modules", "@angular", "core", "package.json");
+  if (!fs.existsSync(corePkgPath)) {
+    return null;
+  }
+
+  try {
+    const json = JSON.parse(fs.readFileSync(corePkgPath, "utf-8")) as { version?: string };
+    return parseSemverMajor(json.version ?? "");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reads Angular version from package.json dependencies.
+ */
+function readAngularVersionFromPackageJson(dir: string): number | null {
+  const pkgPath = path.join(dir, "package.json");
+  if (!fs.existsSync(pkgPath)) {
+    return null;
+  }
+
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const ver = pkg.dependencies?.["@angular/core"] || pkg.devDependencies?.["@angular/core"] || "";
+    return parseSemverMajor(ver);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Gets the parent directory, or null if at root.
+ */
+function getParentDirectory(currentDir: string): string | null {
+  const parent = path.dirname(currentDir);
+  return parent && parent !== currentDir ? parent : null;
 }
 
 function parseSemverMajor(version: string): number | null {

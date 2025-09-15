@@ -144,70 +144,110 @@ class PathAliasTrie {
     absoluteTargetPath: string,
     projectRoot?: string
   ): { importPath: string; isBarrel?: boolean } | null {
+    const targetPath = this.getTargetPath(absoluteTargetPath, projectRoot);
+    const pathSegments = this.getPathSegments(targetPath);
+    const longestMatch = this.findLongestMatchInTrie(pathSegments.lower, pathSegments.original);
+
+    if (!longestMatch) {
+      return null;
+    }
+
+    const importPath = this.buildImportPath(longestMatch, pathSegments.original);
+    return { importPath, isBarrel: longestMatch.isBarrel };
+  }
+
+  /**
+   * Gets the target path, converting to relative if project root is provided.
+   */
+  private getTargetPath(absoluteTargetPath: string, projectRoot?: string): string {
     let targetPath = normalizePath(absoluteTargetPath);
 
-    // If project root is provided, convert to relative path
     if (projectRoot && absoluteTargetPath.startsWith(projectRoot)) {
       targetPath = normalizePath(path.relative(projectRoot, absoluteTargetPath));
     }
 
-    const originalPathSegments = targetPath.split("/").filter((p) => p.length > 0);
-    const lowerPathSegments = targetPath
+    return targetPath;
+  }
+
+  /**
+   * Gets path segments in both original case and lowercase.
+   */
+  private getPathSegments(targetPath: string): { original: string[]; lower: string[] } {
+    const original = targetPath.split("/").filter((p) => p.length > 0);
+    const lower = targetPath
       .toLowerCase()
       .split("/")
       .filter((p) => p.length > 0);
 
-    let currentNode = this.root;
-    let longestMatch: {
-      alias: string;
-      depth: number;
-      isBarrel?: boolean;
-    } | null = null;
+    return { original, lower };
+  }
 
+  /**
+   * Finds the longest match in the trie structure.
+   */
+  private findLongestMatchInTrie(
+    lowerPathSegments: string[],
+    _originalPathSegments: string[]
+  ): { alias: string; depth: number; isBarrel?: boolean } | null {
+    let currentNode = this.root;
+    let longestMatch = this.getInitialMatch();
+
+    for (let i = 0; i < lowerPathSegments.length; i++) {
+      const segment = lowerPathSegments[i];
+
+      if (!this.hasChildNode(currentNode, segment)) {
+        break;
+      }
+
+      currentNode = currentNode.children.get(segment) as TrieNode;
+
+      if (currentNode.alias) {
+        longestMatch = {
+          alias: currentNode.alias,
+          depth: i + 1,
+          isBarrel: currentNode.isBarrel,
+        };
+      }
+    }
+
+    return longestMatch;
+  }
+
+  /**
+   * Gets the initial match if the root has an alias.
+   */
+  private getInitialMatch(): { alias: string; depth: number; isBarrel?: boolean } | null {
     if (this.root.alias) {
-      longestMatch = {
+      return {
         alias: this.root.alias,
         depth: 0,
         isBarrel: this.root.isBarrel,
       };
     }
-
-    for (let i = 0; i < lowerPathSegments.length; i++) {
-      const segment = lowerPathSegments[i];
-
-      if (currentNode.children.has(segment)) {
-        const nextNode = currentNode.children.get(segment);
-        if (!nextNode) {
-          break;
-        }
-        currentNode = nextNode;
-
-        if (currentNode.alias) {
-          longestMatch = {
-            alias: currentNode.alias,
-            depth: i + 1,
-            isBarrel: currentNode.isBarrel,
-          };
-        }
-      } else {
-        break;
-      }
-    }
-
-    if (longestMatch) {
-      let importPath: string;
-      if (longestMatch.isBarrel) {
-        importPath = longestMatch.alias;
-      } else {
-        // Use original cased segments for the remainder
-        const remainingSegments = originalPathSegments.slice(longestMatch.depth);
-        const remainingPath = remainingSegments.join("/");
-        importPath = normalizePath(path.posix.join(longestMatch.alias, remainingPath));
-      }
-      return { importPath, isBarrel: longestMatch.isBarrel };
-    }
-
     return null;
+  }
+
+  /**
+   * Checks if a node has a child with the given segment.
+   */
+  private hasChildNode(node: TrieNode, segment: string): boolean {
+    return node.children.has(segment) && node.children.get(segment) !== undefined;
+  }
+
+  /**
+   * Builds the final import path from the longest match.
+   */
+  private buildImportPath(
+    longestMatch: { alias: string; depth: number; isBarrel?: boolean },
+    originalPathSegments: string[]
+  ): string {
+    if (longestMatch.isBarrel) {
+      return longestMatch.alias;
+    }
+
+    const remainingSegments = originalPathSegments.slice(longestMatch.depth);
+    const remainingPath = remainingSegments.join("/");
+    return normalizePath(path.posix.join(longestMatch.alias, remainingPath));
   }
 }
 

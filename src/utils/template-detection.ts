@@ -162,70 +162,136 @@ function findTemplatePropertyRanges(decoratorContent: string, offset: number): T
  * @internal
  */
 function findMatchingBrace(text: string, openBracePos: number): number {
-  let braceCount = 1;
-  let inString = false;
-  let stringChar = "";
-  let escaped = false;
+  const parser = new BraceParser();
+  return parser.findMatching(text, openBracePos);
+}
 
-  for (let i = openBracePos + 1; i < text.length; i++) {
-    const char = text[i];
+/**
+ * Parser for matching braces that handles string contexts.
+ */
+class BraceParser {
+  private braceCount = 1;
+  private inString = false;
+  private stringChar = "";
+  private escaped = false;
 
-    // Handle escape sequences
-    if (handleEscapeSequence(char, escaped)) {
-      escaped = !escaped;
-      continue;
-    }
-    escaped = false;
+  /**
+   * Finds the matching brace position.
+   */
+  findMatching(text: string, openBracePos: number): number {
+    this.reset();
 
-    // Process character based on string context
-    if (inString) {
-      const stringState = handleStringChar(char, stringChar);
-      if (stringState.endString) {
-        inString = false;
-        stringChar = "";
+    for (let i = openBracePos + 1; i < text.length; i++) {
+      const char = text[i];
+
+      if (this.handleEscape(char)) {
+        continue;
       }
-    } else {
-      const result = handleNonStringChar(char, braceCount);
-      if (result.startString) {
-        inString = true;
-        stringChar = char;
-      } else if (result.braceChange !== 0) {
-        braceCount += result.braceChange;
-        if (braceCount === 0) {
-          return i;
+
+      if (this.inString) {
+        this.processStringContext(char);
+      } else {
+        const position = this.processNonStringContext(char, i);
+        if (position !== -1) {
+          return position;
         }
       }
     }
+
+    return -1;
   }
 
-  return -1; // No matching brace found
-}
-
-function handleEscapeSequence(char: string, currentlyEscaped: boolean): boolean {
-  if (currentlyEscaped) {
-    return false; // Reset escape state
-  }
-  return char === "\\";
-}
-
-function handleStringChar(char: string, stringChar: string): { endString: boolean } {
-  return { endString: char === stringChar };
-}
-
-function handleNonStringChar(char: string, _braceCount: number): { startString: boolean; braceChange: number } {
-  if (char === '"' || char === "'" || char === "`") {
-    return { startString: true, braceChange: 0 };
+  /**
+   * Resets parser state.
+   */
+  private reset(): void {
+    this.braceCount = 1;
+    this.inString = false;
+    this.stringChar = "";
+    this.escaped = false;
   }
 
-  if (char === "{") {
-    return { startString: false, braceChange: 1 };
+  /**
+   * Handles escape sequences.
+   */
+  private handleEscape(char: string): boolean {
+    if (this.escaped) {
+      this.escaped = false;
+      return false;
+    }
+
+    if (char === "\\") {
+      this.escaped = true;
+      return true;
+    }
+
+    return false;
   }
 
-  if (char === "}") {
-    return { startString: false, braceChange: -1 };
+  /**
+   * Processes character in string context.
+   */
+  private processStringContext(char: string): void {
+    if (char === this.stringChar) {
+      this.exitString();
+    }
   }
 
-  return { startString: false, braceChange: 0 };
+  /**
+   * Processes character outside string context.
+   */
+  private processNonStringContext(char: string, position: number): number {
+    if (this.isStringDelimiter(char)) {
+      this.enterString(char);
+      return -1;
+    }
+
+    const braceChange = this.getBraceChange(char);
+    if (braceChange !== 0) {
+      this.braceCount += braceChange;
+      if (this.braceCount === 0) {
+        return position;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Enters string context.
+   */
+  private enterString(char: string): void {
+    this.inString = true;
+    this.stringChar = char;
+  }
+
+  /**
+   * Exits string context.
+   */
+  private exitString(): void {
+    this.inString = false;
+    this.stringChar = "";
+  }
+
+  /**
+   * Checks if character is a string delimiter.
+   */
+  private isStringDelimiter(char: string): boolean {
+    return char === '"' || char === "'" || char === "`";
+  }
+
+  /**
+   * Gets brace count change for a character.
+   */
+  private getBraceChange(char: string): number {
+    if (char === "{") {
+      return 1;
+    }
+    if (char === "}") {
+      return -1;
+    }
+    return 0;
+  }
 }
 
 /**

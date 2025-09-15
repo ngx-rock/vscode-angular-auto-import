@@ -376,61 +376,93 @@ export class AngularIndexer {
   private parseAngularElementsWithTsMorph(filePath: string, content: string): ComponentInfo[] {
     if (!this.projectRootPath) {
       logger.error("AngularIndexer.parseAngularElementsWithTsMorph: projectRootPath is not set.");
-      const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
-      return fallbackResult ? [fallbackResult] : [];
+      return this.getFallbackResult(filePath, content);
     }
 
     try {
-      let sourceFile = this.project.getSourceFile(filePath);
-      if (sourceFile) {
-        try {
-          // Check if the sourceFile is still valid before manipulating it
-          sourceFile.getFilePath(); // This will throw if the node is forgotten
-          sourceFile.replaceWithText(content); // Update existing
-        } catch (_nodeError) {
-          // If the sourceFile node is forgotten, remove it and create a new one
-          logger.warn(`SourceFile node forgotten for ${filePath}, recreating...`);
-          this.project.removeSourceFile(sourceFile);
-          sourceFile = this.project.createSourceFile(filePath, content, {
-            overwrite: true,
-          });
-        }
-      } else {
-        sourceFile = this.project.createSourceFile(filePath, content, {
-          overwrite: true,
-        });
-      }
-
-      const elements: ComponentInfo[] = [];
-      const classes = sourceFile.getClasses();
-
-      for (const classDeclaration of classes) {
-        try {
-          // Add try-catch around each class processing to handle forgotten nodes
-          const elementInfo = this.extractAngularElementInfo(classDeclaration, filePath, content); // content passed for hash
-          if (elementInfo) {
-            elements.push(elementInfo);
-          }
-        } catch (classError) {
-          logger.warn(`Error processing class in ${filePath}: ${(classError as Error).message}`);
-          // Continue with other classes even if one fails
-        }
-      }
-
-      // If no Angular elements found by ts-morph, try regex as a fallback
-      if (elements.length === 0) {
-        const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
-        if (fallbackResult) {
-          elements.push(fallbackResult);
-        }
-      }
-
-      return elements;
+      const sourceFile = this.getOrCreateSourceFile(filePath, content);
+      const elements = this.extractElementsFromSourceFile(sourceFile, filePath, content);
+      return this.applyFallbackIfNeeded(elements, filePath, content);
     } catch (error) {
       logger.error(`ts-morph parsing error for ${filePath} in project ${this.projectRootPath}:`, error as Error);
-      const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
-      return fallbackResult ? [fallbackResult] : [];
+      return this.getFallbackResult(filePath, content);
     }
+  }
+
+  /**
+   * Gets fallback result using regex parsing.
+   */
+  private getFallbackResult(filePath: string, content: string): ComponentInfo[] {
+    const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
+    return fallbackResult ? [fallbackResult] : [];
+  }
+
+  /**
+   * Gets or creates a source file for the given path and content.
+   */
+  private getOrCreateSourceFile(filePath: string, content: string): SourceFile {
+    let sourceFile = this.project.getSourceFile(filePath);
+
+    if (sourceFile) {
+      sourceFile = this.updateExistingSourceFile(sourceFile, filePath, content);
+    } else {
+      sourceFile = this.project.createSourceFile(filePath, content, {
+        overwrite: true,
+      });
+    }
+
+    return sourceFile;
+  }
+
+  /**
+   * Updates an existing source file or recreates it if forgotten.
+   */
+  private updateExistingSourceFile(sourceFile: SourceFile, filePath: string, content: string): SourceFile {
+    try {
+      sourceFile.getFilePath(); // This will throw if the node is forgotten
+      sourceFile.replaceWithText(content);
+      return sourceFile;
+    } catch {
+      logger.warn(`SourceFile node forgotten for ${filePath}, recreating...`);
+      this.project.removeSourceFile(sourceFile);
+      return this.project.createSourceFile(filePath, content, {
+        overwrite: true,
+      });
+    }
+  }
+
+  /**
+   * Extracts Angular elements from a source file.
+   */
+  private extractElementsFromSourceFile(sourceFile: SourceFile, filePath: string, content: string): ComponentInfo[] {
+    const elements: ComponentInfo[] = [];
+    const classes = sourceFile.getClasses();
+
+    for (const classDeclaration of classes) {
+      try {
+        const elementInfo = this.extractAngularElementInfo(classDeclaration, filePath, content);
+        if (elementInfo) {
+          elements.push(elementInfo);
+        }
+      } catch (classError) {
+        logger.warn(`Error processing class in ${filePath}: ${(classError as Error).message}`);
+      }
+    }
+
+    return elements;
+  }
+
+  /**
+   * Applies fallback parsing if no elements were found.
+   */
+  private applyFallbackIfNeeded(elements: ComponentInfo[], filePath: string, content: string): ComponentInfo[] {
+    if (elements.length === 0) {
+      const fallbackResult = this.parseAngularElementWithRegex(filePath, content);
+      if (fallbackResult) {
+        elements.push(fallbackResult);
+      }
+    }
+    return elements;
   }
 
   /**
@@ -809,7 +841,7 @@ export class AngularIndexer {
         sourceFile.getFilePath();
         this.project.removeSourceFile(sourceFile);
       }
-    } catch (_nodeError) {
+    } catch {
       logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
     }
     logger.info(`No Angular elements found in ${filePath} for ${this.projectRootPath}`);
@@ -843,7 +875,7 @@ export class AngularIndexer {
         sourceFile.getFilePath(); // This will throw if the node is forgotten
         this.project.removeSourceFile(sourceFile);
       }
-    } catch (_nodeError) {
+    } catch {
       // If the sourceFile node is already forgotten, log it but don't fail
       logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
     }
@@ -888,7 +920,7 @@ export class AngularIndexer {
           // Check if the sourceFile is still valid before removing
           sf.getFilePath(); // This will throw if the node is forgotten
           this.project.removeSourceFile(sf);
-        } catch (_nodeError) {
+        } catch {
           // If the sourceFile node is already forgotten, skip it
           logger.debug(`SourceFile node already forgotten for ${sf.getBaseName()}, skipping removal`);
         }
@@ -1265,7 +1297,7 @@ export class AngularIndexer {
           // Check if the sourceFile is still valid before removing
           sf.getFilePath(); // This will throw if the node is forgotten
           this.project.removeSourceFile(sf);
-        } catch (_nodeError) {
+        } catch {
           // If the sourceFile node is already forgotten, skip it
           logger.debug(`SourceFile node already forgotten during clearCache, skipping removal`);
         }
@@ -1417,7 +1449,7 @@ export class AngularIndexer {
           try {
             sourceFile.getFilePath();
             libraryFiles.push({ importPath, sourceFile });
-          } catch (_nodeError) {
+          } catch {
             logger.warn(`[Indexer] SourceFile node forgotten for library file ${filePath}, skipping`);
           }
         }
@@ -1438,7 +1470,7 @@ export class AngularIndexer {
       try {
         sourceFile.getFilePath();
         this.collectClassesFromSourceFile(sourceFile, allLibraryClasses);
-      } catch (_nodeError) {
+      } catch {
         logger.warn(`[Indexer] SourceFile node forgotten during class collection, skipping file`);
       }
     }
@@ -1479,7 +1511,7 @@ export class AngularIndexer {
       try {
         sourceFile.getFilePath();
         this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap, allLibraryClasses, typeChecker);
-      } catch (_nodeError) {
+      } catch {
         logger.warn(`[Indexer] SourceFile node forgotten during module mapping for ${importPath}, skipping`);
       }
     }
@@ -1495,7 +1527,7 @@ export class AngularIndexer {
       try {
         sourceFile.getFilePath();
         await this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap);
-      } catch (_nodeError) {
+      } catch {
         logger.warn(`[Indexer] SourceFile node forgotten during declarations indexing for ${importPath}, skipping`);
       }
     }
@@ -1532,7 +1564,7 @@ export class AngularIndexer {
         if (filePath.endsWith(".module.ts") && !moduleFileUris.some((f) => f.fsPath === filePath)) {
           this._processProjectModuleFile(sourceFile);
         }
-      } catch (_nodeError) {
+      } catch {
         logger.warn(`[Indexer] SourceFile node forgotten during project module processing, skipping`);
       }
     }
@@ -1545,58 +1577,105 @@ export class AngularIndexer {
    * @internal
    */
   private _processProjectModuleFile(sourceFile: SourceFile) {
-    try {
-      // Check if the sourceFile is still valid
-      sourceFile.getFilePath(); // This will throw if the node is forgotten
-    } catch (_nodeError) {
-      logger.warn(`[Indexer] SourceFile node forgotten in _processProjectModuleFile, skipping`);
+    if (!this.isSourceFileValid(sourceFile)) {
       return;
     }
 
     const classDeclarations = sourceFile.getClasses();
     for (const classDecl of classDeclarations) {
-      const ngModuleDecorator = classDecl.getDecorator("NgModule");
-      if (!ngModuleDecorator) {
-        continue;
-      }
+      this.processNgModuleClass(classDecl, sourceFile);
+    }
+  }
 
-      const moduleName = classDecl.getName();
-      if (!moduleName) {
-        continue;
-      }
+  /**
+   * Checks if a source file is valid.
+   */
+  private isSourceFileValid(sourceFile: SourceFile): boolean {
+    try {
+      sourceFile.getFilePath();
+      return true;
+    } catch {
+      logger.warn(`[Indexer] SourceFile node forgotten in _processProjectModuleFile, skipping`);
+      return false;
+    }
+  }
 
-      const decoratorArg = ngModuleDecorator.getArguments()[0];
-      if (!decoratorArg || !decoratorArg.isKind(SyntaxKind.ObjectLiteralExpression)) {
-        continue;
-      }
+  /**
+   * Processes a single NgModule class.
+   */
+  private processNgModuleClass(classDecl: ClassDeclaration, sourceFile: SourceFile): void {
+    const ngModuleDecorator = classDecl.getDecorator("NgModule");
+    if (!ngModuleDecorator) {
+      return;
+    }
 
-      const objectLiteral = decoratorArg as ObjectLiteralExpression;
-      const exportsProp = objectLiteral.getProperty("exports");
+    const moduleName = classDecl.getName();
+    if (!moduleName) {
+      return;
+    }
 
-      if (!exportsProp) {
-        continue;
-      }
+    const objectLiteral = this.getNgModuleObjectLiteral(ngModuleDecorator);
+    if (!objectLiteral) {
+      return;
+    }
 
-      const exportedIdentifiers = this._getIdentifierNamesFromArrayProp(exportsProp as PropertyAssignment);
+    const exportsProp = objectLiteral.getProperty("exports");
+    if (!exportsProp) {
+      return;
+    }
 
-      // Store module exports in externalModuleExportsIndex for diagnostic provider
-      if (exportedIdentifiers.length > 0) {
-        this.externalModuleExportsIndex.set(moduleName, new Set(exportedIdentifiers));
-        logger.debug(
-          `[ProjectModules] Indexed module ${moduleName} with ${exportedIdentifiers.length} exports: ${exportedIdentifiers.join(", ")}`
-        );
-      }
+    this.processModuleExports(exportsProp as PropertyAssignment, moduleName, sourceFile);
+  }
 
-      for (const componentName of exportedIdentifiers) {
-        const newImportPath = path.relative(this.projectRootPath, sourceFile.getFilePath()).replace(/\\/g, "/");
-        const existing = this.projectModuleMap.get(componentName);
+  /**
+   * Gets the NgModule decorator's object literal.
+   */
+  private getNgModuleObjectLiteral(ngModuleDecorator: Decorator): ObjectLiteralExpression | null {
+    const decoratorArg = ngModuleDecorator.getArguments()[0];
+    if (!decoratorArg || !decoratorArg.isKind(SyntaxKind.ObjectLiteralExpression)) {
+      return null;
+    }
+    return decoratorArg as ObjectLiteralExpression;
+  }
 
-        if (!existing || newImportPath.length < existing.importPath.length) {
-          this.projectModuleMap.set(componentName, {
-            moduleName,
-            importPath: newImportPath,
-          });
-        }
+  /**
+   * Processes module exports.
+   */
+  private processModuleExports(exportsProp: PropertyAssignment, moduleName: string, sourceFile: SourceFile): void {
+    const exportedIdentifiers = this._getIdentifierNamesFromArrayProp(exportsProp);
+
+    if (exportedIdentifiers.length === 0) {
+      return;
+    }
+
+    this.storeModuleExports(moduleName, exportedIdentifiers);
+    this.updateProjectModuleMap(exportedIdentifiers, moduleName, sourceFile);
+  }
+
+  /**
+   * Stores module exports in the index.
+   */
+  private storeModuleExports(moduleName: string, exportedIdentifiers: string[]): void {
+    this.externalModuleExportsIndex.set(moduleName, new Set(exportedIdentifiers));
+    logger.debug(
+      `[ProjectModules] Indexed module ${moduleName} with ${exportedIdentifiers.length} exports: ${exportedIdentifiers.join(", ")}`
+    );
+  }
+
+  /**
+   * Updates the project module map with exported identifiers.
+   */
+  private updateProjectModuleMap(exportedIdentifiers: string[], moduleName: string, sourceFile: SourceFile): void {
+    const newImportPath = path.relative(this.projectRootPath, sourceFile.getFilePath()).replace(/\\/g, "/");
+
+    for (const componentName of exportedIdentifiers) {
+      const existing = this.projectModuleMap.get(componentName);
+
+      if (!existing || newImportPath.length < existing.importPath.length) {
+        this.projectModuleMap.set(componentName, {
+          moduleName,
+          importPath: newImportPath,
+        });
       }
     }
   }
@@ -1660,7 +1739,7 @@ export class AngularIndexer {
     } catch (error) {
       try {
         logger.error(`Error building module map for file ${sourceFile.getFilePath()}: ${(error as Error).message}`);
-      } catch (_nodeError) {
+      } catch {
         logger.error(`Error building module map for forgotten SourceFile node: ${(error as Error).message}`);
       }
     }
@@ -2217,7 +2296,7 @@ export class AngularIndexer {
     } catch (error) {
       try {
         logger.error(`Error indexing declarations in file ${sourceFile.getFilePath()}: ${(error as Error).message}`);
-      } catch (_nodeError) {
+      } catch {
         logger.error(`Error indexing declarations in forgotten SourceFile node: ${(error as Error).message}`);
       }
     }
@@ -2257,7 +2336,7 @@ export class AngularIndexer {
         // Check if the sourceFile is still valid before removing
         sf.getFilePath(); // This will throw if the node is forgotten
         this.project.removeSourceFile(sf);
-      } catch (_nodeError) {
+      } catch {
         // If the sourceFile node is already forgotten, skip it
         logger.debug(`SourceFile node already forgotten during dispose, skipping removal`);
       }
