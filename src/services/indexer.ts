@@ -1612,71 +1612,106 @@ export class AngularIndexer {
     typeChecker: TypeChecker
   ) {
     try {
-      const classDeclarations = new Map<string, ClassDeclaration>();
-
-      // FIX: Use getExportedDeclarations() to correctly resolve re-exported modules.
-      // This was the logic before the faulty commit.
-      const exportedDeclarations = sourceFile.getExportedDeclarations();
-      for (const declarations of exportedDeclarations.values()) {
-        for (const declaration of declarations) {
-          if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
-            const classDecl = declaration as ClassDeclaration;
-            const name = classDecl.getName();
-            if (name && !classDeclarations.has(name)) {
-              classDeclarations.set(name, classDecl);
-            }
-          }
-        }
-      }
-
-      // Find all NgModules among the correctly found classes and map their exports
-      for (const classDecl of classDeclarations.values()) {
-        const className = classDecl.getName();
-        // Skip unnamed or internal Angular modules
-        if (!className || className.startsWith("ɵ")) {
-          continue;
-        }
-
-        const modDef = classDecl.getStaticProperty("ɵmod");
-        if (modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
-          const typeNode = modDef.getTypeNode();
-          if (typeNode?.isKind(SyntaxKind.TypeReference)) {
-            const typeRef = typeNode as TypeReferenceNode;
-            const typeArgs = typeRef.getTypeArguments();
-
-            if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
-              const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
-
-              // Create a Set to accumulate exports for this module
-              const moduleExports = new Set<string>();
-
-              this._processModuleExports(
-                exportsTuple,
-                className,
-                importPath,
-                componentToModuleMap,
-                allLibraryClasses,
-                typeChecker,
-                moduleExports
-              );
-
-              // Store the accumulated exports in the external modules index
-              if (moduleExports.size > 0) {
-                this.externalModuleExportsIndex.set(className, moduleExports);
-                logger.debug(
-                  `[ExternalModules] Indexed module ${className} with ${moduleExports.size} exports: ${Array.from(moduleExports).join(", ")}`
-                );
-              }
-            }
-          }
-        }
-      }
+      const classDeclarations = this._collectClassDeclarations(sourceFile);
+      this._processNgModuleClasses(classDeclarations, importPath, componentToModuleMap, allLibraryClasses, typeChecker);
     } catch (error) {
       try {
         logger.error(`Error building module map for file ${sourceFile.getFilePath()}: ${(error as Error).message}`);
       } catch (_nodeError) {
         logger.error(`Error building module map for forgotten SourceFile node: ${(error as Error).message}`);
       }
+    }
+  }
+
+  /**
+   * Processes all NgModule classes and maps their exports.
+   * @param classDeclarations Map of class declarations to process.
+   * @param importPath The import path of the source file.
+   * @param componentToModuleMap The map to store the component-to-module mappings.
+   * @param allLibraryClasses A map of all classes in the library.
+   * @param typeChecker The type checker to use.
+   * @internal
+   */
+  private _processNgModuleClasses(
+    classDeclarations: Map<string, ClassDeclaration>,
+    importPath: string,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    allLibraryClasses: Map<string, ClassDeclaration>,
+    typeChecker: TypeChecker
+  ) {
+    // Find all NgModules among the correctly found classes and map their exports
+    for (const classDecl of classDeclarations.values()) {
+      const className = classDecl.getName();
+      // Skip unnamed or internal Angular modules
+      if (!className || className.startsWith("ɵ")) {
+        continue;
+      }
+
+      this._processNgModuleClass(
+        classDecl,
+        className,
+        importPath,
+        componentToModuleMap,
+        allLibraryClasses,
+        typeChecker
+      );
+    }
+  }
+
+  /**
+   * Processes a single NgModule class and maps its exports.
+   * @param classDecl The class declaration to process.
+   * @param className The name of the class.
+   * @param importPath The import path of the source file.
+   * @param componentToModuleMap The map to store the component-to-module mappings.
+   * @param allLibraryClasses A map of all classes in the library.
+   * @param typeChecker The type checker to use.
+   * @internal
+   */
+  private _processNgModuleClass(
+    classDecl: ClassDeclaration,
+    className: string,
+    importPath: string,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    allLibraryClasses: Map<string, ClassDeclaration>,
+    typeChecker: TypeChecker
+  ) {
+    const modDef = classDecl.getStaticProperty("ɵmod");
+    if (!modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
+      return;
+    }
+
+    const typeNode = modDef.getTypeNode();
+    if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
+      return;
+    }
+
+    const typeRef = typeNode as TypeReferenceNode;
+    const typeArgs = typeRef.getTypeArguments();
+
+    if (typeArgs.length <= 3 || !typeArgs[3].isKind(SyntaxKind.TupleType)) {
+      return;
+    }
+
+    const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+    const moduleExports = new Set<string>();
+
+    this._processModuleExports(
+      exportsTuple,
+      className,
+      importPath,
+      componentToModuleMap,
+      allLibraryClasses,
+      typeChecker,
+      moduleExports
+    );
+
+    // Store the accumulated exports in the external modules index
+    if (moduleExports.size > 0) {
+      this.externalModuleExportsIndex.set(className, moduleExports);
+      logger.debug(
+        `[ExternalModules] Indexed module ${className} with ${moduleExports.size} exports: ${Array.from(moduleExports).join(", ")}`
+      );
     }
   }
 
