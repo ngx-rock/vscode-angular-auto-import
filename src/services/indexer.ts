@@ -179,7 +179,7 @@ class SelectorTrie {
     }
   }
 
-  public remove(selector: string, elementPath: string): void {
+  public remove(selector: string, elementPath: string, elementName?: string): void {
     let currentNode = this.root;
     for (const char of selector) {
       if (!currentNode.children.has(char)) {
@@ -191,8 +191,19 @@ class SelectorTrie {
       }
       currentNode = nextNode;
     }
-    // Remove the element if it matches the path
-    currentNode.elements = currentNode.elements.filter((el) => path.resolve(el.path) !== path.resolve(elementPath));
+    // Remove the element if it matches the path and optionally the name
+    currentNode.elements = currentNode.elements.filter((el) => {
+      const isPathMatch = path.resolve(el.path) === path.resolve(elementPath);
+      if (!isPathMatch) {
+        return true; // Path doesn't match, keep it.
+      }
+      // Path matches. If elementName is provided, we must also match its name to remove.
+      if (elementName) {
+        return el.name !== elementName; // Keep if name is different.
+      }
+      // Path matches and no name provided, means we remove all elements from this path for the given selector.
+      return false;
+    });
   }
 
   public getAllElements(): AngularElementData[] {
@@ -766,7 +777,7 @@ export class AngularIndexer {
     for (const oldElement of cachedFile.elements) {
       const individualSelectors = await parseAngularSelector(oldElement.selector);
       for (const selector of individualSelectors) {
-        this.selectorTrie.remove(selector, cachedFile.filePath);
+        this.selectorTrie.remove(selector, cachedFile.filePath, oldElement.name);
       }
     }
   }
@@ -860,7 +871,7 @@ export class AngularIndexer {
       for (const element of fileInfo.elements) {
         const individualSelectors = await parseAngularSelector(element.selector);
         for (const selector of individualSelectors) {
-          this.selectorTrie.remove(selector, filePath);
+          this.selectorTrie.remove(selector, filePath, element.name);
           logger.info(`Removed from index for ${this.projectRootPath}: ${selector} from ${filePath}`);
         }
       }
@@ -2236,6 +2247,22 @@ export class AngularIndexer {
       finalImportName = isStandalone ? className : exportingModule.moduleName;
     }
 
+    const isExternal = true; // This method is only for node_modules
+
+    // For standalone external components, ensure we only store the one with the shortest import path.
+    if (isStandalone && isExternal) {
+      const bestPath = this._handleStandaloneExternalComponent(
+        className,
+        elementType,
+        finalImportPath,
+        individualSelectors
+      );
+      if (bestPath === null) {
+        return; // A better candidate already exists, so skip this one.
+      }
+      finalImportPath = bestPath;
+    }
+
     const elementData = new AngularElementData(
       finalImportPath,
       finalImportName,
@@ -2243,7 +2270,7 @@ export class AngularIndexer {
       selector,
       individualSelectors,
       isStandalone,
-      true, // isExternal
+      isExternal,
       !isStandalone && exportingModule ? exportingModule.moduleName : undefined
     );
 
@@ -2256,6 +2283,51 @@ export class AngularIndexer {
     logger.info(
       `[NodeModulesIndexer] Indexed ${standaloneTag} ${elementType}: ${className} (${selector}) ${via} from ${finalImportPath}. Import target: ${finalImportName}`
     );
+  }
+
+  /**
+   * Handles the special indexing logic for standalone components from external libraries.
+   * It ensures that only one candidate with the shortest (most public) import path is stored.
+   * @returns The determined final import path if processing should continue, or null if the candidate should be skipped.
+   * @internal
+   */
+  private _handleStandaloneExternalComponent(
+    className: string,
+    elementType: "component" | "directive" | "pipe",
+    currentImportPath: string,
+    selectors: string[]
+  ): string | null {
+    // Use a representative selector to find existing candidates to avoid iterating over all selectors.
+    const representativeSelector = selectors.length > 0 ? selectors[0] : "";
+    if (!representativeSelector) {
+      return currentImportPath; // Should not happen with valid components, but as a safeguard.
+    }
+
+    const existingCandidates = this.selectorTrie.findAll(representativeSelector);
+    const existingElement = existingCandidates.find((c) => c.name === className);
+
+    if (existingElement) {
+      // An element with the same name already exists. Compare import paths.
+      if (currentImportPath.length >= existingElement.path.length) {
+        // The existing path is shorter or equal, so we keep it and discard this new one.
+        logger.debug(
+          `[NodeModulesIndexer] Skipping standalone ${elementType} ${className} from ${currentImportPath} because a better candidate from ${existingElement.path} already exists.`
+        );
+        return null; // Signal to skip this element.
+      }
+
+      // The new path is shorter. Remove the old element before adding this new, better one.
+      logger.debug(
+        `[NodeModulesIndexer] Found better path for standalone ${elementType} ${className}. Replacing ${existingElement.path} with ${currentImportPath}.`
+      );
+      for (const sel of existingElement.selectors) {
+        // Use the precise remove operation.
+        this.selectorTrie.remove(sel, existingElement.path, existingElement.name);
+      }
+    }
+
+    // This is either the first time we see this element, or it's a better candidate.
+    return currentImportPath;
   }
 
   /**
