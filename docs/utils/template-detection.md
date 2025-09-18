@@ -18,7 +18,7 @@ ts-morph AST parsing approach with efficient string operations.
 
 > **clearAllTemplateCache**(): `void`
 
-Defined in: [utils/template-detection.ts:251](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L251)
+Defined in: [utils/template-detection.ts:342](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L342)
 
 Clear all template cache (useful for cleanup).
 
@@ -32,7 +32,7 @@ Clear all template cache (useful for cleanup).
 
 > **clearTemplateCache**(`documentUri`): `void`
 
-Defined in: [utils/template-detection.ts:244](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L244)
+Defined in: [utils/template-detection.ts:335](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L335)
 
 Clear cache for a specific document (useful when document is closed).
 

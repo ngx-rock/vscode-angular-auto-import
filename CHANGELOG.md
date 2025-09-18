@@ -4,6 +4,12 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.12.1] - 2025-09-18
+
+### Improved
+- **Code Quality**: Reduced cognitive complexity in DiagnosticProvider by refactoring large methods into smaller, focused functions
+- **Performance**: Enhanced Angular indexing with improved SelectorTrie removal logic and better element matching
+
 ## [1.12.0] - 2025-09-15
 
 ### Added

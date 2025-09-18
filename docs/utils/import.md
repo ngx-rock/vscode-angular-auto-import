@@ -30,20 +30,20 @@ Key Bug Fixes:
 
 ## Functions
 
-### importElementToFile()
+### importElementsToFile()
 
-> **importElementToFile**(`element`, `componentFilePathAbs`, `projectRootPath`, `indexerProject`, `_tsConfig`): `Promise`\<`boolean`\>
+> **importElementsToFile**(`elements`, `componentFilePathAbs`, `projectRootPath`, `indexerProject`, `_tsConfig`): `Promise`\<`boolean`\>
 
-Defined in: [utils/import.ts:81](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/import.ts#L81)
+Defined in: [utils/import.ts:214](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/import.ts#L214)
 
-Imports an Angular element into a component file. This function handles adding the import statement
-and updating the `@Component` decorator's `imports` array.
+Imports multiple Angular elements into a component file. This function handles adding the import statements
+and updating the `@Component` decorator's `imports` array for all elements in one operation.
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `element` | [`AngularElementData`](../types/angular.md#angularelementdata) | The Angular element to import. |
+| `elements` | [`AngularElementData`](../types/angular.md#angularelementdata)[] | An array of Angular elements to import. |
 | `componentFilePathAbs` | `string` | The absolute path to the component file. |
 | `projectRootPath` | `string` | The root path of the project. |
 | `indexerProject` | `Project` | The ts-morph project instance. |
@@ -54,23 +54,3 @@ and updating the `@Component` decorator's `imports` array.
 `Promise`\<`boolean`\>
 
 A promise that resolves to `true` if the import was successful, `false` otherwise.
-
-***
-
-### setGlobalDiagnosticProvider()
-
-> **setGlobalDiagnosticProvider**(`provider`): `void`
-
-Defined in: [utils/import.ts:54](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/import.ts#L54)
-
-Sets the global diagnostic provider instance.
-
-#### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `provider` | `null` \| [`DiagnosticProvider`](../providers/diagnostics.md#diagnosticprovider) | The diagnostic provider instance. |
-
-#### Returns
-
-`void`
