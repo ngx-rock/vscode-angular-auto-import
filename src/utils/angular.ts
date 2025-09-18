@@ -15,6 +15,29 @@ import type { AngularIndexer } from "../services";
 import { AngularElementData } from "../types";
 
 /**
+ * Converts a string from kebab-case or camelCase to PascalCase.
+ * @param str The input string.
+ * @returns The PascalCase string.
+ * @internal
+ */
+function toPascalCase(str: string): string {
+  if (!str) {
+    return "";
+  }
+  // Sanitize selector from brackets or asterisks before converting
+  const cleanSelector = str.replace(/[[\]*]/g, "");
+  if (cleanSelector.includes("-")) {
+    // Handle kebab-case
+    return cleanSelector
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join("");
+  }
+  // Handle camelCase
+  return cleanSelector.charAt(0).toUpperCase() + cleanSelector.slice(1);
+}
+
+/**
  * Checks if an Angular component, directive, or pipe class is standalone.
  * Applies Angular v19+ default: if `standalone` flag is omitted, treats as standalone for Angular >= 19,
  * and as non-standalone for Angular < 19.
@@ -426,6 +449,19 @@ async function getBestMatchUsingAngularMatcher(
 
     // Sort by type, selector specificity, and name to find the best match
     bestMatches.sort((a, b) => {
+      // 1. New Heuristic: Prefer class name that matches PascalCase selector
+      const pascalCaseSelector = toPascalCase(selector);
+      if (pascalCaseSelector) {
+        const aIsNameMatch = a.name === pascalCaseSelector;
+        const bIsNameMatch = b.name === pascalCaseSelector;
+        if (aIsNameMatch && !bIsNameMatch) {
+          return -1;
+        }
+        if (!aIsNameMatch && bIsNameMatch) {
+          return 1;
+        }
+      }
+
       const scoreType = (el: AngularElementData): number => {
         switch (el.type) {
           case "component":
@@ -444,8 +480,8 @@ async function getBestMatchUsingAngularMatcher(
         return typeDiff;
       }
 
-      // Prefer more specific (longer) selectors
-      const lenDiff = b.originalSelector.length - a.originalSelector.length;
+      // 2. Prefer less complex (shorter) original selectors, indicating a more specific directive.
+      const lenDiff = a.originalSelector.length - b.originalSelector.length;
       if (lenDiff !== 0) {
         return lenDiff;
       }
@@ -519,7 +555,7 @@ export function resolveRelativePath(from: string, to: string): string {
 function readAngularCoreMajorFromFilePath(filePath: string): number | null {
   try {
     return walkUpDirectoryTree(path.dirname(filePath));
-  } catch  {
+  } catch {
     return null;
   }
 }
