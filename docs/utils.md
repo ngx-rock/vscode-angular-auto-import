@@ -6,7 +6,7 @@
 
 # utils
 
-Central export for all utility functions.
+Auto-Import Index
 
 ## References
 
@@ -70,9 +70,9 @@ Re-exports [getRelativeFilePath](utils/path.md#getrelativefilepath)
 
 ***
 
-### importElementToFile
+### importElementsToFile
 
-Re-exports [importElementToFile](utils/import.md#importelementtofile)
+Re-exports [importElementsToFile](utils/import.md#importelementstofile)
 
 ***
 
@@ -115,12 +115,6 @@ Re-exports [parseAngularSelector](utils/angular.md#parseangularselector)
 ### resolveRelativePath
 
 Re-exports [resolveRelativePath](utils/angular.md#resolverelativepath)
-
-***
-
-### setGlobalDiagnosticProvider
-
-Re-exports [setGlobalDiagnosticProvider](utils/import.md#setglobaldiagnosticprovider)
 
 ***
 

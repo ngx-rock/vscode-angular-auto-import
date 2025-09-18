@@ -10,9 +10,13 @@ import * as path from "node:path";
 import {
   type ArrayLiteralExpression,
   type ClassDeclaration,
+  type Decorator,
   type Expression,
+  type Node,
+  type NoSubstitutionTemplateLiteral,
   type ObjectLiteralExpression,
   type SourceFile,
+  type StringLiteral,
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
@@ -230,73 +234,119 @@ export class DiagnosticProvider {
     const startTime = process.hrtime.bigint();
 
     if (!this.context.extensionConfig.diagnosticsEnabled) {
-      this.diagnosticCollection.clear();
-      this.candidateDiagnostics.delete(document.uri.toString());
+      this.clearDiagnostics(document);
       return;
     }
 
     if (document.languageId === "html") {
-      const componentPath = switchFileType(document.fileName, ".ts");
-      if (!fs.existsSync(componentPath)) {
-        logger.debug(
-          `[DiagnosticProvider] Skipping diagnostics for HTML file without a corresponding TS component: ${document.fileName}`
-        );
-        return; // Not an Angular component's template
-      }
-      const tsDocument = await this.getTsDocument(document, componentPath);
-      if (!tsDocument) {
-        return;
-      }
-      const sourceFile = this.getSourceFile(tsDocument);
-      if (!sourceFile) {
-        logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
-        return;
-      }
-      const classDeclaration = sourceFile.getClasses()[0];
-      if (classDeclaration && !isStandalone(classDeclaration)) {
-        this.candidateDiagnostics.delete(document.uri.toString());
-        this.diagnosticCollection.delete(document.uri);
-        return;
-      }
-      await this.runDiagnostics(document.getText(), document, 0, componentPath, tsDocument, sourceFile);
+      await this.processHtmlDocument(document);
     } else if (document.languageId === "typescript") {
-      const tsDocument = document;
-      const sourceFile = this.getSourceFile(tsDocument);
-      if (!sourceFile) {
-        logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
-        return;
-      }
-      const classDeclaration = sourceFile.getClasses()[0];
-      if (classDeclaration && !isStandalone(classDeclaration)) {
-        this.candidateDiagnostics.delete(document.uri.toString());
-        this.diagnosticCollection.delete(document.uri);
-        return;
-      }
-      const componentInfo = this.extractInlineTemplate(tsDocument, sourceFile);
-      if (componentInfo) {
-        this.importedElementsCache.delete(document.fileName);
-        await this.runDiagnostics(
-          componentInfo.template,
-          document,
-          componentInfo.templateOffset,
-          document.fileName,
-          tsDocument,
-          sourceFile
-        );
-      } else {
-        // Clear both collections when there's no inline template
-        this.candidateDiagnostics.delete(document.uri.toString());
-        this.diagnosticCollection.delete(document.uri);
-        this.importedElementsCache.delete(document.fileName); // Clear cache for this TS file
-        logger.debug(
-          `[DiagnosticProvider] No inline template found for TS file, clearing diagnostics: ${document.fileName}`
-        );
-      }
+      await this.processTypescriptDocument(document);
     }
 
+    this.logDiagnosticsDuration(document.fileName, startTime);
+  }
+
+  /**
+   * Clears diagnostics for a document.
+   */
+  private clearDiagnostics(document: vscode.TextDocument): void {
+    this.diagnosticCollection.clear();
+    this.candidateDiagnostics.delete(document.uri.toString());
+  }
+
+  /**
+   * Processes HTML document diagnostics.
+   */
+  private async processHtmlDocument(document: vscode.TextDocument): Promise<void> {
+    const componentPath = switchFileType(document.fileName, ".ts");
+    if (!fs.existsSync(componentPath)) {
+      logger.debug(
+        `[DiagnosticProvider] Skipping diagnostics for HTML file without a corresponding TS component: ${document.fileName}`
+      );
+      return;
+    }
+
+    const tsDocument = await this.getTsDocument(document, componentPath);
+    if (!tsDocument) {
+      return;
+    }
+
+    const sourceFile = this.getSourceFile(tsDocument);
+    if (!sourceFile) {
+      logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
+      return;
+    }
+
+    if (!this.shouldProcessDocument(sourceFile, document)) {
+      return;
+    }
+
+    await this.runDiagnostics(document.getText(), document, 0, componentPath, tsDocument, sourceFile);
+  }
+
+  /**
+   * Processes TypeScript document diagnostics.
+   */
+  private async processTypescriptDocument(document: vscode.TextDocument): Promise<void> {
+    const sourceFile = this.getSourceFile(document);
+    if (!sourceFile) {
+      logger.debug(`[DiagnosticProvider] Could not get source file for ${document.fileName}`);
+      return;
+    }
+
+    if (!this.shouldProcessDocument(sourceFile, document)) {
+      return;
+    }
+
+    const componentInfo = this.extractInlineTemplate(document, sourceFile);
+    if (componentInfo) {
+      this.importedElementsCache.delete(document.fileName);
+      await this.runDiagnostics(
+        componentInfo.template,
+        document,
+        componentInfo.templateOffset,
+        document.fileName,
+        document,
+        sourceFile
+      );
+    } else {
+      this.clearDiagnosticsForNoTemplate(document);
+    }
+  }
+
+  /**
+   * Checks if document should be processed for diagnostics.
+   */
+  private shouldProcessDocument(sourceFile: SourceFile, document: vscode.TextDocument): boolean {
+    const classDeclaration = sourceFile.getClasses()[0];
+    if (classDeclaration && !isStandalone(classDeclaration)) {
+      this.candidateDiagnostics.delete(document.uri.toString());
+      this.diagnosticCollection.delete(document.uri);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Clears diagnostics when no template is found.
+   */
+  private clearDiagnosticsForNoTemplate(document: vscode.TextDocument): void {
+    this.candidateDiagnostics.delete(document.uri.toString());
+    this.diagnosticCollection.delete(document.uri);
+    this.importedElementsCache.delete(document.fileName);
+    logger.debug(
+      `[DiagnosticProvider] No inline template found for TS file, clearing diagnostics: ${document.fileName}`
+    );
+  }
+
+  /**
+   * Logs the duration of diagnostics operation.
+   */
+  private logDiagnosticsDuration(fileName: string, startTime: bigint): void {
     const endTime = process.hrtime.bigint();
-    const duration = Number(endTime - startTime) / 1_000_000; // Convert to milliseconds
-    logger.debug(`[DiagnosticProvider] updateDiagnostics for ${document.fileName} took ${duration.toFixed(2)} ms`);
+    const duration = Number(endTime - startTime) / 1_000_000;
+    logger.debug(`[DiagnosticProvider] updateDiagnostics for ${fileName} took ${duration.toFixed(2)} ms`);
   }
 
   private async runDiagnostics(
@@ -458,59 +508,151 @@ export class DiagnosticProvider {
     const candidates = getAngularElements(element.name, indexer);
 
     for (const candidate of candidates) {
-      if (!candidate || processedCandidatesThisCall.has(candidate.name)) {
+      if (!this.shouldProcessCandidate(candidate, processedCandidatesThisCall)) {
         continue;
       }
 
-      // Skip selector matching for pipes
-      if (candidate.type !== "pipe") {
-        const matcher = new SelectorMatcher();
-        const individualSelectors = CssSelector.parse(candidate.originalSelector);
+      const diagnostic = await this.processCandidateElement(
+        element,
+        candidate,
+        severity,
+        sourceFile,
+        processedCandidatesThisCall,
+        CssSelector,
+        SelectorMatcher
+      );
 
-        // We add each individual selector to the matcher.
-        // This is crucial for complex selectors like `ng-template[myDirective]`.
-        matcher.addSelectables(individualSelectors);
-
-        const templateCssSelector = new CssSelector();
-        templateCssSelector.setElement(element.tagName);
-        for (const attr of element.attributes) {
-          templateCssSelector.addAttribute(attr.name, attr.value ?? "");
-        }
-
-        const matchedSelectors: string[] = [];
-        // The callback will be invoked for each selector that matches.
-        // We capture them all and will use the most specific one.
-        matcher.match(templateCssSelector, (selector: string) => {
-          matchedSelectors.push(selector.toString());
-        });
-
-        if (matchedSelectors.length === 0) {
-          continue;
-        }
-
-        // The last matched selector is considered the most specific one by Angular's engine.
-        const specificSelector = matchedSelectors[matchedSelectors.length - 1];
-
-        // Only add to processed after a successful match.
-        processedCandidatesThisCall.add(candidate.name);
-
-        if (!this.isElementImported(sourceFile, candidate)) {
-          diagnostics.push(this.createMissingImportDiagnostic(element, candidate, specificSelector, severity));
-        }
-      } else {
-        // For pipes, the candidate name is the selector
-        processedCandidatesThisCall.add(candidate.name);
-        if (!this.isElementImported(sourceFile, candidate)) {
-          diagnostics.push(this.createMissingImportDiagnostic(element, candidate, element.name, severity));
-        }
+      if (diagnostic) {
+        diagnostics.push(diagnostic);
       }
     }
 
-    const checkElementEndTime = process.hrtime.bigint();
-    const checkElementDuration = Number(checkElementEndTime - checkElementStartTime) / 1_000_000;
-    logger.debug(`[DiagnosticProvider] checkElement for ${element.name} took ${checkElementDuration.toFixed(2)} ms`);
-
+    this.logCheckElementDuration(element.name, checkElementStartTime);
     return diagnostics;
+  }
+
+  /**
+   * Checks if a candidate should be processed.
+   */
+  private shouldProcessCandidate(
+    candidate: AngularElementData | null,
+    processedCandidates: Set<string>
+  ): candidate is AngularElementData {
+    return Boolean(candidate && !processedCandidates.has(candidate.name));
+  }
+
+  /**
+   * Processes a single candidate element.
+   */
+  private async processCandidateElement(
+    element: ParsedHtmlFullElement,
+    candidate: AngularElementData,
+    severity: vscode.DiagnosticSeverity,
+    sourceFile: SourceFile,
+    processedCandidates: Set<string>,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    CssSelector: any,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    SelectorMatcher: any
+  ): Promise<vscode.Diagnostic | null> {
+    if (candidate.type === "pipe") {
+      return this.processPipeCandidate(element, candidate, severity, sourceFile, processedCandidates);
+    }
+
+    return this.processNonPipeCandidate(
+      element,
+      candidate,
+      severity,
+      sourceFile,
+      processedCandidates,
+      CssSelector,
+      SelectorMatcher
+    );
+  }
+
+  /**
+   * Processes a pipe candidate.
+   */
+  private processPipeCandidate(
+    element: ParsedHtmlFullElement,
+    candidate: AngularElementData,
+    severity: vscode.DiagnosticSeverity,
+    sourceFile: SourceFile,
+    processedCandidates: Set<string>
+  ): vscode.Diagnostic | null {
+    processedCandidates.add(candidate.name);
+    if (!this.isElementImported(sourceFile, candidate)) {
+      return this.createMissingImportDiagnostic(element, candidate, element.name, severity);
+    }
+    return null;
+  }
+
+  /**
+   * Processes a non-pipe candidate (component/directive).
+   */
+  private processNonPipeCandidate(
+    element: ParsedHtmlFullElement,
+    candidate: AngularElementData,
+    severity: vscode.DiagnosticSeverity,
+    sourceFile: SourceFile,
+    processedCandidates: Set<string>,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    CssSelector: any,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    SelectorMatcher: any
+  ): vscode.Diagnostic | null {
+    const matchedSelectors = this.getMatchedSelectors(element, candidate, CssSelector, SelectorMatcher);
+
+    if (matchedSelectors.length === 0) {
+      return null;
+    }
+
+    // The last matched selector is considered the most specific one by Angular's engine.
+    const specificSelector = matchedSelectors[matchedSelectors.length - 1];
+    processedCandidates.add(candidate.name);
+
+    if (!this.isElementImported(sourceFile, candidate)) {
+      return this.createMissingImportDiagnostic(element, candidate, specificSelector, severity);
+    }
+    return null;
+  }
+
+  /**
+   * Gets matched selectors for an element and candidate.
+   */
+  private getMatchedSelectors(
+    element: ParsedHtmlFullElement,
+    candidate: AngularElementData,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    CssSelector: any,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    SelectorMatcher: any
+  ): string[] {
+    const matcher = new SelectorMatcher();
+    const individualSelectors = CssSelector.parse(candidate.originalSelector);
+    matcher.addSelectables(individualSelectors);
+
+    const templateCssSelector = new CssSelector();
+    templateCssSelector.setElement(element.tagName);
+    for (const attr of element.attributes) {
+      templateCssSelector.addAttribute(attr.name, attr.value ?? "");
+    }
+
+    const matchedSelectors: string[] = [];
+    matcher.match(templateCssSelector, (selector: string) => {
+      matchedSelectors.push(selector.toString());
+    });
+
+    return matchedSelectors;
+  }
+
+  /**
+   * Logs the duration of checkElement operation.
+   */
+  private logCheckElementDuration(elementName: string, startTime: bigint): void {
+    const endTime = process.hrtime.bigint();
+    const duration = Number(endTime - startTime) / 1_000_000;
+    logger.debug(`[DiagnosticProvider] checkElement for ${elementName} took ${duration.toFixed(2)} ms`);
   }
 
   private createMissingImportDiagnostic(
@@ -559,29 +701,81 @@ export class DiagnosticProvider {
     sourceFile: SourceFile
   ): { template: string; templateOffset: number } | null {
     for (const classDeclaration of sourceFile.getClasses()) {
-      const componentDecorator = classDeclaration.getDecorator("Component");
-      if (componentDecorator) {
-        const decoratorArgs = componentDecorator.getArguments();
-        if (decoratorArgs.length > 0 && decoratorArgs[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-          const objectLiteral = decoratorArgs[0] as ObjectLiteralExpression;
-          const templateProperty = objectLiteral.getProperty("template");
-
-          if (templateProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-            const initializer = templateProperty.getInitializer();
-            if (
-              initializer &&
-              (initializer.isKind(SyntaxKind.StringLiteral) ||
-                initializer.isKind(SyntaxKind.NoSubstitutionTemplateLiteral))
-            ) {
-              const templateString = initializer.getLiteralText();
-              const templateOffset = initializer.getStart() + 1;
-              return { template: templateString, templateOffset };
-            }
-          }
-        }
+      const result = this.extractTemplateFromClass(classDeclaration);
+      if (result) {
+        return result;
       }
     }
     return null;
+  }
+
+  /**
+   * Extracts template from a class declaration.
+   */
+  private extractTemplateFromClass(
+    classDeclaration: ClassDeclaration
+  ): { template: string; templateOffset: number } | null {
+    const componentDecorator = classDeclaration.getDecorator("Component");
+    if (!componentDecorator) {
+      return null;
+    }
+
+    const objectLiteral = this.getComponentDecoratorObjectLiteral(componentDecorator);
+    if (!objectLiteral) {
+      return null;
+    }
+
+    return this.extractTemplateFromObjectLiteral(objectLiteral);
+  }
+
+  /**
+   * Gets the object literal from a Component decorator.
+   */
+  private getComponentDecoratorObjectLiteral(componentDecorator: Decorator): ObjectLiteralExpression | null {
+    const decoratorArgs = componentDecorator.getArguments();
+    if (decoratorArgs.length === 0) {
+      return null;
+    }
+
+    const firstArg = decoratorArgs[0];
+    if (!firstArg.isKind(SyntaxKind.ObjectLiteralExpression)) {
+      return null;
+    }
+
+    return firstArg as ObjectLiteralExpression;
+  }
+
+  /**
+   * Extracts template from an object literal expression.
+   */
+  private extractTemplateFromObjectLiteral(
+    objectLiteral: ObjectLiteralExpression
+  ): { template: string; templateOffset: number } | null {
+    const templateProperty = objectLiteral.getProperty("template");
+    if (!templateProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+      return null;
+    }
+
+    const initializer = templateProperty.getInitializer();
+    if (!this.isValidTemplateInitializer(initializer)) {
+      return null;
+    }
+
+    const templateString = initializer.getLiteralText();
+    const templateOffset = initializer.getStart() + 1;
+    return { template: templateString, templateOffset };
+  }
+
+  /**
+   * Checks if an initializer is a valid template initializer.
+   */
+  private isValidTemplateInitializer(
+    initializer: Node | undefined
+  ): initializer is StringLiteral | NoSubstitutionTemplateLiteral {
+    return Boolean(
+      initializer &&
+        (initializer.isKind(SyntaxKind.StringLiteral) || initializer.isKind(SyntaxKind.NoSubstitutionTemplateLiteral))
+    );
   }
 
   private _findPipesInExpression(
@@ -859,27 +1053,50 @@ export class DiagnosticProvider {
     extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
   ): void {
     // Handle branches (@if/@else/@else if)
-    if (controlFlowNode.branches && Array.isArray(controlFlowNode.branches)) {
-      for (const branch of controlFlowNode.branches) {
-        if (branch.expression) {
-          extractPipesFromExpression(branch.expression);
-        }
-        if (branch.children && Array.isArray(branch.children)) {
-          visit(branch.children);
-        }
-      }
-    }
+    this.processBranchesArray(controlFlowNode.branches, visit, extractPipesFromExpression);
 
     // Handle cases (@switch)
-    if (controlFlowNode.cases && Array.isArray(controlFlowNode.cases)) {
-      for (const caseBlock of controlFlowNode.cases) {
-        if (caseBlock.expression) {
-          extractPipesFromExpression(caseBlock.expression);
-        }
-        if (caseBlock.children && Array.isArray(caseBlock.children)) {
-          visit(caseBlock.children);
-        }
-      }
+    this.processCasesArray(controlFlowNode.cases, visit, extractPipesFromExpression);
+  }
+
+  private processBranchesArray(
+    branches: unknown,
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
+  ): void {
+    if (!branches || !Array.isArray(branches)) {
+      return;
+    }
+
+    for (const branch of branches) {
+      this.processBranchOrCase(branch, visit, extractPipesFromExpression);
+    }
+  }
+
+  private processCasesArray(
+    cases: unknown,
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
+  ): void {
+    if (!cases || !Array.isArray(cases)) {
+      return;
+    }
+
+    for (const caseBlock of cases) {
+      this.processBranchOrCase(caseBlock, visit, extractPipesFromExpression);
+    }
+  }
+
+  private processBranchOrCase(
+    item: { expression?: unknown; children?: TemplateAstNode[] },
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
+  ): void {
+    if (item.expression) {
+      extractPipesFromExpression(item.expression);
+    }
+    if (item.children && Array.isArray(item.children)) {
+      visit(item.children);
     }
   }
 

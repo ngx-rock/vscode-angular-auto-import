@@ -14,7 +14,7 @@ Utilities for working with Angular elements and selectors.
 
 > **generateImportStatement**(`name`, `path`): `string`
 
-Defined in: [utils/angular.ts:408](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L408)
+Defined in: [utils/angular.ts:520](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L520)
 
 Generates an import statement for a given symbol and path.
 
@@ -37,7 +37,7 @@ The generated import statement.
 
 > **getAngularElementAsync**(`selector`, `indexer`): `Promise`\<`undefined` \| [`AngularElementData`](../types/angular.md#angularelementdata)\>
 
-Defined in: [utils/angular.ts:270](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L270)
+Defined in: [utils/angular.ts:369](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L369)
 
 Asynchronously gets the best matching Angular element for a given selector.
 This function uses the Angular `SelectorMatcher` for precise matching.
@@ -61,7 +61,7 @@ A promise that resolves to the best matching `AngularElementData` or `undefined`
 
 > **getAngularElements**(`selector`, `indexer`): [`AngularElementData`](../types/angular.md#angularelementdata)[]
 
-Defined in: [utils/angular.ts:180](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L180)
+Defined in: [utils/angular.ts:238](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L238)
 
 Retrieves Angular elements that match a given selector.
 
@@ -84,7 +84,7 @@ An array of `AngularElementData` that match the selector.
 
 > **isAngularFile**(`filePath`): `boolean`
 
-Defined in: [utils/angular.ts:393](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L393)
+Defined in: [utils/angular.ts:505](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L505)
 
 Checks if a file path corresponds to an Angular file type (component, directive, or pipe).
 
@@ -106,7 +106,7 @@ Checks if a file path corresponds to an Angular file type (component, directive,
 
 > **isStandalone**(`classDeclaration`): `boolean`
 
-Defined in: [utils/angular.ts:24](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L24)
+Defined in: [utils/angular.ts:47](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L47)
 
 Checks if an Angular component, directive, or pipe class is standalone.
 Applies Angular v19+ default: if `standalone` flag is omitted, treats as standalone for Angular >= 19,
@@ -130,7 +130,7 @@ and as non-standalone for Angular < 19.
 
 > **parseAngularSelector**(`selectorString`): `Promise`\<`string`[]\>
 
-Defined in: [utils/angular.ts:85](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L85)
+Defined in: [utils/angular.ts:143](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L143)
 
 Parses a complex Angular selector and returns an array of individual selectors.
 This function uses the Angular compiler's `CssSelector.parse` for reliable parsing.
@@ -160,7 +160,7 @@ console.log(selectors); // ['my-component[some-attribute]', '.another-class']
 
 > **resolveRelativePath**(`from`, `to`): `string`
 
-Defined in: [utils/angular.ts:419](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L419)
+Defined in: [utils/angular.ts:531](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L531)
 
 Resolves the relative path from one file to another.
 

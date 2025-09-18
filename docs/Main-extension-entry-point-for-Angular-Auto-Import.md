@@ -93,11 +93,54 @@ deactivate();
 
 ***
 
+### determineProjectRoots()
+
+> **determineProjectRoots**(`config?`): `Promise`\<`string`[]\>
+
+Defined in: [extension.ts:203](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L203)
+
+**`Internal`**
+
+Determines the project root directories for Angular Auto-Import to operate on.
+
+The function follows this priority order:
+1. Uses configured projectPath setting if provided and valid (overrides workspace folders)
+2. Falls back to workspace folders if no projectPath configured
+3. Returns empty array if neither is available or valid
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `config?` | [`ExtensionConfig`](config/settings.md#extensionconfig) | Extension configuration (optional, uses current config if not provided) |
+
+#### Returns
+
+`Promise`\<`string`[]\>
+
+Promise resolving to array of absolute project root paths
+
+#### Throws
+
+When configured project path is invalid or inaccessible
+
+#### Example
+
+```typescript
+const roots = await determineProjectRoots();
+logger.info('Found project roots:', roots);
+// Output: ['C:\\workspace\\my-angular-app\\src'] (if projectPath configured to src/)
+```
+
+ - Exported for testing purposes only
+
+***
+
 ### getProjectContextForDocument()
 
 > **getProjectContextForDocument**(`document`): `undefined` \| [`ProjectContext`](types/angular.md#projectcontext)
 
-Defined in: [extension.ts:459](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L459)
+Defined in: [extension.ts:471](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L471)
 
 Retrieves the project context for a given VS Code document.
 

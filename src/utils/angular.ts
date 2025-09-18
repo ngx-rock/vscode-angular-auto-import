@@ -15,6 +15,29 @@ import type { AngularIndexer } from "../services";
 import { AngularElementData } from "../types";
 
 /**
+ * Converts a string from kebab-case or camelCase to PascalCase.
+ * @param str The input string.
+ * @returns The PascalCase string.
+ * @internal
+ */
+function toPascalCase(str: string): string {
+  if (!str) {
+    return "";
+  }
+  // Sanitize selector from brackets or asterisks before converting
+  const cleanSelector = str.replace(/[[\]*]/g, "");
+  if (cleanSelector.includes("-")) {
+    // Handle kebab-case
+    return cleanSelector
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join("");
+  }
+  // Handle camelCase
+  return cleanSelector.charAt(0).toUpperCase() + cleanSelector.slice(1);
+}
+
+/**
  * Checks if an Angular component, directive, or pipe class is standalone.
  * Applies Angular v19+ default: if `standalone` flag is omitted, treats as standalone for Angular >= 19,
  * and as non-standalone for Angular < 19.
@@ -213,11 +236,8 @@ function processCssSelector(cssSelector: CssSelectorForParsing, collection: stri
  * @returns An array of `AngularElementData` that match the selector.
  */
 export function getAngularElements(selector: string, indexer: AngularIndexer): AngularElementData[] {
-  if (!selector || typeof selector !== "string") {
-    return [];
-  }
-
-  if (!indexer) {
+  // Basic validation
+  if (!selector || typeof selector !== "string" || !indexer) {
     return [];
   }
 
@@ -226,10 +246,29 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
     return [];
   }
 
+  // Generate selector variants
+  const uniqueSelectors = generateSelectorVariants(originalSelector);
+
+  // Find elements for all selectors
+  return findElementsForSelectors(uniqueSelectors, indexer);
+}
+
+function generateSelectorVariants(originalSelector: string): string[] {
   const selectorsToTry: string[] = [originalSelector];
 
-  // Generate variants from a base form (e.g., 'ngIf' from '*ngIf' or '[ngIf]')
-  let base = originalSelector;
+  // Generate base form and variants
+  const base = extractBaseSelector(originalSelector);
+  selectorsToTry.push(base, `*${base}`, `[${base}]`);
+
+  // Special handling for ngFor <-> ngForOf mapping
+  addNgForVariants(base, selectorsToTry);
+
+  return [...new Set(selectorsToTry)];
+}
+
+function extractBaseSelector(selector: string): string {
+  let base = selector;
+
   if (base.startsWith("*")) {
     base = base.slice(1);
   } else if (base.startsWith("[") && base.endsWith("]")) {
@@ -242,56 +281,81 @@ export function getAngularElements(selector: string, indexer: AngularIndexer): A
     }
   }
 
-  // Add variants for the base
-  selectorsToTry.push(base, `*${base}`, `[${base}]`);
+  return base;
+}
 
-  // Special handling for ngFor <-> ngForOf mapping
+function addNgForVariants(base: string, selectorsToTry: string[]): void {
   if (base === "ngFor" || base === "ngForOf") {
     selectorsToTry.push("ngForOf", "[ngForOf]");
   }
+}
 
-  const uniqueSelectors = [...new Set(selectorsToTry)];
+function findElementsForSelectors(uniqueSelectors: string[], indexer: AngularIndexer): AngularElementData[] {
   const foundElements: AngularElementData[] = [];
   const seenElements = new Set<string>(); // path:name to avoid duplicates
 
   for (const sel of uniqueSelectors) {
     // 1. Standard Angular elements first
-    const std = STANDARD_ANGULAR_ELEMENTS[sel];
-    if (std) {
-      const key = `${std.importPath}:${std.name}`;
-      if (!seenElements.has(key)) {
-        const element = new AngularElementData(
-          std.importPath,
-          std.name,
-          std.type,
-          std.originalSelector,
-          std.selectors,
-          !std.name.endsWith("Module"), // Heuristic for standard elements
-          true // isExternal - standard Angular elements are always external
-        );
-        foundElements.push(element);
-        seenElements.add(key);
-      }
-      // Skip indexed elements for this selector since standard takes precedence
-      continue;
+    const standardElement = findStandardElement(sel, seenElements);
+    if (standardElement) {
+      foundElements.push(standardElement);
+      continue; // Skip indexed elements for this selector since standard takes precedence
     }
 
     // 2. Then try project index
-    try {
-      const foundInIndex = indexer.getElements(sel);
-      for (const element of foundInIndex) {
-        const key = `${element.path}:${element.name}`;
-        if (!seenElements.has(key)) {
-          foundElements.push(element);
-          seenElements.add(key);
-        }
-      }
-    } catch (error) {
-      logger.warn(`Error getting element from indexer for selector '${sel}': ${(error as Error).message}`);
-    }
+    const indexedElements = findIndexedElements(sel, indexer, seenElements);
+    foundElements.push(...indexedElements);
   }
 
   return foundElements;
+}
+
+function findStandardElement(selector: string, seenElements: Set<string>): AngularElementData | null {
+  const std = STANDARD_ANGULAR_ELEMENTS[selector];
+  if (!std) {
+    return null;
+  }
+
+  const key = `${std.importPath}:${std.name}`;
+  if (seenElements.has(key)) {
+    return null;
+  }
+
+  const element = new AngularElementData(
+    std.importPath,
+    std.name,
+    std.type,
+    std.originalSelector,
+    std.selectors,
+    !std.name.endsWith("Module"), // Heuristic for standard elements
+    true // isExternal - standard Angular elements are always external
+  );
+  seenElements.add(key);
+  return element;
+}
+
+function findIndexedElements(
+  selector: string,
+  indexer: AngularIndexer,
+  seenElements: Set<string>
+): AngularElementData[] {
+  try {
+    const foundInIndex = indexer.getElements(selector);
+    const uniqueElements: AngularElementData[] = [];
+
+    for (const element of foundInIndex) {
+      const key = `${element.path}:${element.name}`;
+      if (!seenElements.has(key)) {
+        uniqueElements.push(element);
+        seenElements.add(key);
+      }
+    }
+
+    return uniqueElements;
+  } catch (error) {
+    logger.warn(`Error getting element from indexer for selector '${selector}': ${(error as Error).message}`);
+    return [];
+  }
 }
 
 /**
@@ -385,6 +449,19 @@ async function getBestMatchUsingAngularMatcher(
 
     // Sort by type, selector specificity, and name to find the best match
     bestMatches.sort((a, b) => {
+      // 1. New Heuristic: Prefer class name that matches PascalCase selector
+      const pascalCaseSelector = toPascalCase(selector);
+      if (pascalCaseSelector) {
+        const aIsNameMatch = a.name === pascalCaseSelector;
+        const bIsNameMatch = b.name === pascalCaseSelector;
+        if (aIsNameMatch && !bIsNameMatch) {
+          return -1;
+        }
+        if (!aIsNameMatch && bIsNameMatch) {
+          return 1;
+        }
+      }
+
       const scoreType = (el: AngularElementData): number => {
         switch (el.type) {
           case "component":
@@ -403,8 +480,8 @@ async function getBestMatchUsingAngularMatcher(
         return typeDiff;
       }
 
-      // Prefer more specific (longer) selectors
-      const lenDiff = b.originalSelector.length - a.originalSelector.length;
+      // 2. Prefer less complex (shorter) original selectors, indicating a more specific directive.
+      const lenDiff = a.originalSelector.length - b.originalSelector.length;
       if (lenDiff !== 0) {
         return lenDiff;
       }
@@ -477,44 +554,91 @@ export function resolveRelativePath(from: string, to: string): string {
 
 function readAngularCoreMajorFromFilePath(filePath: string): number | null {
   try {
-    // Walk up to find a node_modules/@angular/core/package.json or nearest package.json with @angular/core dep
-    let currentDir: string | undefined = path.dirname(filePath);
-    const visited = new Set<string>();
-    for (let i = 0; i < 10 && currentDir && !visited.has(currentDir); i++) {
-      visited.add(currentDir);
-
-      const corePkgPath = path.join(currentDir, "node_modules", "@angular", "core", "package.json");
-      if (fs.existsSync(corePkgPath)) {
-        const json = JSON.parse(fs.readFileSync(corePkgPath, "utf-8")) as { version?: string };
-        const major = parseSemverMajor(json.version ?? "");
-        if (typeof major === "number") {
-          return major;
-        }
-      }
-
-      const pkgPath = path.join(currentDir, "package.json");
-      if (fs.existsSync(pkgPath)) {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as {
-          dependencies?: Record<string, string>;
-          devDependencies?: Record<string, string>;
-        };
-        const ver = pkg.dependencies?.["@angular/core"] || pkg.devDependencies?.["@angular/core"] || "";
-        const major = parseSemverMajor(ver);
-        if (typeof major === "number") {
-          return major;
-        }
-      }
-
-      const parent = path.dirname(currentDir);
-      if (!parent || parent === currentDir) {
-        break;
-      }
-      currentDir = parent;
-    }
-  } catch (_err) {
-    // noop
+    return walkUpDirectoryTree(path.dirname(filePath));
+  } catch {
+    return null;
   }
+}
+
+/**
+ * Walks up the directory tree to find Angular core version.
+ */
+function walkUpDirectoryTree(startDir: string): number | null {
+  let currentDir: string | null = startDir;
+  const visited = new Set<string>();
+
+  for (let i = 0; i < 10 && currentDir && !visited.has(currentDir); i++) {
+    visited.add(currentDir);
+
+    const version = findAngularVersionInDirectory(currentDir);
+    if (version !== null) {
+      return version;
+    }
+
+    currentDir = getParentDirectory(currentDir);
+  }
+
   return null;
+}
+
+/**
+ * Finds Angular version in a specific directory.
+ */
+function findAngularVersionInDirectory(dir: string): number | null {
+  // First check node_modules/@angular/core/package.json
+  const coreVersion = readAngularCorePackageVersion(dir);
+  if (coreVersion !== null) {
+    return coreVersion;
+  }
+
+  // Then check local package.json dependencies
+  return readAngularVersionFromPackageJson(dir);
+}
+
+/**
+ * Reads Angular core version from node_modules.
+ */
+function readAngularCorePackageVersion(dir: string): number | null {
+  const corePkgPath = path.join(dir, "node_modules", "@angular", "core", "package.json");
+  if (!fs.existsSync(corePkgPath)) {
+    return null;
+  }
+
+  try {
+    const json = JSON.parse(fs.readFileSync(corePkgPath, "utf-8")) as { version?: string };
+    return parseSemverMajor(json.version ?? "");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reads Angular version from package.json dependencies.
+ */
+function readAngularVersionFromPackageJson(dir: string): number | null {
+  const pkgPath = path.join(dir, "package.json");
+  if (!fs.existsSync(pkgPath)) {
+    return null;
+  }
+
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const ver = pkg.dependencies?.["@angular/core"] || pkg.devDependencies?.["@angular/core"] || "";
+    return parseSemverMajor(ver);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Gets the parent directory, or null if at root.
+ */
+function getParentDirectory(currentDir: string): string | null {
+  const parent = path.dirname(currentDir);
+  return parent && parent !== currentDir ? parent : null;
 }
 
 function parseSemverMajor(version: string): number | null {
