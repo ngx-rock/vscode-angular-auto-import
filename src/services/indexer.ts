@@ -257,7 +257,7 @@ export class AngularIndexer {
   private fileCache: Map<string, FileElementsInfo> = new Map();
   private readonly selectorTrie: SelectorTrie = new SelectorTrie();
 
-  private projectModuleMap: Map<string, { moduleName: string; importPath: string }> = new Map();
+  private projectModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }> = new Map();
   /**
    * Index of external modules and their exported entities.
    * Key: module name (e.g., "MatTableModule")
@@ -1152,9 +1152,9 @@ export class AngularIndexer {
         this.workspaceFileCacheKey
       ),
       storedIndex: context.workspaceState.get<Record<string, AngularElementData>>(this.workspaceIndexCacheKey),
-      storedModules: context.workspaceState.get<Record<string, { moduleName: string; importPath: string }>>(
-        this.workspaceModulesCacheKey
-      ),
+      storedModules: context.workspaceState.get<
+        Record<string, { moduleName: string; importPath: string; exportCount?: number }>
+      >(this.workspaceModulesCacheKey),
       storedExternalModulesExports: context.workspaceState.get<Record<string, string[]>>(
         this.workspaceExternalModulesExportsCacheKey
       ),
@@ -1164,7 +1164,7 @@ export class AngularIndexer {
   private async loadCacheData(workspaceData: {
     storedCache: Record<string, FileElementsInfo | ComponentInfo> | undefined;
     storedIndex: Record<string, AngularElementData> | undefined;
-    storedModules?: Record<string, { moduleName: string; importPath: string }>;
+    storedModules?: Record<string, { moduleName: string; importPath: string; exportCount?: number }>;
     storedExternalModulesExports?: Record<string, string[]>;
   }): Promise<void> {
     if (!workspaceData.storedCache || !workspaceData.storedIndex) {
@@ -1227,10 +1227,20 @@ export class AngularIndexer {
   }
 
   private loadModuleData(workspaceData: {
-    storedModules?: Record<string, { moduleName: string; importPath: string }>;
+    storedModules?: Record<string, { moduleName: string; importPath: string; exportCount?: number }>;
   }): void {
     if (workspaceData.storedModules) {
-      this.projectModuleMap = new Map(Object.entries(workspaceData.storedModules));
+      const moduleMapEntries: [string, { moduleName: string; importPath: string; exportCount: number }][] =
+        Object.entries(workspaceData.storedModules).map(([key, value]) => {
+          // Handle old cache format gracefully by providing a default exportCount.
+          const entry = {
+            moduleName: value.moduleName,
+            importPath: value.importPath,
+            exportCount: value.exportCount ?? 10, // Default to a neutral number for old caches
+          };
+          return [key, entry];
+        });
+      this.projectModuleMap = new Map(moduleMapEntries);
     }
   }
 
@@ -1515,8 +1525,8 @@ export class AngularIndexer {
     libraryFiles: Array<{ importPath: string; sourceFile: SourceFile }>,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: import("ts-morph").TypeChecker
-  ): Map<string, { moduleName: string; importPath: string }> {
-    const componentToModuleMap = new Map<string, { moduleName: string; importPath: string }>();
+  ): Map<string, { moduleName: string; importPath: string; exportCount: number }> {
+    const componentToModuleMap = new Map<string, { moduleName: string; importPath: string; exportCount: number }>();
 
     for (const { importPath, sourceFile } of libraryFiles) {
       try {
@@ -1532,7 +1542,7 @@ export class AngularIndexer {
 
   private async indexLibraryDeclarations(
     libraryFiles: Array<{ importPath: string; sourceFile: SourceFile }>,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>
   ): Promise<void> {
     for (const { importPath, sourceFile } of libraryFiles) {
       try {
@@ -1678,15 +1688,31 @@ export class AngularIndexer {
    */
   private updateProjectModuleMap(exportedIdentifiers: string[], moduleName: string, sourceFile: SourceFile): void {
     const newImportPath = path.relative(this.projectRootPath, sourceFile.getFilePath()).replace(/\\/g, "/");
+    const exportCount = exportedIdentifiers.length;
 
     for (const componentName of exportedIdentifiers) {
       const existing = this.projectModuleMap.get(componentName);
+      const newCandidate = { moduleName, importPath: newImportPath, exportCount };
 
-      if (!existing || newImportPath.length < existing.importPath.length) {
-        this.projectModuleMap.set(componentName, {
-          moduleName,
-          importPath: newImportPath,
-        });
+      if (existing) {
+        const newScore = this._calculateModuleFitScore(
+          componentName,
+          newCandidate.moduleName,
+          newCandidate.exportCount,
+          newCandidate.importPath
+        );
+        const existingScore = this._calculateModuleFitScore(
+          componentName,
+          existing.moduleName,
+          existing.exportCount,
+          existing.importPath
+        );
+
+        if (newScore > existingScore) {
+          this.projectModuleMap.set(componentName, newCandidate);
+        }
+      } else {
+        this.projectModuleMap.set(componentName, newCandidate);
       }
     }
   }
@@ -1740,7 +1766,7 @@ export class AngularIndexer {
   private _buildComponentToModuleMap(
     sourceFile: SourceFile,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker
   ) {
@@ -1768,7 +1794,7 @@ export class AngularIndexer {
   private _processNgModuleClasses(
     classDeclarations: Map<string, ClassDeclaration>,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker
   ) {
@@ -1805,7 +1831,7 @@ export class AngularIndexer {
     classDecl: ClassDeclaration,
     className: string,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker
   ) {
@@ -1863,7 +1889,7 @@ export class AngularIndexer {
     exportsTuple: import("ts-morph").TupleTypeNode,
     moduleName: string,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker,
     moduleExports?: Set<string>
@@ -1946,7 +1972,7 @@ export class AngularIndexer {
     exportedClassDecl: ClassDeclaration,
     moduleName: string,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker,
     moduleExports?: Set<string>
@@ -1991,22 +2017,80 @@ export class AngularIndexer {
     exportedClassName: string,
     moduleName: string,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>,
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
     moduleExports?: Set<string>
   ) {
-    // Prefer shorter import paths if a component is exported from multiple entry points.
-    const existing = componentToModuleMap.get(exportedClassName);
-    if (!existing || importPath.length < existing.importPath.length) {
-      componentToModuleMap.set(exportedClassName, {
-        moduleName: moduleName,
-        importPath,
-      });
+    // This function is only called during library indexing where we build the module exports on the fly.
+    // If moduleExports is not present, we can't perform scoring, so we can't add the mapping.
+    if (!moduleExports) {
+      return;
     }
 
-    // Add to module exports if Set is provided
-    if (moduleExports) {
-      moduleExports.add(exportedClassName);
+    const exportCount = moduleExports.size;
+    const existing = componentToModuleMap.get(exportedClassName);
+
+    const newCandidate = { moduleName, importPath, exportCount };
+
+    if (existing) {
+      const newScore = this._calculateModuleFitScore(
+        exportedClassName,
+        newCandidate.moduleName,
+        newCandidate.exportCount,
+        newCandidate.importPath
+      );
+      const existingScore = this._calculateModuleFitScore(
+        exportedClassName,
+        existing.moduleName,
+        existing.exportCount,
+        existing.importPath
+      );
+
+      // If new one is better, update the map.
+      if (newScore > existingScore) {
+        componentToModuleMap.set(exportedClassName, newCandidate);
+      }
+    } else {
+      // If it doesn't exist, add it.
+      componentToModuleMap.set(exportedClassName, newCandidate);
     }
+
+    // This is for accumulating all unique exports for the top-level module being processed.
+    moduleExports.add(exportedClassName);
+  }
+
+  /**
+   * Calculates a "fit score" for a module-component pair.
+   * Higher score is better.
+   * @internal
+   */
+  private _calculateModuleFitScore(
+    componentName: string,
+    moduleName: string,
+    exportCount: number,
+    importPath: string
+  ): number {
+    let score = 0;
+
+    // 1. Major bonus for direct name match (e.g., InputNumber in InputNumberModule)
+    if (moduleName.startsWith(componentName)) {
+      score += 100;
+    }
+
+    // 2. Penalty for generic module names that don't relate to the component
+    if (moduleName.toLowerCase().includes("module")) {
+      const baseModuleName = moduleName.replace(/module$/i, "");
+      if (baseModuleName.length > 0 && !componentName.toLowerCase().includes(baseModuleName.toLowerCase())) {
+        score -= 10;
+      }
+    }
+
+    // 3. Bonus for specificity (fewer exports is better)
+    score += 50 / (exportCount + 1);
+
+    // 4. Small penalty for longer import paths as a tie-breaker
+    score -= importPath.length * 0.1;
+
+    return score;
   }
 
   /**
@@ -2234,7 +2318,7 @@ export class AngularIndexer {
     selector: string,
     isStandalone: boolean,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>
   ): Promise<void> {
     const exportingModule = componentToModuleMap.get(className);
     const individualSelectors = await parseAngularSelector(selector);
@@ -2340,7 +2424,7 @@ export class AngularIndexer {
   private async _indexDeclarationsInFile(
     sourceFile: SourceFile,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string }>
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>
   ) {
     try {
       const classDeclarations = this._collectClassDeclarations(sourceFile);
