@@ -4,6 +4,12 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.12.2]  - 2025-09-21
+
+### Improved
+- **Module Resolution**: Enhanced AngularIndexer with intelligent module mapping that includes export count tracking for better component-to-module association
+
+
 ## [1.12.1] - 2025-09-18
 
 ### Improved
