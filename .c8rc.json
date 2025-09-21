@@ -1,0 +1,25 @@
+{
+  "all": true,
+  "check-coverage": false,
+  "include": [
+    "out/**/*.js"
+  ],
+  "exclude": [
+    "out/test/**/*",
+    "coverage/**/*",
+    "**/*.d.ts",
+    "**/node_modules/**"
+  ],
+  "source-map": true,
+  "temp-directory": "./coverage/.c8_output",
+  "resolve": "src",
+  "src": "src",
+  "experimental-monocart": {
+    "outputDir": "./coverage",
+    "lcov": true,
+    "reports": [
+      ["v8"],
+      ["lcov"]
+    ]
+  }
+}
