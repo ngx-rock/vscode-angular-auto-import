@@ -34,7 +34,7 @@ import type {
   TmplAstReference,
   TmplAstTemplate,
 } from "../types";
-import { getAngularElements, isStandalone, switchFileType } from "../utils";
+import { getAngularElements, getTsDocument, isStandalone, switchFileType } from "../utils";
 import { debounce } from "../utils/debounce";
 import { getProjectContextForDocument } from "../utils/project-context";
 import type { ProviderContext } from "./index";
@@ -299,7 +299,7 @@ export class DiagnosticProvider {
       await this.processTypescriptDocument(document);
     }
 
-    this.logDiagnosticsDuration(document.fileName, startTime);
+    this.logOperationDuration("updateDiagnostics", document.fileName, startTime);
   }
 
   /**
@@ -322,7 +322,7 @@ export class DiagnosticProvider {
       return;
     }
 
-    const tsDocument = await this.getTsDocument(document, componentPath);
+    const tsDocument = await getTsDocument(document, componentPath);
     if (!tsDocument) {
       return;
     }
@@ -396,12 +396,12 @@ export class DiagnosticProvider {
   }
 
   /**
-   * Logs the duration of diagnostics operation.
+   * Logs the duration of an operation.
    */
-  private logDiagnosticsDuration(fileName: string, startTime: bigint): void {
+  private logOperationDuration(operation: string, identifier: string, startTime: bigint): void {
     const endTime = process.hrtime.bigint();
     const duration = Number(endTime - startTime) / 1_000_000;
-    logger.debug(`[DiagnosticProvider] updateDiagnostics for ${fileName} took ${duration.toFixed(2)} ms`);
+    logger.debug(`[DiagnosticProvider] ${operation} for ${identifier} took ${duration.toFixed(2)} ms`);
   }
 
   private async runDiagnostics(
@@ -579,7 +579,7 @@ export class DiagnosticProvider {
       }
     }
 
-    this.logCheckElementDuration(element.name, checkElementStartTime);
+    this.logOperationDuration("checkElement", element.name, checkElementStartTime);
     return diagnostics;
   }
 
@@ -696,15 +696,6 @@ export class DiagnosticProvider {
     });
 
     return matchedSelectors;
-  }
-
-  /**
-   * Logs the duration of checkElement operation.
-   */
-  private logCheckElementDuration(elementName: string, startTime: bigint): void {
-    const endTime = process.hrtime.bigint();
-    const duration = Number(endTime - startTime) / 1_000_000;
-    logger.debug(`[DiagnosticProvider] checkElement for ${elementName} took ${duration.toFixed(2)} ms`);
   }
 
   private createMissingImportDiagnostic(
@@ -852,22 +843,6 @@ export class DiagnosticProvider {
 
   private getProjectContextForDocument(document: vscode.TextDocument) {
     return getProjectContextForDocument(document, this.context.projectIndexers, this.context.projectTsConfigs);
-  }
-
-  private async getTsDocument(
-    document: vscode.TextDocument,
-    componentPath: string
-  ): Promise<vscode.TextDocument | null> {
-    if (document.fileName === componentPath) {
-      return document;
-    }
-    const tsDocUri = vscode.Uri.file(componentPath);
-    try {
-      return await vscode.workspace.openTextDocument(tsDocUri);
-    } catch (error) {
-      logger.error(`Could not open TS document for diagnostics: ${componentPath}`, error as Error);
-      return null;
-    }
   }
 
   private isElementImported(sourceFile: SourceFile, element: AngularElementData): boolean {

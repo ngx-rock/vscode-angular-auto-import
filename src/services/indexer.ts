@@ -24,6 +24,7 @@ import { logger } from "../logger";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
 import {
   type AngularDependency,
+  createElementComparator,
   findAngularDependencies,
   getLibraryEntryPoints,
   isStandalone,
@@ -119,32 +120,8 @@ class SelectorTrie {
     //    a) Prefer components over directives over pipes.
     //    b) Prefer shorter original selector strings (less specific, e.g., no attribute constraints).
     //    c) Deterministic fallback – alphabetical by class name.
-    const scoreType = (el: AngularElementData): number => {
-      switch (el.type) {
-        case "component":
-          return 0;
-        case "directive":
-          return 1;
-        case "pipe":
-          return 2;
-        default:
-          return 3;
-      }
-    };
-
-    candidatePool.sort((a, b) => {
-      const typeDiff = scoreType(a) - scoreType(b);
-      if (typeDiff !== 0) {
-        return typeDiff;
-      }
-
-      const lenDiff = a.originalSelector.length - b.originalSelector.length;
-      if (lenDiff !== 0) {
-        return lenDiff;
-      }
-
-      return a.name.localeCompare(b.name);
-    });
+    // Sort using shared element comparator (without PascalCase matching for backward compatibility)
+    candidatePool.sort(createElementComparator());
 
     return candidatePool[0];
   }
@@ -247,6 +224,50 @@ class SelectorTrie {
 }
 
 /**
+ * Helper function to safely remove source files from ts-morph project
+ * @param project - The ts-morph Project instance
+ * @param context - Context string for logging purposes
+ */
+function removeAllSourceFiles(project: Project, context: string): void {
+  project.getSourceFiles().forEach((sf) => {
+    try {
+      // Check if the sourceFile is still valid before removing
+      sf.getFilePath(); // This will throw if the node is forgotten
+      project.removeSourceFile(sf);
+    } catch {
+      // If the sourceFile node is already forgotten, skip it
+      logger.debug(`SourceFile node already forgotten during ${context}, skipping removal`);
+    }
+  });
+}
+
+/**
+ * Helper function to parse ɵmod property from Angular module classes
+ * @param classDecl - The class declaration to parse
+ * @returns The exports tuple if found, null otherwise
+ */
+function parseModDefinition(classDecl: ClassDeclaration): import("ts-morph").TupleTypeNode | null {
+  const modDef = classDecl.getStaticProperty("ɵmod");
+  if (!modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
+    return null;
+  }
+
+  const typeNode = modDef.getTypeNode();
+  if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
+    return null;
+  }
+
+  const typeRef = typeNode as TypeReferenceNode;
+  const typeArgs = typeRef.getTypeArguments();
+
+  if (typeArgs.length <= 3 || !typeArgs[3].isKind(SyntaxKind.TupleType)) {
+    return null;
+  }
+
+  return typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+}
+
+/**
  * The main class responsible for indexing Angular elements in a project.
  */
 export class AngularIndexer {
@@ -295,6 +316,17 @@ export class AngularIndexer {
       // Consider adding compilerOptions from tsconfig if available for more accurate parsing,
       // but this might slow down initialization. For now, default is fine.
     });
+  }
+
+  /**
+   * Clears all in-memory state (file cache, selector trie, module maps)
+   * @internal
+   */
+  private clearInMemoryState(): void {
+    this.fileCache.clear();
+    this.selectorTrie.clear();
+    this.projectModuleMap.clear();
+    this.externalModuleExportsIndex.clear();
   }
 
   /**
@@ -913,20 +945,8 @@ export class AngularIndexer {
       }
 
       // Clear existing ts-morph project files before full scan to avoid stale data
-      this.project.getSourceFiles().forEach((sf) => {
-        try {
-          // Check if the sourceFile is still valid before removing
-          sf.getFilePath(); // This will throw if the node is forgotten
-          this.project.removeSourceFile(sf);
-        } catch {
-          // If the sourceFile node is already forgotten, skip it
-          logger.debug(`SourceFile node already forgotten for ${sf.getBaseName()}, skipping removal`);
-        }
-      });
-      this.fileCache.clear();
-      this.selectorTrie.clear();
-      this.projectModuleMap.clear();
-      this.externalModuleExportsIndex.clear();
+      removeAllSourceFiles(this.project, "full index");
+      this.clearInMemoryState();
 
       progress?.report({ message: "Discovering project files..." });
       const allFileUris = await vscode.workspace.findFiles(
@@ -1296,20 +1316,8 @@ export class AngularIndexer {
     }
     try {
       // Clear in-memory state
-      this.fileCache.clear();
-      this.selectorTrie.clear();
-      this.projectModuleMap.clear();
-      this.externalModuleExportsIndex.clear();
-      this.project.getSourceFiles().forEach((sf) => {
-        try {
-          // Check if the sourceFile is still valid before removing
-          sf.getFilePath(); // This will throw if the node is forgotten
-          this.project.removeSourceFile(sf);
-        } catch {
-          // If the sourceFile node is already forgotten, skip it
-          logger.debug(`SourceFile node already forgotten during clearCache, skipping removal`);
-        }
-      });
+      this.clearInMemoryState();
+      removeAllSourceFiles(this.project, "clearCache");
 
       // Clear persisted state
       await context.workspaceState.update(this.workspaceFileCacheKey, undefined);
@@ -1822,24 +1830,10 @@ export class AngularIndexer {
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker
   ) {
-    const modDef = classDecl.getStaticProperty("ɵmod");
-    if (!modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
+    const exportsTuple = parseModDefinition(classDecl);
+    if (!exportsTuple) {
       return;
     }
-
-    const typeNode = modDef.getTypeNode();
-    if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
-      return;
-    }
-
-    const typeRef = typeNode as TypeReferenceNode;
-    const typeArgs = typeRef.getTypeArguments();
-
-    if (typeArgs.length <= 3 || !typeArgs[3].isKind(SyntaxKind.TupleType)) {
-      return;
-    }
-
-    const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
     const moduleExports = new Set<string>();
 
     this._processModuleExports(
@@ -1964,21 +1958,8 @@ export class AngularIndexer {
     typeChecker: TypeChecker,
     moduleExports?: Set<string>
   ) {
-    const modDef = exportedClassDecl.getStaticProperty("ɵmod");
-    if (!modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
-      return;
-    }
-
-    const typeNode = modDef.getTypeNode();
-    if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
-      return;
-    }
-
-    const typeRef = typeNode as TypeReferenceNode;
-    const typeArgs = typeRef.getTypeArguments();
-
-    if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
-      const innerExportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+    const innerExportsTuple = parseModDefinition(exportedClassDecl);
+    if (innerExportsTuple) {
       this._processModuleExports(
         innerExportsTuple,
         moduleName,
@@ -2470,19 +2451,8 @@ export class AngularIndexer {
       this.fileWatcher.dispose();
       this.fileWatcher = null;
     }
-    this.fileCache.clear();
-    this.selectorTrie.clear();
-    this.externalModuleExportsIndex.clear();
+    this.clearInMemoryState();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
-    this.project.getSourceFiles().forEach((sf) => {
-      try {
-        // Check if the sourceFile is still valid before removing
-        sf.getFilePath(); // This will throw if the node is forgotten
-        this.project.removeSourceFile(sf);
-      } catch {
-        // If the sourceFile node is already forgotten, skip it
-        logger.debug(`SourceFile node already forgotten during dispose, skipping removal`);
-      }
-    });
+    removeAllSourceFiles(this.project, "dispose");
   }
 }

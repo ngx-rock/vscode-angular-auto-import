@@ -9,7 +9,7 @@ import type { SourceFile } from "ts-morph";
 import * as vscode from "vscode";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
 import { AngularElementData, type ProcessedTsConfig } from "../types";
-import { isStandalone, LruCache, switchFileType } from "../utils";
+import { getTsDocument, isStandalone, LruCache, switchFileType } from "../utils";
 import { getProjectContextForDocument } from "../utils/project-context";
 import { isInsideTemplateString } from "../utils/template-detection";
 import type { ProviderContext } from "./index";
@@ -153,7 +153,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
       componentPath = switchFileType(document.fileName, ".ts");
     }
 
-    const tsDocument = await this.getTsDocument(document, componentPath);
+    const tsDocument = await getTsDocument(document, componentPath);
     if (!tsDocument) {
       return undefined;
     }
@@ -181,23 +181,6 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     }
 
     return sourceFile;
-  }
-
-  private async getTsDocument(
-    document: vscode.TextDocument,
-    componentPath: string
-  ): Promise<vscode.TextDocument | null> {
-    if (document.fileName === componentPath) {
-      return document;
-    }
-    const tsDocUri = vscode.Uri.file(componentPath);
-    try {
-      return await vscode.workspace.openTextDocument(tsDocUri);
-    } catch (error) {
-      // logger is not available here, so we'll just log to the console
-      console.error(`Could not open TS document for completion: ${componentPath}`, error);
-      return null;
-    }
   }
 
   /**

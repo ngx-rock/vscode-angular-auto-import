@@ -30,6 +30,36 @@ import { getProjectContextForDocument as getProjectContextForDocumentUtil } from
 import { clearAllTemplateCache, clearTemplateCache } from "./utils/template-detection";
 
 /**
+ * Sets up periodic reindexing for a project
+ */
+function setupPeriodicReindexing(
+  projectRootPath: string,
+  indexer: AngularIndexer,
+  intervalMinutes: number,
+  context: vscode.ExtensionContext
+): void {
+  const intervalId = setInterval(
+    async () => {
+      try {
+        logger.info(`🔄 Periodic reindexing for ${path.basename(projectRootPath)}...`);
+        await generateIndexForProject(projectRootPath, indexer, context);
+      } catch (error) {
+        logger.error("❌ Error during periodic reindexing:", error as Error);
+      }
+    },
+    intervalMinutes * 1000 * 60
+  );
+
+  projectIntervals.set(projectRootPath, intervalId);
+  context.subscriptions.push({
+    dispose: () => {
+      clearInterval(intervalId);
+      projectIntervals.delete(projectRootPath);
+    },
+  });
+}
+
+/**
  * Map of project root paths to their corresponding Angular indexer instances.
  * Each indexer handles the parsing and caching of Angular elements for a specific project.
  */
@@ -279,25 +309,7 @@ async function initializeProjects(projectRoots: string[], context: vscode.Extens
 
       // Setup periodic reindexing
       if (extensionConfig.indexRefreshInterval > 0) {
-        const intervalId = setInterval(
-          async () => {
-            try {
-              logger.info(`🔄 Periodic reindexing for ${path.basename(projectRootPath)}...`);
-              await generateIndexForProject(projectRootPath, indexer, context);
-            } catch (error) {
-              logger.error("❌ Error during periodic reindexing:", error as Error);
-            }
-          },
-          extensionConfig.indexRefreshInterval * 1000 * 60
-        );
-
-        projectIntervals.set(projectRootPath, intervalId);
-        context.subscriptions.push({
-          dispose: () => {
-            clearInterval(intervalId);
-            projectIntervals.delete(projectRootPath);
-          },
-        });
+        setupPeriodicReindexing(projectRootPath, indexer, extensionConfig.indexRefreshInterval, context);
       }
     } catch (error) {
       logger.error(`Error initializing project ${projectRootPath}:`, error as Error);
@@ -336,19 +348,7 @@ async function handleConfigurationChange(newConfig: ExtensionConfig, context: vs
     // Setup new intervals if needed
     if (newConfig.indexRefreshInterval > 0) {
       for (const [projectRootPath, indexer] of projectIndexers) {
-        const intervalId = setInterval(
-          async () => {
-            try {
-              logger.info(`🔄 Periodic reindexing for ${path.basename(projectRootPath)}...`);
-              await generateIndexForProject(projectRootPath, indexer, context);
-            } catch (error) {
-              logger.error("❌ Error during periodic reindexing:", error as Error);
-            }
-          },
-          newConfig.indexRefreshInterval * 1000 * 60
-        );
-
-        projectIntervals.set(projectRootPath, intervalId);
+        setupPeriodicReindexing(projectRootPath, indexer, newConfig.indexRefreshInterval, context);
       }
     }
   }

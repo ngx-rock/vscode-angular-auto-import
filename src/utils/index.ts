@@ -13,3 +13,4 @@ export * from "./package-json";
 export * from "./path";
 export * from "./project-context";
 export * from "./template-detection";
+export * from "./vscode-helpers";
