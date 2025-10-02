@@ -42,79 +42,87 @@ describe("QuickfixImportProvider", function () {
         const elements = new Map([
           [
             "test-component",
-            new AngularElementData(
-              "src/app/test.component.ts",
-              "TestComponent",
-              "component",
-              "test-component",
-              ["test-component"],
-              false,
-              false // isExternal
-            ),
+            new AngularElementData({
+              path: "src/app/test.component.ts",
+              name: "TestComponent",
+              type: "component",
+              originalSelector: "test-component",
+              selectors: ["test-component"],
+              isStandalone: false,
+              isExternal: false,
+            }),
           ],
           [
             "standalone-component",
-            new AngularElementData(
-              "src/app/standalone.component.ts",
-              "StandaloneComponent",
-              "component",
-              "standalone-component",
-              ["standalone-component"],
-              true, // standalone
-              false // isExternal
-            ),
+            new AngularElementData({
+              path: "src/app/standalone.component.ts",
+              name: "StandaloneComponent",
+              type: "component",
+              originalSelector: "standalone-component",
+              selectors: ["standalone-component"],
+              isStandalone: true,
+              isExternal: false,
+            }),
           ],
           [
             "test-module",
-            new AngularElementData(
-              "src/app/test.module.ts",
-              "TestModule",
-              "component", // Modules are treated as components for the purpose of this test
-              "test-module",
-              ["test-module"],
-              false,
-              false // isExternal
-            ),
+            new AngularElementData({
+              path: "src/app/test.module.ts",
+              name: "TestModule",
+              type: "component", // Modules are treated as components for the purpose of this test
+              originalSelector: "test-module",
+              selectors: ["test-module"],
+              isStandalone: false,
+              isExternal: false,
+            }),
           ],
           [
             "testPipe",
-            new AngularElementData("src/app/test.pipe.ts", "TestPipe", "pipe", "testPipe", ["testPipe"], false, false), // isExternal
+            new AngularElementData({
+              path: "src/app/test.pipe.ts",
+              name: "TestPipe",
+              type: "pipe",
+              originalSelector: "testPipe",
+              selectors: ["testPipe"],
+              isStandalone: false,
+              isExternal: false,
+            }),
           ],
           [
             "[testDirective]",
-            new AngularElementData(
-              "src/app/test.directive.ts",
-              "TestDirective",
-              "directive",
-              "[testDirective]",
-              ["testDirective", "[testDirective]"],
-              false,
-              false // isExternal
-            ),
+            new AngularElementData({
+              path: "src/app/test.directive.ts",
+              name: "TestDirective",
+              type: "directive",
+              originalSelector: "[testDirective]",
+              selectors: ["testDirective", "[testDirective]"],
+              isStandalone: false,
+              isExternal: false,
+            }),
           ],
           [
             "testDirective",
-            new AngularElementData(
-              "src/app/test.directive.ts",
-              "TestDirective",
-              "directive",
-              "[testDirective]",
-              ["testDirective", "[testDirective]"],
-              false,
-              false // isExternal
-            ),
+            new AngularElementData({
+              path: "src/app/test.directive.ts",
+              name: "TestDirective",
+              type: "directive",
+              originalSelector: "[testDirective]",
+              selectors: ["testDirective", "[testDirective]"],
+              isStandalone: false,
+              isExternal: false,
+            }),
           ],
           [
             "*ngIf",
-            new AngularElementData(
-              "@angular/common",
-              "NgIf",
-              "directive",
-              "[ngIf]",
-              ["ngIf", "*ngIf", "[ngIf]"],
-              false,
-              true // isExternal
-            ),
+            new AngularElementData({
+              path: "@angular/common",
+              name: "NgIf",
+              type: "directive",
+              originalSelector: "[ngIf]",
+              selectors: ["ngIf", "*ngIf", "[ngIf]"],
+              isStandalone: false,
+              isExternal: true,
+            }),
           ],
         ]);
         return elements.get(selector);
@@ -124,99 +132,99 @@ describe("QuickfixImportProvider", function () {
           [
             "test-component",
             [
-              new AngularElementData(
-                "src/app/test.component.ts",
-                "TestComponent",
-                "component",
-                "test-component",
-                ["test-component"],
-                false,
-                false // isExternal
-              ),
+              new AngularElementData({
+                path: "src/app/test.component.ts",
+                name: "TestComponent",
+                type: "component",
+                originalSelector: "test-component",
+                selectors: ["test-component"],
+                isStandalone: false,
+                isExternal: false,
+              }),
             ],
           ],
           [
             "standalone-component",
             [
-              new AngularElementData(
-                "src/app/standalone.component.ts",
-                "StandaloneComponent",
-                "component",
-                "standalone-component",
-                ["standalone-component"],
-                true,
-                false // isExternal
-              ),
+              new AngularElementData({
+                path: "src/app/standalone.component.ts",
+                name: "StandaloneComponent",
+                type: "component",
+                originalSelector: "standalone-component",
+                selectors: ["standalone-component"],
+                isStandalone: true,
+                isExternal: false,
+              }),
             ],
           ],
           [
             "test-module",
             [
-              new AngularElementData(
-                "src/app/test.module.ts",
-                "TestModule",
-                "component",
-                "test-module",
-                ["test-module"],
-                false,
-                false // isExternal
-              ),
+              new AngularElementData({
+                path: "src/app/test.module.ts",
+                name: "TestModule",
+                type: "component",
+                originalSelector: "test-module",
+                selectors: ["test-module"],
+                isStandalone: false,
+                isExternal: false,
+              }),
             ],
           ],
           [
             "testPipe",
             [
-              new AngularElementData(
-                "src/app/test.pipe.ts",
-                "TestPipe",
-                "pipe",
-                "testPipe",
-                ["testPipe"],
-                false,
-                false
-              ),
-            ], // isExternal
+              new AngularElementData({
+                path: "src/app/test.pipe.ts",
+                name: "TestPipe",
+                type: "pipe",
+                originalSelector: "testPipe",
+                selectors: ["testPipe"],
+                isStandalone: false,
+                isExternal: false,
+              }),
+            ],
           ],
           [
             "[testDirective]",
             [
-              new AngularElementData(
-                "src/app/test.directive.ts",
-                "TestDirective",
-                "directive",
-                "[testDirective]",
-                ["testDirective", "[testDirective]"],
-                false,
-                false // isExternal
-              ),
+              new AngularElementData({
+                path: "src/app/test.directive.ts",
+                name: "TestDirective",
+                type: "directive",
+                originalSelector: "[testDirective]",
+                selectors: ["testDirective", "[testDirective]"],
+                isStandalone: false,
+                isExternal: false,
+              }),
             ],
           ],
           [
             "testDirective",
             [
-              new AngularElementData(
-                "src/app/test.directive.ts",
-                "TestDirective",
-                "directive",
-                "[testDirective]",
-                ["testDirective", "[testDirective]"],
-                false,
-                false // isExternal
-              ),
+              new AngularElementData({
+                path: "src/app/test.directive.ts",
+                name: "TestDirective",
+                type: "directive",
+                originalSelector: "[testDirective]",
+                selectors: ["testDirective", "[testDirective]"],
+                isStandalone: false,
+                isExternal: false,
+              }),
             ],
           ],
           [
             "*ngIf",
             [
-              new AngularElementData(
-                "@angular/common",
-                "NgIf",
-                "directive",
-                "[ngIf]",
-                ["ngIf", "*ngIf", "[ngIf]"],
-                false,
-                true // isExternal
-              ),
+              new AngularElementData({
+                path: "@angular/common",
+                name: "NgIf",
+                type: "directive",
+                originalSelector: "[ngIf]",
+                selectors: ["ngIf", "*ngIf", "[ngIf]"],
+                isStandalone: false,
+                isExternal: true,
+              }),
             ],
           ],
         ]);

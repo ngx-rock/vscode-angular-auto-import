@@ -41,28 +41,55 @@ export interface ComponentInfo {
 }
 
 /**
+ * Options for creating an AngularElementData instance.
+ * @public Part of the public API for creating AngularElementData instances
+ */
+interface AngularElementDataOptions {
+  /** The file path where the element is defined. */
+  path: string;
+  /** The name of the element's class. */
+  name: string;
+  /** The type of the element. */
+  type: "component" | "directive" | "pipe";
+  /** The original selector of the element. */
+  originalSelector: string;
+  /** An array of possible selectors for the element. */
+  selectors: string[];
+  /** Indicates if the element is standalone. */
+  isStandalone: boolean;
+  /** Indicates if the element is from an external library. */
+  isExternal: boolean;
+  /** The name of the module that exports this element, if applicable. */
+  exportingModuleName?: string;
+}
+
+/**
  * Represents data for an Angular element to be indexed.
  */
 export class AngularElementData {
+  public readonly path: string;
+  public readonly name: string;
+  public readonly type: "component" | "directive" | "pipe";
+  public readonly originalSelector: string;
+  public readonly selectors: string[];
+  public readonly isStandalone: boolean;
+  public readonly isExternal: boolean;
+  public readonly exportingModuleName?: string;
+
   /**
-   * @param path The file path where the element is defined.
-   * @param name The name of the element's class.
-   * @param type The type of the element.
-   * @param originalSelector The original selector of the element.
-   * @param selectors An array of possible selectors for the element.
-   * @param isStandalone Indicates if the element is standalone.
-   * @param exportingModuleName The name of the module that exports this element, if applicable.
+   * Creates an instance of AngularElementData.
+   * @param options Configuration options for the Angular element
    */
-  constructor(
-    public readonly path: string,
-    public readonly name: string,
-    public readonly type: "component" | "directive" | "pipe",
-    public readonly originalSelector: string,
-    public readonly selectors: string[],
-    public readonly isStandalone: boolean,
-    public readonly isExternal: boolean,
-    public readonly exportingModuleName?: string
-  ) {}
+  constructor(options: AngularElementDataOptions) {
+    this.path = options.path;
+    this.name = options.name;
+    this.type = options.type;
+    this.originalSelector = options.originalSelector;
+    this.selectors = options.selectors;
+    this.isStandalone = options.isStandalone;
+    this.isExternal = options.isExternal;
+    this.exportingModuleName = options.exportingModuleName;
+  }
 }
 
 /**

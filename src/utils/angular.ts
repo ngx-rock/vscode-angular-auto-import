@@ -321,15 +321,15 @@ function findStandardElement(selector: string, seenElements: Set<string>): Angul
     return null;
   }
 
-  const element = new AngularElementData(
-    std.importPath,
-    std.name,
-    std.type,
-    std.originalSelector,
-    std.selectors,
-    !std.name.endsWith("Module"), // Heuristic for standard elements
-    true // isExternal - standard Angular elements are always external
-  );
+  const element = new AngularElementData({
+    path: std.importPath,
+    name: std.name,
+    type: std.type,
+    originalSelector: std.originalSelector,
+    selectors: std.selectors,
+    isStandalone: !std.name.endsWith("Module"), // Heuristic for standard elements
+    isExternal: true, // isExternal - standard Angular elements are always external
+  });
   seenElements.add(key);
   return element;
 }

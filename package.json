@@ -188,7 +188,7 @@
     "release": "pnpm run vsce:package && pnpm run vsce:publish",
     "docs:build": "rm -rf docs && typedoc",
     "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 100 --language typescript --dir src --format text --exclude '**/test/**' --exclude '**/fixtures/**'",
-    "pmd:cpd:md": "pnpm exec pmd cpd --minimum-tokens 100 --language typescript --dir src --format markdown --exclude 'src/test/fixtures' > duplicates-report.md"
+    "pmd:cpd:md": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format markdown --exclude 'src/test/fixtures' > duplicates-report.md"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",

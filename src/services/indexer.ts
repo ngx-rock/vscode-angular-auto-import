@@ -794,16 +794,16 @@ export class AngularIndexer {
     const individualSelectors = await parseAngularSelector(parsed.selector);
     const { importPath, importName, moduleToImport } = this.resolveElementImportInfo(parsed);
 
-    const elementData = new AngularElementData(
-      importPath,
-      importName,
-      parsed.type,
-      parsed.selector,
-      individualSelectors,
-      parsed.isStandalone,
+    const elementData = new AngularElementData({
+      path: importPath,
+      name: importName,
+      type: parsed.type,
+      originalSelector: parsed.selector,
+      selectors: individualSelectors,
+      isStandalone: parsed.isStandalone,
       isExternal,
-      moduleToImport
-    );
+      exportingModuleName: moduleToImport,
+    });
 
     for (const selector of individualSelectors) {
       this.selectorTrie.insert(selector, elementData);
@@ -1196,16 +1196,16 @@ export class AngularIndexer {
   }
 
   private async loadIndexElement(key: string, value: AngularElementData): Promise<void> {
-    const elementData = new AngularElementData(
-      value.path,
-      value.name,
-      value.type,
-      value.originalSelector || key,
-      await parseAngularSelector(value.originalSelector || key),
-      value.isStandalone,
-      value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
-      value.exportingModuleName
-    );
+    const elementData = new AngularElementData({
+      path: value.path,
+      name: value.name,
+      type: value.type,
+      originalSelector: value.originalSelector || key,
+      selectors: await parseAngularSelector(value.originalSelector || key),
+      isStandalone: value.isStandalone,
+      isExternal: value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
+      exportingModuleName: value.exportingModuleName,
+    });
 
     // Index under all its selectors
     for (const selector of elementData.selectors) {
@@ -2334,16 +2334,16 @@ export class AngularIndexer {
       finalImportPath = bestPath;
     }
 
-    const elementData = new AngularElementData(
-      finalImportPath,
-      finalImportName,
-      elementType,
-      selector,
-      individualSelectors,
+    const elementData = new AngularElementData({
+      path: finalImportPath,
+      name: finalImportName,
+      type: elementType,
+      originalSelector: selector,
+      selectors: individualSelectors,
       isStandalone,
       isExternal,
-      !isStandalone && exportingModule ? exportingModule.moduleName : undefined
-    );
+      exportingModuleName: !isStandalone && exportingModule ? exportingModule.moduleName : undefined,
+    });
 
     for (const sel of individualSelectors) {
       this.selectorTrie.insert(sel, elementData);

@@ -743,16 +743,16 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     item.detail = `Angular Auto-Import: ${stdElement.type} (standalone)`;
     item.documentation = new vscode.MarkdownString(`Import from \`${stdElement.importPath}\`.`);
 
-    const elementDataForCommand = new AngularElementData(
-      stdElement.importPath,
-      stdElement.name,
-      stdElement.type,
-      stdSelector,
-      stdElement.selectors ?? [stdSelector],
-      true,
-      true,
-      undefined
-    );
+    const elementDataForCommand = new AngularElementData({
+      path: stdElement.importPath,
+      name: stdElement.name,
+      type: stdElement.type,
+      originalSelector: stdSelector,
+      selectors: stdElement.selectors ?? [stdSelector],
+      isStandalone: true,
+      isExternal: true,
+      exportingModuleName: undefined,
+    });
 
     item.command = {
       title: `Import ${stdElement.name}`,
