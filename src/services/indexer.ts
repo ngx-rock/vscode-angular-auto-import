@@ -542,33 +542,40 @@ export class AngularIndexer {
   }
 
   /**
+   * Extracts the selector property from a decorator's argument object.
+   * @param decorator The decorator to extract the selector from.
+   * @param errorContext Context string for error logging (e.g., "component", "directive").
+   * @returns The selector string or undefined.
+   * @internal
+   */
+  private extractSelectorFromDecorator(decorator: Decorator, errorContext: string): string | undefined {
+    try {
+      const args = decorator.getArguments();
+      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+        const objectLiteral = args[0] as ObjectLiteralExpression;
+
+        const selectorProperty = objectLiteral.getProperty("selector");
+        if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+          const initializer = selectorProperty.getInitializer();
+          if (initializer?.isKind(SyntaxKind.StringLiteral)) {
+            return initializer.getLiteralText();
+          }
+        }
+      }
+    } catch (error) {
+      logger.error(`Error extracting ${errorContext} selector from decorator:`, error as Error);
+    }
+    return undefined;
+  }
+
+  /**
    * Extracts the selector from a `@Component` decorator.
    * @param decorator The decorator to extract information from.
    * @returns An object containing the selector.
    * @internal
    */
   private extractComponentDecoratorData(decorator: Decorator): { selector?: string } {
-    let selector: string | undefined;
-
-    try {
-      const args = decorator.getArguments();
-      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-        const objectLiteral = args[0] as ObjectLiteralExpression;
-
-        // Extract selector
-        const selectorProperty = objectLiteral.getProperty("selector");
-        if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = selectorProperty.getInitializer();
-          if (initializer?.isKind(SyntaxKind.StringLiteral)) {
-            selector = initializer.getLiteralText();
-          }
-        }
-      }
-    } catch (error) {
-      logger.error("Error extracting component selector from decorator:", error as Error);
-    }
-
-    return { selector };
+    return { selector: this.extractSelectorFromDecorator(decorator, "component") };
   }
 
   /**
@@ -578,26 +585,7 @@ export class AngularIndexer {
    * @internal
    */
   private extractDirectiveDecoratorData(decorator: Decorator): { selector?: string } {
-    let selector: string | undefined;
-
-    try {
-      const args = decorator.getArguments();
-      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-        const objectLiteral = args[0] as ObjectLiteralExpression;
-
-        const selectorProperty = objectLiteral.getProperty("selector");
-        if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = selectorProperty.getInitializer();
-          if (initializer?.isKind(SyntaxKind.StringLiteral)) {
-            selector = initializer.getLiteralText();
-          }
-        }
-      }
-    } catch (error) {
-      logger.error("Error extracting directive selector from decorator:", error as Error);
-    }
-
-    return { selector };
+    return { selector: this.extractSelectorFromDecorator(decorator, "directive") };
   }
 
   /**
@@ -844,8 +832,12 @@ export class AngularIndexer {
     return { importPath, importName, moduleToImport };
   }
 
-  private async handleNoElementsFound(filePath: string): Promise<void> {
-    this.fileCache.delete(filePath);
+  /**
+   * Safely removes a source file from the ts-morph project.
+   * @param filePath The path to the file to remove.
+   * @internal
+   */
+  private removeSourceFileFromProject(filePath: string): void {
     try {
       const sourceFile = this.project.getSourceFile(filePath);
       if (sourceFile) {
@@ -855,6 +847,11 @@ export class AngularIndexer {
     } catch {
       logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
     }
+  }
+
+  private async handleNoElementsFound(filePath: string): Promise<void> {
+    this.fileCache.delete(filePath);
+    this.removeSourceFileFromProject(filePath);
     logger.info(`No Angular elements found in ${filePath} for ${this.projectRootPath}`);
   }
 
@@ -879,17 +876,7 @@ export class AngularIndexer {
     }
 
     // Remove from ts-morph project with error handling
-    try {
-      const sourceFile = this.project.getSourceFile(filePath);
-      if (sourceFile) {
-        // Check if the sourceFile is still valid before removing
-        sourceFile.getFilePath(); // This will throw if the node is forgotten
-        this.project.removeSourceFile(sourceFile);
-      }
-    } catch {
-      // If the sourceFile node is already forgotten, log it but don't fail
-      logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
-    }
+    this.removeSourceFileFromProject(filePath);
 
     if (fileInfo) {
       await this.saveIndexToWorkspace(context);

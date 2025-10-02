@@ -24,6 +24,87 @@ describe("Package JSON Utilities", function () {
   const invalidPackageProjectPath = path.join(fixturesPath, "invalid-package-project");
   const nonAngularProjectPath = path.join(fixturesPath, "non-angular-project");
 
+  // Setup mock node_modules for test projects
+  before(async () => {
+    // Simple Project
+    await fs.mkdir(path.join(simpleProjectPath, "node_modules", "@angular", "core"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(simpleProjectPath, "node_modules", "@angular", "core", "package.json"),
+      JSON.stringify({ name: "@angular/core", version: "17.0.0" })
+    );
+    await fs.mkdir(path.join(simpleProjectPath, "node_modules", "angular-lib"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(simpleProjectPath, "node_modules", "angular-lib", "package.json"),
+      JSON.stringify({
+        name: "angular-lib",
+        version: "1.0.0",
+        peerDependencies: { "@angular/core": "*" },
+        types: "lib/index.d.ts",
+      })
+    );
+    await fs.mkdir(path.join(simpleProjectPath, "node_modules", "dev-angular-lib"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(simpleProjectPath, "node_modules", "dev-angular-lib", "package.json"),
+      JSON.stringify({
+        name: "dev-angular-lib",
+        version: "1.0.0",
+        dependencies: { "@angular/core": "*" },
+        typings: "dist/index.d.ts",
+      })
+    );
+
+    // Complex Project
+    await fs.mkdir(path.join(complexProjectPath, "node_modules", "ngx-bootstrap"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(complexProjectPath, "node_modules", "ngx-bootstrap", "package.json"),
+      JSON.stringify({
+        name: "ngx-bootstrap",
+        version: "1.0.0",
+        peerDependencies: { "@angular/core": "*" },
+        exports: {
+          ".": { types: "./index.d.ts" },
+          "./datepicker": { types: "./datepicker/index.d.ts" },
+          "./modal": { types: "./modal/index.d.ts" },
+        },
+      })
+    );
+    await fs.mkdir(path.join(complexProjectPath, "node_modules", "primeng"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(complexProjectPath, "node_modules", "primeng", "package.json"),
+      JSON.stringify({
+        name: "primeng",
+        version: "1.0.0",
+        peerDependencies: { "@angular/core": "*" },
+        exports: {
+          ".": "./index.d.ts",
+          "./button": "./button/index.d.ts",
+        },
+      })
+    );
+  });
+
+  after(async () => {
+    // Cleanup mock node_modules
+    await fs.rm(path.join(simpleProjectPath, "node_modules"), {
+      recursive: true,
+      force: true,
+    });
+    await fs.rm(path.join(complexProjectPath, "node_modules"), {
+      recursive: true,
+      force: true,
+    });
+  });
+
   describe("#findAngularDependencies", () => {
     it("should find Angular dependencies in simple project", async () => {
       const result = await findAngularDependencies(simpleProjectPath);
@@ -34,7 +115,7 @@ describe("Package JSON Utilities", function () {
       // Check for @angular/core
       const angularCore = result.find((dep) => dep.name === "@angular/core");
       assert.ok(angularCore, "Should find @angular/core");
-      assert.ok(angularCore.path.endsWith("@angular/core"), "Should have correct path for @angular/core");
+      assert.ok(angularCore.path.endsWith(path.join("@angular", "core")), "Should have correct path for @angular/core");
 
       // Check for angular-lib (has peerDependencies with @angular/core)
       const angularLib = result.find((dep) => dep.name === "angular-lib");

@@ -11,4 +11,5 @@ export * from "./debounce";
 export { importElementsToFile } from "./import";
 export * from "./package-json";
 export * from "./path";
+export * from "./project-context";
 export * from "./template-detection";

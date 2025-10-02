@@ -148,3 +148,7 @@ temp
 
 memory-bank
 .scannerwork
+.apps
+
+# PMD cache
+.pmd-cache

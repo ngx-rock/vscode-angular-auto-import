@@ -6,7 +6,6 @@
  */
 
 import * as fs from "node:fs";
-import * as path from "node:path";
 import {
   type ArrayLiteralExpression,
   type ClassDeclaration,
@@ -37,6 +36,7 @@ import type {
 } from "../types";
 import { getAngularElements, isStandalone, switchFileType } from "../utils";
 import { debounce } from "../utils/debounce";
+import { getProjectContextForDocument } from "../utils/project-context";
 import type { ProviderContext } from "./index";
 
 /**
@@ -48,7 +48,6 @@ export class DiagnosticProvider {
   private readonly candidateDiagnostics: Map<string, vscode.Diagnostic[]> = new Map();
   private readonly templateCache = new Map<string, { version: number; nodes: unknown[] }>();
   // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
-  // biome-ignore lint/style/useReadonlyClassProperties: This property is assigned in loadCompiler()
   private compiler: any | null = null;
   /**
    * Cache for storing whether a specific Angular element (component, directive, pipe) is imported in a given TypeScript component file.
@@ -799,26 +798,7 @@ export class DiagnosticProvider {
   }
 
   private getProjectContextForDocument(document: vscode.TextDocument) {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-    if (workspaceFolder) {
-      const projectRootPath = workspaceFolder.uri.fsPath;
-      const indexer = this.context.projectIndexers.get(projectRootPath);
-      const tsConfig = this.context.projectTsConfigs.get(projectRootPath) ?? null;
-      if (indexer) {
-        return { projectRootPath, indexer, tsConfig };
-      }
-    } else {
-      for (const rootPath of this.context.projectIndexers.keys()) {
-        if (document.uri.fsPath.startsWith(rootPath + path.sep)) {
-          const indexer = this.context.projectIndexers.get(rootPath);
-          const tsConfig = this.context.projectTsConfigs.get(rootPath) ?? null;
-          if (indexer) {
-            return { projectRootPath: rootPath, indexer, tsConfig };
-          }
-        }
-      }
-    }
-    return undefined;
+    return getProjectContextForDocument(document, this.context.projectIndexers, this.context.projectTsConfigs);
   }
 
   private async getTsDocument(

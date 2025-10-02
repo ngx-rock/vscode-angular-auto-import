@@ -26,6 +26,7 @@ import { type ProviderContext, registerProviders } from "./providers";
 import { AngularIndexer } from "./services";
 import * as TsConfigHelper from "./services/tsconfig";
 import type { ProcessedTsConfig, ProjectContext } from "./types";
+import { getProjectContextForDocument as getProjectContextForDocumentUtil } from "./utils/project-context";
 import { clearAllTemplateCache, clearTemplateCache } from "./utils/template-detection";
 
 /**
@@ -469,30 +470,13 @@ async function generateIndexForProject(
  * ```
  */
 export function getProjectContextForDocument(document: vscode.TextDocument): ProjectContext | undefined {
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-  if (workspaceFolder) {
-    const projectRootPath = workspaceFolder.uri.fsPath;
-    const indexer = projectIndexers.get(projectRootPath);
-    const tsConfig = projectTsConfigs.get(projectRootPath) ?? null;
-    if (indexer) {
-      return { projectRootPath, indexer, tsConfig };
-    } else {
-      logger.warn(`No indexer found for project: ${projectRootPath} (document: ${document.uri.fsPath})`);
-    }
-  } else {
-    // Fallback for files not directly in a workspace folder but within a known project root
-    for (const rootPath of projectIndexers.keys()) {
-      if (document.uri.fsPath.startsWith(rootPath + path.sep)) {
-        const indexer = projectIndexers.get(rootPath);
-        const tsConfig = projectTsConfigs.get(rootPath) ?? null;
-        if (indexer) {
-          return { projectRootPath: rootPath, indexer, tsConfig };
-        }
-      }
-    }
+  const context = getProjectContextForDocumentUtil(document, projectIndexers, projectTsConfigs);
+
+  if (!context) {
     logger.warn(`Document ${document.uri.fsPath} does not belong to any known workspace folder or project root.`);
   }
-  return undefined;
+
+  return context;
 }
 
 /**
