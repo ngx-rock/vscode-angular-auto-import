@@ -39,6 +39,11 @@ export interface ExtensionConfig {
    */
   indexRefreshInterval: number;
   /**
+   * Whether to enable auto-completion suggestions for Angular elements.
+   * @default true
+   */
+  completionEnabled: boolean;
+  /**
    * Whether to enable diagnostic messages for missing imports.
    * @default true
    */
@@ -113,6 +118,7 @@ export function getConfiguration(): ExtensionConfig {
   return {
     projectPath: config.get<string | null>("projectPath", null),
     indexRefreshInterval: config.get<number>("index.refreshInterval", 60),
+    completionEnabled: config.get<boolean>("completion.enabled", true),
     diagnosticsEnabled: config.get<boolean>("diagnostics.enabled", true),
     diagnosticsSeverity: config.get<string>("diagnostics.severity", "warning"),
     logging: {

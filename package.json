@@ -92,6 +92,11 @@
           "default": 60,
           "description": "Interval in minutes for automatically reindexing Angular elements. Set to 0 to disable periodic reindexing."
         },
+        "angular-auto-import.completion.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable auto-completion suggestions for Angular components, directives, and pipes in templates."
+        },
         "angular-auto-import.diagnostics.enabled": {
           "type": "boolean",
           "default": true,
