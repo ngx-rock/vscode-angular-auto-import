@@ -5,12 +5,12 @@
  * @module
  */
 
-import * as path from "node:path";
 import type { SourceFile } from "ts-morph";
 import * as vscode from "vscode";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
 import { AngularElementData, type ProcessedTsConfig } from "../types";
-import { isStandalone, LruCache, switchFileType } from "../utils";
+import { getTsDocument, isStandalone, LruCache, switchFileType } from "../utils";
+import { getProjectContextForDocument } from "../utils/project-context";
 import { isInsideTemplateString } from "../utils/template-detection";
 import type { ProviderContext } from "./index";
 
@@ -153,7 +153,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
       componentPath = switchFileType(document.fileName, ".ts");
     }
 
-    const tsDocument = await this.getTsDocument(document, componentPath);
+    const tsDocument = await getTsDocument(document, componentPath);
     if (!tsDocument) {
       return undefined;
     }
@@ -174,30 +174,11 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     // that ts-morph knows about. We avoid updating it with unsaved content
     // because that's a very slow operation (re-parsing).
     // The cache is invalidated on save, which will trigger a re-read.
-    if (!sourceFile) {
-      sourceFile = project.createSourceFile(document.fileName, document.getText(), {
-        overwrite: true,
-      });
-    }
+    sourceFile ??= project.createSourceFile(document.fileName, document.getText(), {
+      overwrite: true,
+    });
 
     return sourceFile;
-  }
-
-  private async getTsDocument(
-    document: vscode.TextDocument,
-    componentPath: string
-  ): Promise<vscode.TextDocument | null> {
-    if (document.fileName === componentPath) {
-      return document;
-    }
-    const tsDocUri = vscode.Uri.file(componentPath);
-    try {
-      return await vscode.workspace.openTextDocument(tsDocUri);
-    } catch (error) {
-      // logger is not available here, so we'll just log to the console
-      console.error(`Could not open TS document for completion: ${componentPath}`, error);
-      return null;
-    }
   }
 
   /**
@@ -743,16 +724,16 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     item.detail = `Angular Auto-Import: ${stdElement.type} (standalone)`;
     item.documentation = new vscode.MarkdownString(`Import from \`${stdElement.importPath}\`.`);
 
-    const elementDataForCommand = new AngularElementData(
-      stdElement.importPath,
-      stdElement.name,
-      stdElement.type,
-      stdSelector,
-      stdElement.selectors ?? [stdSelector],
-      true,
-      true,
-      undefined
-    );
+    const elementDataForCommand = new AngularElementData({
+      path: stdElement.importPath,
+      name: stdElement.name,
+      type: stdElement.type,
+      originalSelector: stdSelector,
+      selectors: stdElement.selectors ?? [stdSelector],
+      isStandalone: true,
+      isExternal: true,
+      exportingModuleName: undefined,
+    });
 
     item.command = {
       title: `Import ${stdElement.name}`,
@@ -787,25 +768,6 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
   }
 
   private getProjectContextForDocument(document: vscode.TextDocument) {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-    if (workspaceFolder) {
-      const projectRootPath = workspaceFolder.uri.fsPath;
-      const indexer = this.context.projectIndexers.get(projectRootPath);
-      const tsConfig = this.context.projectTsConfigs.get(projectRootPath) ?? null;
-      if (indexer) {
-        return { projectRootPath, indexer, tsConfig };
-      }
-    } else {
-      for (const rootPath of this.context.projectIndexers.keys()) {
-        if (document.uri.fsPath.startsWith(rootPath + path.sep)) {
-          const indexer = this.context.projectIndexers.get(rootPath);
-          const tsConfig = this.context.projectTsConfigs.get(rootPath) ?? null;
-          if (indexer) {
-            return { projectRootPath: rootPath, indexer, tsConfig };
-          }
-        }
-      }
-    }
-    return undefined;
+    return getProjectContextForDocument(document, this.context.projectIndexers, this.context.projectTsConfigs);
   }
 }

@@ -6,7 +6,6 @@
  */
 
 import * as fs from "node:fs";
-import * as path from "node:path";
 import {
   type ArrayLiteralExpression,
   type ClassDeclaration,
@@ -35,9 +34,66 @@ import type {
   TmplAstReference,
   TmplAstTemplate,
 } from "../types";
-import { getAngularElements, isStandalone, switchFileType } from "../utils";
+import { getAngularElements, getTsDocument, isStandalone, switchFileType } from "../utils";
 import { debounce } from "../utils/debounce";
+import { getProjectContextForDocument } from "../utils/project-context";
 import type { ProviderContext } from "./index";
+
+/**
+ * Context for template document parsing
+ */
+interface TemplateDocumentContext {
+  /** VS Code document being parsed */
+  document: vscode.TextDocument;
+  /** Offset in the document */
+  offset: number;
+  /** Text content */
+  text: string;
+}
+
+/**
+ * Angular AST node constructors
+ */
+interface AstConstructors {
+  /** Element node constructor */
+  tmplAstElement: new (
+    ...args: unknown[]
+  ) => TmplAstElement;
+  /** Template node constructor */
+  tmplAstTemplate: new (
+    ...args: unknown[]
+  ) => TmplAstTemplate;
+  /** Bound event node constructor */
+  tmplAstBoundEvent: new (
+    ...args: unknown[]
+  ) => TmplAstBoundEvent;
+  /** Reference node constructor */
+  tmplAstReference: new (
+    ...args: unknown[]
+  ) => TmplAstReference;
+  /** Bound attribute node constructor */
+  tmplAstBoundAttribute: new (
+    ...args: unknown[]
+  ) => TmplAstBoundAttribute;
+  /** Bound text node constructor */
+  tmplAstBoundText: new (
+    ...args: unknown[]
+  ) => TmplAstBoundText;
+}
+
+/**
+ * Processing context for template parsing
+ */
+interface ProcessingContext {
+  /** Array to collect parsed elements */
+  elements: ParsedHtmlElement[];
+  /** Angular indexer instance */
+  indexer: AngularIndexer;
+  /** Visit callback for traversing AST */
+  visit: (nodesList: TemplateAstNode[]) => void;
+  /** Extract pipes from expression callback */
+  extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void;
+}
 
 /**
  * Provides diagnostics for Angular templates.
@@ -48,7 +104,6 @@ export class DiagnosticProvider {
   private readonly candidateDiagnostics: Map<string, vscode.Diagnostic[]> = new Map();
   private readonly templateCache = new Map<string, { version: number; nodes: unknown[] }>();
   // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
-  // biome-ignore lint/style/useReadonlyClassProperties: This property is assigned in loadCompiler()
   private compiler: any | null = null;
   /**
    * Cache for storing whether a specific Angular element (component, directive, pipe) is imported in a given TypeScript component file.
@@ -244,7 +299,7 @@ export class DiagnosticProvider {
       await this.processTypescriptDocument(document);
     }
 
-    this.logDiagnosticsDuration(document.fileName, startTime);
+    this.logOperationDuration("updateDiagnostics", document.fileName, startTime);
   }
 
   /**
@@ -267,7 +322,7 @@ export class DiagnosticProvider {
       return;
     }
 
-    const tsDocument = await this.getTsDocument(document, componentPath);
+    const tsDocument = await getTsDocument(document, componentPath);
     if (!tsDocument) {
       return;
     }
@@ -341,12 +396,12 @@ export class DiagnosticProvider {
   }
 
   /**
-   * Logs the duration of diagnostics operation.
+   * Logs the duration of an operation.
    */
-  private logDiagnosticsDuration(fileName: string, startTime: bigint): void {
+  private logOperationDuration(operation: string, identifier: string, startTime: bigint): void {
     const endTime = process.hrtime.bigint();
     const duration = Number(endTime - startTime) / 1_000_000;
-    logger.debug(`[DiagnosticProvider] updateDiagnostics for ${fileName} took ${duration.toFixed(2)} ms`);
+    logger.debug(`[DiagnosticProvider] ${operation} for ${identifier} took ${duration.toFixed(2)} ms`);
   }
 
   private async runDiagnostics(
@@ -461,19 +516,16 @@ export class DiagnosticProvider {
         for (const node of nodesList) {
           this.processTemplateNode(
             node,
-            visit,
-            extractPipesFromExpression,
-            elements,
-            document,
-            offset,
-            text,
-            indexer,
-            TmplAstElement,
-            TmplAstTemplate,
-            TmplAstBoundEvent,
-            TmplAstReference,
-            TmplAstBoundAttribute,
-            TmplAstBoundText
+            { elements, indexer, visit, extractPipesFromExpression },
+            { document, offset, text },
+            {
+              tmplAstElement: TmplAstElement,
+              tmplAstTemplate: TmplAstTemplate,
+              tmplAstBoundEvent: TmplAstBoundEvent,
+              tmplAstReference: TmplAstReference,
+              tmplAstBoundAttribute: TmplAstBoundAttribute,
+              tmplAstBoundText: TmplAstBoundText,
+            }
           );
         }
       };
@@ -527,7 +579,7 @@ export class DiagnosticProvider {
       }
     }
 
-    this.logCheckElementDuration(element.name, checkElementStartTime);
+    this.logOperationDuration("checkElement", element.name, checkElementStartTime);
     return diagnostics;
   }
 
@@ -644,15 +696,6 @@ export class DiagnosticProvider {
     });
 
     return matchedSelectors;
-  }
-
-  /**
-   * Logs the duration of checkElement operation.
-   */
-  private logCheckElementDuration(elementName: string, startTime: bigint): void {
-    const endTime = process.hrtime.bigint();
-    const duration = Number(endTime - startTime) / 1_000_000;
-    logger.debug(`[DiagnosticProvider] checkElement for ${elementName} took ${duration.toFixed(2)} ms`);
   }
 
   private createMissingImportDiagnostic(
@@ -799,42 +842,7 @@ export class DiagnosticProvider {
   }
 
   private getProjectContextForDocument(document: vscode.TextDocument) {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-    if (workspaceFolder) {
-      const projectRootPath = workspaceFolder.uri.fsPath;
-      const indexer = this.context.projectIndexers.get(projectRootPath);
-      const tsConfig = this.context.projectTsConfigs.get(projectRootPath) ?? null;
-      if (indexer) {
-        return { projectRootPath, indexer, tsConfig };
-      }
-    } else {
-      for (const rootPath of this.context.projectIndexers.keys()) {
-        if (document.uri.fsPath.startsWith(rootPath + path.sep)) {
-          const indexer = this.context.projectIndexers.get(rootPath);
-          const tsConfig = this.context.projectTsConfigs.get(rootPath) ?? null;
-          if (indexer) {
-            return { projectRootPath: rootPath, indexer, tsConfig };
-          }
-        }
-      }
-    }
-    return undefined;
-  }
-
-  private async getTsDocument(
-    document: vscode.TextDocument,
-    componentPath: string
-  ): Promise<vscode.TextDocument | null> {
-    if (document.fileName === componentPath) {
-      return document;
-    }
-    const tsDocUri = vscode.Uri.file(componentPath);
-    try {
-      return await vscode.workspace.openTextDocument(tsDocUri);
-    } catch (error) {
-      logger.error(`Could not open TS document for diagnostics: ${componentPath}`, error as Error);
-      return null;
-    }
+    return getProjectContextForDocument(document, this.context.projectIndexers, this.context.projectTsConfigs);
   }
 
   private isElementImported(sourceFile: SourceFile, element: AngularElementData): boolean {
@@ -969,53 +977,39 @@ export class DiagnosticProvider {
     return false;
   }
 
+  /**
+   * Processes a template AST node
+   * @param node The template node to process
+   * @param processingCtx Processing context with callbacks and data structures
+   * @param docCtx Document context for parsing
+   * @param astCtors AST node constructors
+   */
   private processTemplateNode(
     node: TemplateAstNode,
-    visit: (nodesList: TemplateAstNode[]) => void,
-    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void,
-    elements: ParsedHtmlElement[],
-    document: vscode.TextDocument,
-    offset: number,
-    text: string,
-    indexer: AngularIndexer,
-    TmplAstElement: new (...args: unknown[]) => TmplAstElement,
-    TmplAstTemplate: new (...args: unknown[]) => TmplAstTemplate,
-    TmplAstBoundEvent: new (...args: unknown[]) => TmplAstBoundEvent,
-    TmplAstReference: new (...args: unknown[]) => TmplAstReference,
-    TmplAstBoundAttribute: new (...args: unknown[]) => TmplAstBoundAttribute,
-    TmplAstBoundText: new (...args: unknown[]) => TmplAstBoundText
+    processingCtx: ProcessingContext,
+    docCtx: TemplateDocumentContext,
+    astCtors: AstConstructors
   ): void {
     const nodeName = node.constructor.name;
 
     // Handle all types of control flow expressions
     if (this.isControlFlowNode(nodeName)) {
-      this.processControlFlowNode(node, visit, extractPipesFromExpression);
+      this.processControlFlowNode(node, processingCtx.visit, processingCtx.extractPipesFromExpression);
       return;
     }
 
-    if (node instanceof TmplAstElement || node instanceof TmplAstTemplate) {
-      this.processElementOrTemplateNode(
-        node,
-        elements,
-        document,
-        offset,
-        text,
-        indexer,
-        TmplAstTemplate,
-        TmplAstBoundEvent,
-        TmplAstReference,
-        TmplAstBoundAttribute
-      );
+    if (node instanceof astCtors.tmplAstElement || node instanceof astCtors.tmplAstTemplate) {
+      this.processElementOrTemplateNode(node, processingCtx, docCtx, astCtors);
     }
 
-    if (node instanceof TmplAstBoundText) {
-      this.processBoundTextNode(node, elements, document, offset, text);
+    if (node instanceof astCtors.tmplAstBoundText) {
+      this.processBoundTextNode(node, processingCtx.elements, docCtx.document, docCtx.offset, docCtx.text);
     }
 
     // Handle regular children for non-control-flow nodes
     if (this.hasChildren(node) && !this.isControlFlowNode(nodeName)) {
       // @ts-expect-error: Complex Angular template AST node types from ts-morph
-      visit(node.children);
+      processingCtx.visit(node.children);
     }
   }
 
@@ -1119,19 +1113,20 @@ export class DiagnosticProvider {
     });
   }
 
+  /**
+   * Processes element or template nodes
+   * @param node The element or template node
+   * @param processingCtx Processing context
+   * @param docCtx Document context
+   * @param astCtors AST constructors
+   */
   private processElementOrTemplateNode(
     node: TmplAstElement | TmplAstTemplate,
-    elements: ParsedHtmlElement[],
-    document: vscode.TextDocument,
-    offset: number,
-    text: string,
-    indexer: AngularIndexer,
-    TmplAstTemplate: new (...args: unknown[]) => TmplAstTemplate,
-    TmplAstBoundEvent: new (...args: unknown[]) => TmplAstBoundEvent,
-    TmplAstReference: new (...args: unknown[]) => TmplAstReference,
-    TmplAstBoundAttribute: new (...args: unknown[]) => TmplAstBoundAttribute
+    processingCtx: ProcessingContext,
+    docCtx: TemplateDocumentContext,
+    astCtors: AstConstructors
   ): void {
-    const isTemplate = node instanceof TmplAstTemplate;
+    const isTemplate = node instanceof astCtors.tmplAstTemplate;
 
     // @ts-expect-error: Complex Angular template AST node types from ts-morph
     const regularAttrs = [...node.attributes, ...node.inputs, ...node.outputs, ...node.references];
@@ -1148,26 +1143,22 @@ export class DiagnosticProvider {
     }));
 
     const nodeName = isTemplate ? "ng-template" : node.name;
-    const foundElements = indexer.getElements(nodeName);
+    const foundElements = processingCtx.indexer.getElements(nodeName);
 
     if (!isKnownHtmlTag(nodeName)) {
-      this.addAngularElementsToList(node, nodeName, foundElements, elements, document, offset, attributes);
+      this.addAngularElementsToList(
+        node,
+        nodeName,
+        foundElements,
+        processingCtx.elements,
+        docCtx.document,
+        docCtx.offset,
+        attributes
+      );
     }
 
     // Process attributes
-    this.processAttributes(
-      regularAttrs,
-      templateAttrs,
-      nodeName,
-      attributes,
-      elements,
-      document,
-      offset,
-      text,
-      TmplAstBoundEvent,
-      TmplAstReference,
-      TmplAstBoundAttribute
-    );
+    this.processAttributes(regularAttrs, templateAttrs, nodeName, attributes, processingCtx, docCtx, astCtors);
   }
 
   private addAngularElementsToList(
@@ -1201,33 +1192,27 @@ export class DiagnosticProvider {
     }
   }
 
+  /**
+   * Processes attributes from element or template nodes
+   * @param regularAttrs Regular attributes array
+   * @param templateAttrs Template attributes array
+   * @param nodeName Name of the node
+   * @param attributes Parsed attributes array
+   * @param processingCtx Processing context
+   * @param docCtx Document context
+   * @param astCtors AST constructors
+   */
   private processAttributes(
     regularAttrs: unknown[],
     templateAttrs: unknown[],
     nodeName: string,
     attributes: Array<{ name: string; value: string }>,
-    elements: ParsedHtmlElement[],
-    document: vscode.TextDocument,
-    offset: number,
-    text: string,
-    TmplAstBoundEvent: new (...args: unknown[]) => TmplAstBoundEvent,
-    TmplAstReference: new (...args: unknown[]) => TmplAstReference,
-    TmplAstBoundAttribute: new (...args: unknown[]) => TmplAstBoundAttribute
+    processingCtx: ProcessingContext,
+    docCtx: TemplateDocumentContext,
+    astCtors: AstConstructors
   ): void {
     const processAttribute = (attr: unknown, isTemplateAttr: boolean) => {
-      this.processSingleAttribute(
-        attr,
-        isTemplateAttr,
-        nodeName,
-        attributes,
-        elements,
-        document,
-        offset,
-        text,
-        TmplAstBoundEvent,
-        TmplAstReference,
-        TmplAstBoundAttribute
-      );
+      this.processSingleAttribute(attr, isTemplateAttr, nodeName, attributes, processingCtx, docCtx, astCtors);
     };
 
     for (const attr of regularAttrs) {
@@ -1238,18 +1223,24 @@ export class DiagnosticProvider {
     }
   }
 
+  /**
+   * Processes a single attribute
+   * @param attr The attribute to process
+   * @param isTemplateAttr Whether this is a template attribute
+   * @param nodeName Name of the node
+   * @param attributes Parsed attributes array
+   * @param processingCtx Processing context
+   * @param docCtx Document context
+   * @param astCtors AST constructors
+   */
   private processSingleAttribute(
     attr: unknown,
     isTemplateAttr: boolean,
     nodeName: string,
     attributes: Array<{ name: string; value: string }>,
-    elements: ParsedHtmlElement[],
-    document: vscode.TextDocument,
-    offset: number,
-    text: string,
-    TmplAstBoundEvent: new (...args: unknown[]) => TmplAstBoundEvent,
-    TmplAstReference: new (...args: unknown[]) => TmplAstReference,
-    TmplAstBoundAttribute: new (...args: unknown[]) => TmplAstBoundAttribute
+    processingCtx: ProcessingContext,
+    docCtx: TemplateDocumentContext,
+    astCtors: AstConstructors
   ): void {
     // @ts-expect-error: Complex Angular template AST node types from ts-morph
     const keySpan = attr.keySpan ?? attr.sourceSpan;
@@ -1258,44 +1249,49 @@ export class DiagnosticProvider {
     }
 
     // Skip event bindings, as they are not importable directives.
-    if (attr instanceof TmplAstBoundEvent) {
+    if (attr instanceof astCtors.tmplAstBoundEvent) {
       return;
     }
 
     let type = "attribute";
-    if (attr instanceof TmplAstReference) {
+    if (attr instanceof astCtors.tmplAstReference) {
       type = "template-reference";
       // @ts-expect-error: Complex Angular template AST node types from ts-morph
     } else if (isTemplateAttr || attr.name.startsWith("*")) {
       type = "structural-directive";
-    } else if (attr instanceof TmplAstBoundAttribute) {
+    } else if (attr instanceof astCtors.tmplAstBoundAttribute) {
       type = "property-binding";
     }
 
-    elements.push({
+    processingCtx.elements.push({
       // @ts-expect-error: Complex Angular template AST node types from ts-morph
       name: attr.name,
       // @ts-expect-error: Complex Angular template AST node types from ts-morph
       type: type,
       isAttribute: true,
       range: new vscode.Range(
-        document.positionAt(offset + keySpan.start.offset),
-        document.positionAt(offset + keySpan.end.offset)
+        docCtx.document.positionAt(docCtx.offset + keySpan.start.offset),
+        docCtx.document.positionAt(docCtx.offset + keySpan.end.offset)
       ),
       tagName: nodeName,
       attributes,
     });
 
     // Check for pipes in bound attribute values (like *ngIf="expression | pipe")
-    if (attr instanceof TmplAstBoundAttribute && attr.value) {
+    if (attr instanceof astCtors.tmplAstBoundAttribute && attr.value) {
       // @ts-expect-error: Complex Angular template AST node types from ts-morph
       const valueSpan = attr.valueSpan || attr.sourceSpan;
       if (valueSpan) {
-        const expressionText = text.slice(valueSpan.start.offset, valueSpan.end.offset);
-        const pipes = this._findPipesInExpression(expressionText, document, offset, valueSpan.start.offset);
+        const expressionText = docCtx.text.slice(valueSpan.start.offset, valueSpan.end.offset);
+        const pipes = this._findPipesInExpression(
+          expressionText,
+          docCtx.document,
+          docCtx.offset,
+          valueSpan.start.offset
+        );
         for (const pipe of pipes) {
           // @ts-expect-error: Complex Angular template AST node types from ts-morph
-          elements.push({ ...pipe, isAttribute: false, attributes: [] });
+          processingCtx.elements.push({ ...pipe, isAttribute: false, attributes: [] });
         }
       }
     }

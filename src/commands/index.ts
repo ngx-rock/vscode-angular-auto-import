@@ -16,6 +16,7 @@ import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
 import { importElementsToFile, switchFileType } from "../utils";
 import { getAngularElementAsync } from "../utils/angular";
+import { getProjectContextForDocument } from "../utils/project-context";
 
 /**
  * Context object containing shared state and dependencies for extension commands.
@@ -83,7 +84,7 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
         vscode.window.showErrorMessage("No active editor. Cannot determine project context for import.");
         return;
       }
-      const projCtx = getProjectContextForDocument(activeEditor.document, commandContext);
+      const projCtx = getProjectContextForDocumentWithLogging(activeEditor.document, commandContext);
       if (!projCtx) {
         vscode.window.showErrorMessage("Could not determine project context for the active file.");
         return;
@@ -360,7 +361,7 @@ function getProjectsToReindex(commandContext: CommandContext): string[] {
   const activeEditor = vscode.window.activeTextEditor;
 
   if (activeEditor) {
-    const projCtx = getProjectContextForDocument(activeEditor.document, commandContext);
+    const projCtx = getProjectContextForDocumentWithLogging(activeEditor.document, commandContext);
     if (projCtx) {
       projectsToReindex.push(projCtx.projectRootPath);
     }
@@ -460,7 +461,7 @@ async function processFixAllCommand(commandContext: CommandContext): Promise<{
     return { success: false, message: "No auto-import diagnostics to fix." };
   }
 
-  const projCtx = getProjectContextForDocument(document, commandContext);
+  const projCtx = getProjectContextForDocumentWithLogging(document, commandContext);
   if (!projCtx) {
     return { success: false, message: "Could not determine project context for the active file." };
   }
@@ -558,14 +559,14 @@ async function generateIndexForProject(
  * ```typescript
  * const activeEditor = vscode.window.activeTextEditor;
  * if (activeEditor) {
- *   const projectContext = getProjectContextForDocument(activeEditor.document, commandContext);
+ *   const projectContext = getProjectContextForDocumentWithLogging(activeEditor.document, commandContext);
  *   if (projectContext) {
  *     // Use projectContext.indexer, projectContext.projectRootPath, etc.
  *   }
  * }
  * ```
  */
-function getProjectContextForDocument(
+function getProjectContextForDocumentWithLogging(
   document: vscode.TextDocument,
   commandContext: CommandContext
 ):
@@ -575,30 +576,17 @@ function getProjectContextForDocument(
       tsConfig: ProcessedTsConfig | null;
     }
   | undefined {
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-  if (workspaceFolder) {
-    const projectRootPath = workspaceFolder.uri.fsPath;
-    const indexer = commandContext.projectIndexers.get(projectRootPath);
-    const tsConfig = commandContext.projectTsConfigs.get(projectRootPath) ?? null;
-    if (indexer) {
-      return { projectRootPath, indexer, tsConfig };
-    } else {
-      logger.warn(`No indexer found for project: ${projectRootPath} (document: ${document.uri.fsPath})`);
-    }
-  } else {
-    // Fallback for files not directly in a workspace folder but within a known project root
-    for (const rootPath of commandContext.projectIndexers.keys()) {
-      if (document.uri.fsPath.startsWith(rootPath + path.sep)) {
-        const indexer = commandContext.projectIndexers.get(rootPath);
-        const tsConfig = commandContext.projectTsConfigs.get(rootPath) ?? null;
-        if (indexer) {
-          return { projectRootPath: rootPath, indexer, tsConfig };
-        }
-      }
-    }
+  const context = getProjectContextForDocument(
+    document,
+    commandContext.projectIndexers,
+    commandContext.projectTsConfigs
+  );
+
+  if (!context) {
     logger.warn(`Document ${document.uri.fsPath} does not belong to any known workspace folder or project root`);
   }
-  return undefined;
+
+  return context;
 }
 
 /**

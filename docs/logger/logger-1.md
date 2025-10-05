@@ -42,7 +42,7 @@ Defined in: [logger/logger.ts:36](https://github.com/ngx-rock/vscode-angular-aut
 
 > `private` **anonymizeFilePath**(`filePath`): `string`
 
-Defined in: [logger/logger.ts:190](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L190)
+Defined in: [logger/logger.ts:187](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L187)
 
 ###### Parameters
 
@@ -53,6 +53,23 @@ Defined in: [logger/logger.ts:190](https://github.com/ngx-rock/vscode-angular-au
 ###### Returns
 
 `string`
+
+##### buildErrorContext()
+
+> `private` **buildErrorContext**(`error`, `context?`): `Record`\<`string`, `unknown`\>
+
+Defined in: [logger/logger.ts:105](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L105)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `error` | `undefined` \| `Error` |
+| `context?` | `Record`\<`string`, `unknown`\> |
+
+###### Returns
+
+`Record`\<`string`, `unknown`\>
 
 ##### debug()
 
@@ -75,7 +92,7 @@ Defined in: [logger/logger.ts:93](https://github.com/ngx-rock/vscode-angular-aut
 
 > **dispose**(): `void`
 
-Defined in: [logger/logger.ts:238](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L238)
+Defined in: [logger/logger.ts:235](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L235)
 
 ###### Returns
 
@@ -85,7 +102,7 @@ Defined in: [logger/logger.ts:238](https://github.com/ngx-rock/vscode-angular-au
 
 > **error**(`message`, `error?`, `context?`): `void`
 
-Defined in: [logger/logger.ts:105](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L105)
+Defined in: [logger/logger.ts:116](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L116)
 
 ###### Parameters
 
@@ -103,7 +120,7 @@ Defined in: [logger/logger.ts:105](https://github.com/ngx-rock/vscode-angular-au
 
 > **fatal**(`message`, `error?`, `context?`): `void`
 
-Defined in: [logger/logger.ts:116](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L116)
+Defined in: [logger/logger.ts:120](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L120)
 
 ###### Parameters
 
@@ -121,7 +138,7 @@ Defined in: [logger/logger.ts:116](https://github.com/ngx-rock/vscode-angular-au
 
 > `private` **getCallerLocation**(): `object`
 
-Defined in: [logger/logger.ts:173](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L173)
+Defined in: [logger/logger.ts:170](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L170)
 
 ###### Returns
 
@@ -129,8 +146,8 @@ Defined in: [logger/logger.ts:173](https://github.com/ngx-rock/vscode-angular-au
 
 | Name | Type | Defined in |
 | ------ | ------ | ------ |
-| `fileName?` | `string` | [logger/logger.ts:173](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L173) |
-| `lineNumber?` | `number` | [logger/logger.ts:173](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L173) |
+| `fileName?` | `string` | [logger/logger.ts:170](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L170) |
+| `lineNumber?` | `number` | [logger/logger.ts:170](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L170) |
 
 ##### getLogLevelValue()
 
@@ -152,7 +169,7 @@ Defined in: [logger/logger.ts:19](https://github.com/ngx-rock/vscode-angular-aut
 
 > `private` **getMetadata**(`isDev`): `object`
 
-Defined in: [logger/logger.ts:155](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L155)
+Defined in: [logger/logger.ts:152](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L152)
 
 ###### Parameters
 
@@ -178,7 +195,7 @@ Defined in: [logger/logger.ts:155](https://github.com/ngx-rock/vscode-angular-au
 
 > **getPerformanceMetrics**(): [`PerformanceMetrics`](types.md#performancemetrics)
 
-Defined in: [logger/logger.ts:227](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L227)
+Defined in: [logger/logger.ts:224](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L224)
 
 ###### Returns
 
@@ -221,7 +238,7 @@ Defined in: [logger/logger.ts:48](https://github.com/ngx-rock/vscode-angular-aut
 
 > `private` **log**(`level`, `message`, `context?`): `void`
 
-Defined in: [logger/logger.ts:128](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L128)
+Defined in: [logger/logger.ts:125](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L125)
 
 ###### Parameters
 
@@ -239,7 +256,7 @@ Defined in: [logger/logger.ts:128](https://github.com/ngx-rock/vscode-angular-au
 
 > **logException**(`error`, `context?`): `void`
 
-Defined in: [logger/logger.ts:234](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L234)
+Defined in: [logger/logger.ts:231](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L231)
 
 ###### Parameters
 
@@ -266,7 +283,7 @@ Defined in: [logger/logger.ts:76](https://github.com/ngx-rock/vscode-angular-aut
 
 > **startTimer**(`name`): `void`
 
-Defined in: [logger/logger.ts:206](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L206)
+Defined in: [logger/logger.ts:203](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L203)
 
 ###### Parameters
 
@@ -282,7 +299,7 @@ Defined in: [logger/logger.ts:206](https://github.com/ngx-rock/vscode-angular-au
 
 > **stopTimer**(`name`): `void`
 
-Defined in: [logger/logger.ts:213](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L213)
+Defined in: [logger/logger.ts:210](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L210)
 
 ###### Parameters
 

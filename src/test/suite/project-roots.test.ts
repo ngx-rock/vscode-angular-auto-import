@@ -14,6 +14,63 @@ import * as vscode from "vscode";
 import type { ExtensionConfig } from "../../config";
 import { determineProjectRoots } from "../../extension";
 
+/**
+ * Creates a mock ExtensionConfig for testing.
+ * @param overrides Optional config overrides
+ * @returns A complete ExtensionConfig object
+ */
+function createMockConfig(overrides: Partial<ExtensionConfig> = {}): ExtensionConfig {
+  return {
+    projectPath: null,
+    indexRefreshInterval: 60,
+    diagnosticsEnabled: true,
+    diagnosticsSeverity: "warning",
+    logging: {
+      enabled: true,
+      level: "INFO",
+      fileLoggingEnabled: false,
+      logDirectory: null,
+      rotationMaxSize: 5,
+      rotationMaxFiles: 5,
+      outputFormat: "plain",
+    },
+    ...overrides,
+  };
+}
+
+/**
+ * Creates a mock workspace folder with workspace folder setup/teardown.
+ * @param testPath The path for the workspace folder
+ * @param name The name of the workspace folder
+ * @param callback The test callback to execute within the mocked workspace context
+ */
+async function withMockWorkspaceFolder(
+  testPath: string,
+  name: string,
+  callback: (mockWorkspaceFolder: vscode.WorkspaceFolder) => Promise<void>
+): Promise<void> {
+  const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
+  const mockWorkspaceFolder: vscode.WorkspaceFolder = {
+    uri: vscode.Uri.file(testPath),
+    name,
+    index: 0,
+  };
+
+  Object.defineProperty(vscode.workspace, "workspaceFolders", {
+    configurable: true,
+    get: () => [mockWorkspaceFolder],
+  });
+
+  try {
+    await callback(mockWorkspaceFolder);
+  } finally {
+    Object.defineProperty(vscode.workspace, "workspaceFolders", {
+      configurable: true,
+      get: () => originalWorkspaceFolders,
+    });
+  }
+}
+
 describe("determineProjectRoots", function () {
   // Set timeout for all tests in this suite
   this.timeout(10000);
@@ -36,50 +93,15 @@ describe("determineProjectRoots", function () {
 
   describe("projectPath override behavior", () => {
     it("should use projectPath when configured (even with workspace folders)", async () => {
-      // Mock configuration with projectPath set
-      const mockConfig: ExtensionConfig = {
-        projectPath: testSrcPath,
-        indexRefreshInterval: 60,
-        diagnosticsEnabled: true,
-        diagnosticsSeverity: "warning",
-        logging: {
-          enabled: true,
-          level: "INFO",
-          fileLoggingEnabled: false,
-          logDirectory: null,
-          rotationMaxSize: 5,
-          rotationMaxFiles: 5,
-          outputFormat: "plain",
-        },
-      };
+      const mockConfig = createMockConfig({ projectPath: testSrcPath });
 
-      // Mock workspace folders (simulating case from issue #16)
-      const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
-      const mockWorkspaceFolder: vscode.WorkspaceFolder = {
-        uri: vscode.Uri.file(testProjectPath),
-        name: "test-project",
-        index: 0,
-      };
-
-      // Temporarily override workspace folders
-      Object.defineProperty(vscode.workspace, "workspaceFolders", {
-        configurable: true,
-        get: () => [mockWorkspaceFolder],
-      });
-
-      try {
+      await withMockWorkspaceFolder(testProjectPath, "test-project", async () => {
         const roots = await determineProjectRoots(mockConfig);
 
         // Should return projectPath, not workspace folder
         assert.strictEqual(roots.length, 1, "Should return exactly one project root");
         assert.strictEqual(roots[0], testSrcPath, "Should use configured projectPath instead of workspace folder");
-      } finally {
-        // Restore original workspace folders
-        Object.defineProperty(vscode.workspace, "workspaceFolders", {
-          configurable: true,
-          get: () => originalWorkspaceFolders,
-        });
-      }
+      });
     });
 
     it("should return empty array when projectPath is invalid", async () => {
@@ -138,91 +160,25 @@ describe("determineProjectRoots", function () {
 
   describe("workspace folders fallback behavior", () => {
     it("should use workspace folders when projectPath is null", async () => {
-      const mockConfig: ExtensionConfig = {
-        projectPath: null,
-        indexRefreshInterval: 60,
-        diagnosticsEnabled: true,
-        diagnosticsSeverity: "warning",
-        logging: {
-          enabled: true,
-          level: "INFO",
-          fileLoggingEnabled: false,
-          logDirectory: null,
-          rotationMaxSize: 5,
-          rotationMaxFiles: 5,
-          outputFormat: "plain",
-        },
-      };
+      const mockConfig = createMockConfig({ projectPath: null });
 
-      // Mock workspace folders
-      const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
-      const mockWorkspaceFolder: vscode.WorkspaceFolder = {
-        uri: vscode.Uri.file(testProjectPath),
-        name: "test-project",
-        index: 0,
-      };
-
-      Object.defineProperty(vscode.workspace, "workspaceFolders", {
-        configurable: true,
-        get: () => [mockWorkspaceFolder],
-      });
-
-      try {
+      await withMockWorkspaceFolder(testProjectPath, "test-project", async () => {
         const roots = await determineProjectRoots(mockConfig);
 
         assert.strictEqual(roots.length, 1, "Should return workspace folder as fallback");
         assert.strictEqual(roots[0], testProjectPath, "Should use workspace folder path");
-      } finally {
-        // Restore original workspace folders
-        Object.defineProperty(vscode.workspace, "workspaceFolders", {
-          configurable: true,
-          get: () => originalWorkspaceFolders,
-        });
-      }
+      });
     });
 
     it("should use workspace folders when projectPath is empty string", async () => {
-      const mockConfig: ExtensionConfig = {
-        projectPath: "",
-        indexRefreshInterval: 60,
-        diagnosticsEnabled: true,
-        diagnosticsSeverity: "warning",
-        logging: {
-          enabled: true,
-          level: "INFO",
-          fileLoggingEnabled: false,
-          logDirectory: null,
-          rotationMaxSize: 5,
-          rotationMaxFiles: 5,
-          outputFormat: "plain",
-        },
-      };
+      const mockConfig = createMockConfig({ projectPath: "" });
 
-      // Mock workspace folders
-      const originalWorkspaceFolders = vscode.workspace.workspaceFolders;
-      const mockWorkspaceFolder: vscode.WorkspaceFolder = {
-        uri: vscode.Uri.file(testProjectPath),
-        name: "test-project",
-        index: 0,
-      };
-
-      Object.defineProperty(vscode.workspace, "workspaceFolders", {
-        configurable: true,
-        get: () => [mockWorkspaceFolder],
-      });
-
-      try {
+      await withMockWorkspaceFolder(testProjectPath, "test-project", async () => {
         const roots = await determineProjectRoots(mockConfig);
 
         assert.strictEqual(roots.length, 1, "Should return workspace folder as fallback");
         assert.strictEqual(roots[0], testProjectPath, "Should use workspace folder path");
-      } finally {
-        // Restore original workspace folders
-        Object.defineProperty(vscode.workspace, "workspaceFolders", {
-          configurable: true,
-          get: () => originalWorkspaceFolders,
-        });
-      }
+      });
     });
 
     it("should handle multiple workspace folders", async () => {

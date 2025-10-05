@@ -24,6 +24,7 @@ import { logger } from "../logger";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
 import {
   type AngularDependency,
+  createElementComparator,
   findAngularDependencies,
   getLibraryEntryPoints,
   isStandalone,
@@ -119,32 +120,8 @@ class SelectorTrie {
     //    a) Prefer components over directives over pipes.
     //    b) Prefer shorter original selector strings (less specific, e.g., no attribute constraints).
     //    c) Deterministic fallback – alphabetical by class name.
-    const scoreType = (el: AngularElementData): number => {
-      switch (el.type) {
-        case "component":
-          return 0;
-        case "directive":
-          return 1;
-        case "pipe":
-          return 2;
-        default:
-          return 3;
-      }
-    };
-
-    candidatePool.sort((a, b) => {
-      const typeDiff = scoreType(a) - scoreType(b);
-      if (typeDiff !== 0) {
-        return typeDiff;
-      }
-
-      const lenDiff = a.originalSelector.length - b.originalSelector.length;
-      if (lenDiff !== 0) {
-        return lenDiff;
-      }
-
-      return a.name.localeCompare(b.name);
-    });
+    // Sort using shared element comparator (without PascalCase matching for backward compatibility)
+    candidatePool.sort(createElementComparator());
 
     return candidatePool[0];
   }
@@ -247,6 +224,50 @@ class SelectorTrie {
 }
 
 /**
+ * Helper function to safely remove source files from ts-morph project
+ * @param project - The ts-morph Project instance
+ * @param context - Context string for logging purposes
+ */
+function removeAllSourceFiles(project: Project, context: string): void {
+  project.getSourceFiles().forEach((sf) => {
+    try {
+      // Check if the sourceFile is still valid before removing
+      sf.getFilePath(); // This will throw if the node is forgotten
+      project.removeSourceFile(sf);
+    } catch {
+      // If the sourceFile node is already forgotten, skip it
+      logger.debug(`SourceFile node already forgotten during ${context}, skipping removal`);
+    }
+  });
+}
+
+/**
+ * Helper function to parse ɵmod property from Angular module classes
+ * @param classDecl - The class declaration to parse
+ * @returns The exports tuple if found, null otherwise
+ */
+function parseModDefinition(classDecl: ClassDeclaration): import("ts-morph").TupleTypeNode | null {
+  const modDef = classDecl.getStaticProperty("ɵmod");
+  if (!modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
+    return null;
+  }
+
+  const typeNode = modDef.getTypeNode();
+  if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
+    return null;
+  }
+
+  const typeRef = typeNode as TypeReferenceNode;
+  const typeArgs = typeRef.getTypeArguments();
+
+  if (typeArgs.length <= 3 || !typeArgs[3].isKind(SyntaxKind.TupleType)) {
+    return null;
+  }
+
+  return typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+}
+
+/**
  * The main class responsible for indexing Angular elements in a project.
  */
 export class AngularIndexer {
@@ -295,6 +316,17 @@ export class AngularIndexer {
       // Consider adding compilerOptions from tsconfig if available for more accurate parsing,
       // but this might slow down initialization. For now, default is fine.
     });
+  }
+
+  /**
+   * Clears all in-memory state (file cache, selector trie, module maps)
+   * @internal
+   */
+  private clearInMemoryState(): void {
+    this.fileCache.clear();
+    this.selectorTrie.clear();
+    this.projectModuleMap.clear();
+    this.externalModuleExportsIndex.clear();
   }
 
   /**
@@ -542,33 +574,40 @@ export class AngularIndexer {
   }
 
   /**
+   * Extracts the selector property from a decorator's argument object.
+   * @param decorator The decorator to extract the selector from.
+   * @param errorContext Context string for error logging (e.g., "component", "directive").
+   * @returns The selector string or undefined.
+   * @internal
+   */
+  private extractSelectorFromDecorator(decorator: Decorator, errorContext: string): string | undefined {
+    try {
+      const args = decorator.getArguments();
+      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
+        const objectLiteral = args[0] as ObjectLiteralExpression;
+
+        const selectorProperty = objectLiteral.getProperty("selector");
+        if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
+          const initializer = selectorProperty.getInitializer();
+          if (initializer?.isKind(SyntaxKind.StringLiteral)) {
+            return initializer.getLiteralText();
+          }
+        }
+      }
+    } catch (error) {
+      logger.error(`Error extracting ${errorContext} selector from decorator:`, error as Error);
+    }
+    return undefined;
+  }
+
+  /**
    * Extracts the selector from a `@Component` decorator.
    * @param decorator The decorator to extract information from.
    * @returns An object containing the selector.
    * @internal
    */
   private extractComponentDecoratorData(decorator: Decorator): { selector?: string } {
-    let selector: string | undefined;
-
-    try {
-      const args = decorator.getArguments();
-      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-        const objectLiteral = args[0] as ObjectLiteralExpression;
-
-        // Extract selector
-        const selectorProperty = objectLiteral.getProperty("selector");
-        if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = selectorProperty.getInitializer();
-          if (initializer?.isKind(SyntaxKind.StringLiteral)) {
-            selector = initializer.getLiteralText();
-          }
-        }
-      }
-    } catch (error) {
-      logger.error("Error extracting component selector from decorator:", error as Error);
-    }
-
-    return { selector };
+    return { selector: this.extractSelectorFromDecorator(decorator, "component") };
   }
 
   /**
@@ -578,26 +617,7 @@ export class AngularIndexer {
    * @internal
    */
   private extractDirectiveDecoratorData(decorator: Decorator): { selector?: string } {
-    let selector: string | undefined;
-
-    try {
-      const args = decorator.getArguments();
-      if (args.length > 0 && args[0].isKind(SyntaxKind.ObjectLiteralExpression)) {
-        const objectLiteral = args[0] as ObjectLiteralExpression;
-
-        const selectorProperty = objectLiteral.getProperty("selector");
-        if (selectorProperty?.isKind(SyntaxKind.PropertyAssignment)) {
-          const initializer = selectorProperty.getInitializer();
-          if (initializer?.isKind(SyntaxKind.StringLiteral)) {
-            selector = initializer.getLiteralText();
-          }
-        }
-      }
-    } catch (error) {
-      logger.error("Error extracting directive selector from decorator:", error as Error);
-    }
-
-    return { selector };
+    return { selector: this.extractSelectorFromDecorator(decorator, "directive") };
   }
 
   /**
@@ -806,16 +826,16 @@ export class AngularIndexer {
     const individualSelectors = await parseAngularSelector(parsed.selector);
     const { importPath, importName, moduleToImport } = this.resolveElementImportInfo(parsed);
 
-    const elementData = new AngularElementData(
-      importPath,
-      importName,
-      parsed.type,
-      parsed.selector,
-      individualSelectors,
-      parsed.isStandalone,
+    const elementData = new AngularElementData({
+      path: importPath,
+      name: importName,
+      type: parsed.type,
+      originalSelector: parsed.selector,
+      selectors: individualSelectors,
+      isStandalone: parsed.isStandalone,
       isExternal,
-      moduleToImport
-    );
+      exportingModuleName: moduleToImport,
+    });
 
     for (const selector of individualSelectors) {
       this.selectorTrie.insert(selector, elementData);
@@ -844,8 +864,12 @@ export class AngularIndexer {
     return { importPath, importName, moduleToImport };
   }
 
-  private async handleNoElementsFound(filePath: string): Promise<void> {
-    this.fileCache.delete(filePath);
+  /**
+   * Safely removes a source file from the ts-morph project.
+   * @param filePath The path to the file to remove.
+   * @internal
+   */
+  private removeSourceFileFromProject(filePath: string): void {
     try {
       const sourceFile = this.project.getSourceFile(filePath);
       if (sourceFile) {
@@ -855,6 +879,11 @@ export class AngularIndexer {
     } catch {
       logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
     }
+  }
+
+  private async handleNoElementsFound(filePath: string): Promise<void> {
+    this.fileCache.delete(filePath);
+    this.removeSourceFileFromProject(filePath);
     logger.info(`No Angular elements found in ${filePath} for ${this.projectRootPath}`);
   }
 
@@ -879,17 +908,7 @@ export class AngularIndexer {
     }
 
     // Remove from ts-morph project with error handling
-    try {
-      const sourceFile = this.project.getSourceFile(filePath);
-      if (sourceFile) {
-        // Check if the sourceFile is still valid before removing
-        sourceFile.getFilePath(); // This will throw if the node is forgotten
-        this.project.removeSourceFile(sourceFile);
-      }
-    } catch {
-      // If the sourceFile node is already forgotten, log it but don't fail
-      logger.warn(`SourceFile node already forgotten for ${filePath}, skipping removal`);
-    }
+    this.removeSourceFileFromProject(filePath);
 
     if (fileInfo) {
       await this.saveIndexToWorkspace(context);
@@ -926,20 +945,8 @@ export class AngularIndexer {
       }
 
       // Clear existing ts-morph project files before full scan to avoid stale data
-      this.project.getSourceFiles().forEach((sf) => {
-        try {
-          // Check if the sourceFile is still valid before removing
-          sf.getFilePath(); // This will throw if the node is forgotten
-          this.project.removeSourceFile(sf);
-        } catch {
-          // If the sourceFile node is already forgotten, skip it
-          logger.debug(`SourceFile node already forgotten for ${sf.getBaseName()}, skipping removal`);
-        }
-      });
-      this.fileCache.clear();
-      this.selectorTrie.clear();
-      this.projectModuleMap.clear();
-      this.externalModuleExportsIndex.clear();
+      removeAllSourceFiles(this.project, "full index");
+      this.clearInMemoryState();
 
       progress?.report({ message: "Discovering project files..." });
       const allFileUris = await vscode.workspace.findFiles(
@@ -1209,16 +1216,16 @@ export class AngularIndexer {
   }
 
   private async loadIndexElement(key: string, value: AngularElementData): Promise<void> {
-    const elementData = new AngularElementData(
-      value.path,
-      value.name,
-      value.type,
-      value.originalSelector || key,
-      await parseAngularSelector(value.originalSelector || key),
-      value.isStandalone,
-      value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
-      value.exportingModuleName
-    );
+    const elementData = new AngularElementData({
+      path: value.path,
+      name: value.name,
+      type: value.type,
+      originalSelector: value.originalSelector || key,
+      selectors: await parseAngularSelector(value.originalSelector || key),
+      isStandalone: value.isStandalone,
+      isExternal: value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
+      exportingModuleName: value.exportingModuleName,
+    });
 
     // Index under all its selectors
     for (const selector of elementData.selectors) {
@@ -1309,20 +1316,8 @@ export class AngularIndexer {
     }
     try {
       // Clear in-memory state
-      this.fileCache.clear();
-      this.selectorTrie.clear();
-      this.projectModuleMap.clear();
-      this.externalModuleExportsIndex.clear();
-      this.project.getSourceFiles().forEach((sf) => {
-        try {
-          // Check if the sourceFile is still valid before removing
-          sf.getFilePath(); // This will throw if the node is forgotten
-          this.project.removeSourceFile(sf);
-        } catch {
-          // If the sourceFile node is already forgotten, skip it
-          logger.debug(`SourceFile node already forgotten during clearCache, skipping removal`);
-        }
-      });
+      this.clearInMemoryState();
+      removeAllSourceFiles(this.project, "clearCache");
 
       // Clear persisted state
       await context.workspaceState.update(this.workspaceFileCacheKey, undefined);
@@ -1504,10 +1499,9 @@ export class AngularIndexer {
     for (const declarations of exportedDeclarations.values()) {
       for (const declaration of declarations) {
         if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
-          const classDecl = declaration as ClassDeclaration;
-          const name = classDecl.getName();
+          const name = declaration.getName();
           if (name && !allLibraryClasses.has(name)) {
-            allLibraryClasses.set(name, classDecl);
+            allLibraryClasses.set(name, declaration);
           }
         }
       }
@@ -1835,24 +1829,10 @@ export class AngularIndexer {
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker
   ) {
-    const modDef = classDecl.getStaticProperty("ɵmod");
-    if (!modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
+    const exportsTuple = parseModDefinition(classDecl);
+    if (!exportsTuple) {
       return;
     }
-
-    const typeNode = modDef.getTypeNode();
-    if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
-      return;
-    }
-
-    const typeRef = typeNode as TypeReferenceNode;
-    const typeArgs = typeRef.getTypeArguments();
-
-    if (typeArgs.length <= 3 || !typeArgs[3].isKind(SyntaxKind.TupleType)) {
-      return;
-    }
-
-    const exportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
     const moduleExports = new Set<string>();
 
     this._processModuleExports(
@@ -1977,21 +1957,8 @@ export class AngularIndexer {
     typeChecker: TypeChecker,
     moduleExports?: Set<string>
   ) {
-    const modDef = exportedClassDecl.getStaticProperty("ɵmod");
-    if (!modDef?.isKind(SyntaxKind.PropertyDeclaration)) {
-      return;
-    }
-
-    const typeNode = modDef.getTypeNode();
-    if (!typeNode?.isKind(SyntaxKind.TypeReference)) {
-      return;
-    }
-
-    const typeRef = typeNode as TypeReferenceNode;
-    const typeArgs = typeRef.getTypeArguments();
-
-    if (typeArgs.length > 3 && typeArgs[3].isKind(SyntaxKind.TupleType)) {
-      const innerExportsTuple = typeArgs[3].asKindOrThrow(SyntaxKind.TupleType);
+    const innerExportsTuple = parseModDefinition(exportedClassDecl);
+    if (innerExportsTuple) {
       this._processModuleExports(
         innerExportsTuple,
         moduleName,
@@ -2347,16 +2314,16 @@ export class AngularIndexer {
       finalImportPath = bestPath;
     }
 
-    const elementData = new AngularElementData(
-      finalImportPath,
-      finalImportName,
-      elementType,
-      selector,
-      individualSelectors,
+    const elementData = new AngularElementData({
+      path: finalImportPath,
+      name: finalImportName,
+      type: elementType,
+      originalSelector: selector,
+      selectors: individualSelectors,
       isStandalone,
       isExternal,
-      !isStandalone && exportingModule ? exportingModule.moduleName : undefined
-    );
+      exportingModuleName: !isStandalone && exportingModule ? exportingModule.moduleName : undefined,
+    });
 
     for (const sel of individualSelectors) {
       this.selectorTrie.insert(sel, elementData);
@@ -2483,19 +2450,8 @@ export class AngularIndexer {
       this.fileWatcher.dispose();
       this.fileWatcher = null;
     }
-    this.fileCache.clear();
-    this.selectorTrie.clear();
-    this.externalModuleExportsIndex.clear();
+    this.clearInMemoryState();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
-    this.project.getSourceFiles().forEach((sf) => {
-      try {
-        // Check if the sourceFile is still valid before removing
-        sf.getFilePath(); // This will throw if the node is forgotten
-        this.project.removeSourceFile(sf);
-      } catch {
-        // If the sourceFile node is already forgotten, skip it
-        logger.debug(`SourceFile node already forgotten during dispose, skipping removal`);
-      }
-    });
+    removeAllSourceFiles(this.project, "dispose");
   }
 }

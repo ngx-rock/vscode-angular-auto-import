@@ -102,7 +102,7 @@ export class Logger {
     this.log("WARN", message, context);
   }
 
-  public error(message: string, error?: Error, context?: Record<string, unknown>) {
+  private buildErrorContext(error: Error | undefined, context?: Record<string, unknown>): Record<string, unknown> {
     const errorContext = { ...context };
     if (error) {
       errorContext.error = {
@@ -110,18 +110,15 @@ export class Logger {
         stack: error.stack,
       };
     }
-    this.log("ERROR", message, errorContext);
+    return errorContext;
+  }
+
+  public error(message: string, error?: Error, context?: Record<string, unknown>) {
+    this.log("ERROR", message, this.buildErrorContext(error, context));
   }
 
   public fatal(message: string, error?: Error, context?: Record<string, unknown>) {
-    const errorContext = { ...context };
-    if (error) {
-      errorContext.error = {
-        message: error.message,
-        stack: error.stack,
-      };
-    }
-    this.log("FATAL", message, errorContext);
+    this.log("FATAL", message, this.buildErrorContext(error, context));
     vscode.window.showErrorMessage(`A fatal error occurred in Angular Auto Import: ${message}. See logs for details.`);
   }
 

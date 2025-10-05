@@ -321,15 +321,15 @@ function findStandardElement(selector: string, seenElements: Set<string>): Angul
     return null;
   }
 
-  const element = new AngularElementData(
-    std.importPath,
-    std.name,
-    std.type,
-    std.originalSelector,
-    std.selectors,
-    !std.name.endsWith("Module"), // Heuristic for standard elements
-    true // isExternal - standard Angular elements are always external
-  );
+  const element = new AngularElementData({
+    path: std.importPath,
+    name: std.name,
+    type: std.type,
+    originalSelector: std.originalSelector,
+    selectors: std.selectors,
+    isStandalone: !std.name.endsWith("Module"), // Heuristic for standard elements
+    isExternal: true, // isExternal - standard Angular elements are always external
+  });
   seenElements.add(key);
   return element;
 }
@@ -382,6 +382,75 @@ export async function getAngularElementAsync(
 
   // Uses Angular SelectorMatcher for precise matching
   return await getBestMatchUsingAngularMatcher(selector, elements);
+}
+
+/**
+ * Score element type priority (lower is better)
+ */
+function getElementTypeScore(el: AngularElementData): number {
+  switch (el.type) {
+    case "component":
+      return 0;
+    case "directive":
+      return 1;
+    case "pipe":
+      return 2;
+    default:
+      return 3;
+  }
+}
+
+/**
+ * Compare PascalCase name matching (lower is better match)
+ */
+function comparePascalCaseMatch(a: AngularElementData, b: AngularElementData, selector: string): number {
+  const pascalCaseSelector = toPascalCase(selector);
+  if (!pascalCaseSelector) {
+    return 0;
+  }
+
+  const aIsNameMatch = a.name === pascalCaseSelector;
+  const bIsNameMatch = b.name === pascalCaseSelector;
+
+  if (aIsNameMatch && !bIsNameMatch) {
+    return -1;
+  }
+  if (!aIsNameMatch && bIsNameMatch) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Comparator function for sorting Angular elements by priority
+ * @param selector - The selector to match against (for PascalCase matching)
+ * @returns A comparator function for use with Array.sort
+ */
+export function createElementComparator(selector?: string): (a: AngularElementData, b: AngularElementData) => number {
+  return (a, b) => {
+    // 1. Heuristic: Prefer class name that matches PascalCase selector
+    if (selector) {
+      const nameMatchDiff = comparePascalCaseMatch(a, b, selector);
+      if (nameMatchDiff !== 0) {
+        return nameMatchDiff;
+      }
+    }
+
+    // 2. Sort by type priority
+    const typeDiff = getElementTypeScore(a) - getElementTypeScore(b);
+    if (typeDiff !== 0) {
+      return typeDiff;
+    }
+
+    // 3. Prefer less complex (shorter) original selectors
+    const lenDiff = a.originalSelector.length - b.originalSelector.length;
+    if (lenDiff !== 0) {
+      return lenDiff;
+    }
+
+    // 4. Alphabetical by name
+    return a.name.localeCompare(b.name);
+  };
 }
 
 /**
@@ -448,46 +517,7 @@ async function getBestMatchUsingAngularMatcher(
     }
 
     // Sort by type, selector specificity, and name to find the best match
-    bestMatches.sort((a, b) => {
-      // 1. New Heuristic: Prefer class name that matches PascalCase selector
-      const pascalCaseSelector = toPascalCase(selector);
-      if (pascalCaseSelector) {
-        const aIsNameMatch = a.name === pascalCaseSelector;
-        const bIsNameMatch = b.name === pascalCaseSelector;
-        if (aIsNameMatch && !bIsNameMatch) {
-          return -1;
-        }
-        if (!aIsNameMatch && bIsNameMatch) {
-          return 1;
-        }
-      }
-
-      const scoreType = (el: AngularElementData): number => {
-        switch (el.type) {
-          case "component":
-            return 0;
-          case "directive":
-            return 1;
-          case "pipe":
-            return 2;
-          default:
-            return 3;
-        }
-      };
-
-      const typeDiff = scoreType(a) - scoreType(b);
-      if (typeDiff !== 0) {
-        return typeDiff;
-      }
-
-      // 2. Prefer less complex (shorter) original selectors, indicating a more specific directive.
-      const lenDiff = a.originalSelector.length - b.originalSelector.length;
-      if (lenDiff !== 0) {
-        return lenDiff;
-      }
-
-      return a.name.localeCompare(b.name);
-    });
+    bestMatches.sort(createElementComparator(selector));
 
     return bestMatches[0];
   } catch (error) {
