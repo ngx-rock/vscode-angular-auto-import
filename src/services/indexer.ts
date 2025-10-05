@@ -242,6 +242,56 @@ function removeAllSourceFiles(project: Project, context: string): void {
 }
 
 /**
+ * Helper function to log memory usage with delta
+ * @param message - The log message prefix
+ * @param initialMemory - The initial memory metrics
+ */
+function logMemoryUsage(message: string, initialMemory: ReturnType<typeof logger.getPerformanceMetrics>): void {
+  const finalMemory = logger.getPerformanceMetrics();
+  const memoryDelta = finalMemory.memoryUsage.heapUsed - initialMemory.memoryUsage.heapUsed;
+  logger.info(
+    `${message} - Memory: ${Math.round(finalMemory.memoryUsage.heapUsed / 1024 / 1024)}MB (Δ${memoryDelta > 0 ? "+" : ""}${Math.round(memoryDelta / 1024 / 1024)}MB)`
+  );
+}
+
+/**
+ * Helper function to log when no valid cache is found
+ * @param projectRootPath - The project root path
+ */
+function logNoCacheFound(projectRootPath: string): void {
+  logger.info(`AngularIndexer (${path.basename(projectRootPath)}): No valid cache found in workspace.`);
+}
+
+/**
+ * Helper function to safely execute code that accesses a SourceFile.
+ * Returns false if the SourceFile node is forgotten.
+ *
+ * @param sourceFile - The SourceFile to check
+ * @param callback - The callback to execute if the SourceFile is valid
+ * @param context - Context string for logging
+ * @returns true if the callback was executed, false if the node was forgotten
+ */
+function withValidSourceFile<T>(
+  sourceFile: SourceFile,
+  callback: () => T,
+  context: string
+): { success: boolean; result?: T } {
+  try {
+    sourceFile.getFilePath(); // This will throw if the node is forgotten
+    const result = callback();
+    return { success: true, result };
+  } catch {
+    logger.warn(`[Indexer] SourceFile node forgotten during ${context}, skipping`);
+    return { success: false };
+  }
+}
+
+/**
+ * Type alias for component-to-module map structure
+ */
+type ComponentToModuleMap = Map<string, { moduleName: string; importPath: string; exportCount: number }>;
+
+/**
  * Helper function to parse ɵmod property from Angular module classes
  * @param classDecl - The class declaration to parse
  * @returns The exports tuple if found, null otherwise
@@ -278,7 +328,7 @@ export class AngularIndexer {
   private fileCache: Map<string, FileElementsInfo> = new Map();
   private readonly selectorTrie: SelectorTrie = new SelectorTrie();
 
-  private projectModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }> = new Map();
+  private projectModuleMap: ComponentToModuleMap = new Map();
   /**
    * Index of external modules and their exported entities.
    * Key: module name (e.g., "MatTableModule")
@@ -351,6 +401,19 @@ export class AngularIndexer {
     logger.info(
       `AngularIndexer: Project root set to ${projectPath}. Cache keys: ${this.workspaceFileCacheKey}, ${this.workspaceIndexCacheKey}, ${this.workspaceModulesCacheKey}, ${this.workspaceExternalModulesExportsCacheKey}`
     );
+  }
+
+  /**
+   * Ensures cache keys are set for the given project root path.
+   * If cache keys are not set, attempts to set them now.
+   *
+   * @param projectRootPath - The project root path to ensure cache keys for
+   */
+  public ensureCacheKeys(projectRootPath: string): void {
+    if (this.workspaceFileCacheKey === "" || this.workspaceIndexCacheKey === "") {
+      logger.warn(`Cache keys not set for ${projectRootPath}, attempting to set them now`);
+      this.setProjectRoot(projectRootPath);
+    }
   }
 
   /**
@@ -1019,11 +1082,7 @@ export class AngularIndexer {
       await this.saveIndexToWorkspace(context);
 
       // Log final memory usage and performance metrics
-      const finalMemory = logger.getPerformanceMetrics();
-      const memoryDelta = finalMemory.memoryUsage.heapUsed - initialMemory.memoryUsage.heapUsed;
-      logger.info(
-        `Full index completed - Memory: ${Math.round(finalMemory.memoryUsage.heapUsed / 1024 / 1024)}MB (Δ${memoryDelta > 0 ? "+" : ""}${Math.round(memoryDelta / 1024 / 1024)}MB)`
-      );
+      logMemoryUsage("Full index completed", initialMemory);
 
       return new Map(this.selectorTrie.getAllElements().map((e) => [e.originalSelector, e]));
     } finally {
@@ -1134,7 +1193,7 @@ export class AngularIndexer {
     try {
       const workspaceData = this.retrieveWorkspaceData(context);
       if (!workspaceData.storedCache || !workspaceData.storedIndex) {
-        logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): No valid cache found in workspace.`);
+        logNoCacheFound(this.projectRootPath);
         return false;
       }
 
@@ -1157,7 +1216,7 @@ export class AngularIndexer {
         `AngularIndexer (${path.basename(this.projectRootPath)}): Error loading index from workspace:`,
         error as Error
       );
-      logger.info(`AngularIndexer (${path.basename(this.projectRootPath)}): No valid cache found in workspace.`);
+      logNoCacheFound(this.projectRootPath);
       return false;
     }
   }
@@ -1519,13 +1578,7 @@ export class AngularIndexer {
         await this.saveIndexToWorkspace(context);
 
         // Log final memory usage after node_modules indexing
-        const finalMemory = logger.getPerformanceMetrics();
-        const memoryDelta = finalMemory.memoryUsage.heapUsed - initialMemory.memoryUsage.heapUsed;
-        logger.info(
-          `Node modules index completed - Memory: ${Math.round(
-            finalMemory.memoryUsage.heapUsed / 1024 / 1024
-          )}MB (Δ${memoryDelta > 0 ? "+" : ""}${Math.round(memoryDelta / 1024 / 1024)}MB)`
-        );
+        logMemoryUsage("Node modules index completed", initialMemory);
 
         logger.debug(`[indexNodeModules] Finished indexing ${processedCount} libraries.`);
       } catch (error) {
@@ -1598,12 +1651,11 @@ export class AngularIndexer {
     const allLibraryClasses = new Map<string, ClassDeclaration>();
 
     for (const { sourceFile } of libraryFiles) {
-      try {
-        sourceFile.getFilePath();
-        this.collectClassesFromSourceFile(sourceFile, allLibraryClasses);
-      } catch {
-        logger.warn(`[Indexer] SourceFile node forgotten during class collection, skipping file`);
-      }
+      withValidSourceFile(
+        sourceFile,
+        () => this.collectClassesFromSourceFile(sourceFile, allLibraryClasses),
+        "class collection"
+      );
     }
 
     return allLibraryClasses;
@@ -1634,16 +1686,16 @@ export class AngularIndexer {
     libraryFiles: Array<{ importPath: string; sourceFile: SourceFile }>,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: import("ts-morph").TypeChecker
-  ): Map<string, { moduleName: string; importPath: string; exportCount: number }> {
-    const componentToModuleMap = new Map<string, { moduleName: string; importPath: string; exportCount: number }>();
+  ): ComponentToModuleMap {
+    const componentToModuleMap: ComponentToModuleMap = new Map();
 
     for (const { importPath, sourceFile } of libraryFiles) {
-      try {
-        sourceFile.getFilePath();
-        this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap, allLibraryClasses, typeChecker);
-      } catch {
-        logger.warn(`[Indexer] SourceFile node forgotten during module mapping for ${importPath}, skipping`);
-      }
+      withValidSourceFile(
+        sourceFile,
+        () =>
+          this._buildComponentToModuleMap(sourceFile, importPath, componentToModuleMap, allLibraryClasses, typeChecker),
+        `module mapping for ${importPath}`
+      );
     }
 
     return componentToModuleMap;
@@ -1651,15 +1703,14 @@ export class AngularIndexer {
 
   private async indexLibraryDeclarations(
     libraryFiles: Array<{ importPath: string; sourceFile: SourceFile }>,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>
+    componentToModuleMap: ComponentToModuleMap
   ): Promise<void> {
     for (const { importPath, sourceFile } of libraryFiles) {
-      try {
-        sourceFile.getFilePath();
-        await this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap);
-      } catch {
-        logger.warn(`[Indexer] SourceFile node forgotten during declarations indexing for ${importPath}, skipping`);
-      }
+      await withValidSourceFile(
+        sourceFile,
+        async () => await this._indexDeclarationsInFile(sourceFile, importPath, componentToModuleMap),
+        `declarations indexing for ${importPath}`
+      ).result;
     }
   }
 
@@ -1688,14 +1739,12 @@ export class AngularIndexer {
 
     // Process already opened files that might be modules
     for (const sourceFile of this.project.getSourceFiles()) {
-      try {
-        // Check if the sourceFile is still valid
-        const filePath = sourceFile.getFilePath(); // This will throw if the node is forgotten
+      const result = withValidSourceFile(sourceFile, () => sourceFile.getFilePath(), "project module processing");
+      if (result.success && result.result) {
+        const filePath = result.result;
         if (filePath.endsWith(".module.ts") && !moduleFileUris.some((f) => f.fsPath === filePath)) {
           this._processProjectModuleFile(sourceFile);
         }
-      } catch {
-        logger.warn(`[Indexer] SourceFile node forgotten during project module processing, skipping`);
       }
     }
     logger.debug(`[Indexer] Found ${this.projectModuleMap.size} component-to-module mappings in project.`);
@@ -1875,7 +1924,7 @@ export class AngularIndexer {
   private _buildComponentToModuleMap(
     sourceFile: SourceFile,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
+    componentToModuleMap: ComponentToModuleMap,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker
   ) {
@@ -1903,7 +1952,7 @@ export class AngularIndexer {
   private _processNgModuleClasses(
     classDeclarations: Map<string, ClassDeclaration>,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
+    componentToModuleMap: ComponentToModuleMap,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker
   ) {
@@ -1940,7 +1989,7 @@ export class AngularIndexer {
     classDecl: ClassDeclaration,
     className: string,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
+    componentToModuleMap: ComponentToModuleMap,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker
   ) {
@@ -1984,7 +2033,7 @@ export class AngularIndexer {
     exportsTuple: import("ts-morph").TupleTypeNode,
     moduleName: string,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
+    componentToModuleMap: ComponentToModuleMap,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker,
     moduleExports?: Set<string>
@@ -2074,7 +2123,7 @@ export class AngularIndexer {
     exportedClassDecl: ClassDeclaration,
     moduleName: string,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
+    componentToModuleMap: ComponentToModuleMap,
     allLibraryClasses: Map<string, ClassDeclaration>,
     typeChecker: TypeChecker,
     moduleExports?: Set<string>
@@ -2106,7 +2155,7 @@ export class AngularIndexer {
     exportedClassName: string,
     moduleName: string,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
+    componentToModuleMap: ComponentToModuleMap,
     moduleExports?: Set<string>
   ) {
     // This function is only called during library indexing where we build the module exports on the fly.

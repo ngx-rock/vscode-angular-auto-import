@@ -611,6 +611,13 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
   }
 
   /**
+   * Creates documentation string for completion item.
+   */
+  private createDocumentationString(prefix: string, element: AngularElementData, originalBestSelector: string): string {
+    return `${prefix} \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector: \`${originalBestSelector}\``;
+  }
+
+  /**
    * Sets completion item details and documentation.
    */
   private setCompletionItemDetails(
@@ -621,7 +628,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     if (element.isStandalone) {
       item.detail = `Angular Auto-Import: standalone ${element.type}`;
       item.documentation = new vscode.MarkdownString(
-        `✅ Import standalone \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector: \`${originalBestSelector}\``
+        this.createDocumentationString("✅ Import standalone", element, originalBestSelector)
       );
     } else if (element.exportingModuleName) {
       item.detail = `Angular Auto-Import: from ${element.exportingModuleName}`;
@@ -631,7 +638,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     } else {
       item.detail = `Angular Auto-Import: ${element.type}`;
       item.documentation = new vscode.MarkdownString(
-        `Import \`${element.name}\` (${element.type}) from \`${element.path}\`.\n\nSelector: \`${originalBestSelector}\``
+        this.createDocumentationString("Import", element, originalBestSelector)
       );
     }
   }
