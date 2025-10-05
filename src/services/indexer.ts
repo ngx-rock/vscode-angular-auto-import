@@ -1011,6 +1011,11 @@ export class AngularIndexer {
 
       await this.indexNodeModules(context, progress);
 
+      // Expand module exports to include transitive dependencies
+      // This must happen after all modules are indexed (both project and node_modules)
+      progress?.report({ message: "Expanding module exports..." });
+      this.expandAllModuleExports();
+
       await this.saveIndexToWorkspace(context);
 
       // Log final memory usage and performance metrics
@@ -1136,6 +1141,10 @@ export class AngularIndexer {
       await this.loadCacheData(workspaceData);
       this.loadModuleData(workspaceData);
       this.loadExternalModuleExports(workspaceData);
+
+      // Expand module exports after loading from cache
+      // This ensures transitive exports are available even when loading old cache
+      this.expandAllModuleExports();
 
       logger.info(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Loaded ${
@@ -1353,6 +1362,100 @@ export class AngularIndexer {
       return undefined;
     }
     return this.externalModuleExportsIndex.get(moduleName);
+  }
+
+  /**
+   * Checks if an exported element is a module.
+   * An element is considered a module if it exists as a key in the externalModuleExportsIndex.
+   * @param name The name of the element to check.
+   * @returns True if the element is a module, false otherwise.
+   * @internal
+   */
+  private isModule(name: string): boolean {
+    return this.externalModuleExportsIndex.has(name);
+  }
+
+  /**
+   * Recursively expands module exports to include transitive exports.
+   * For example, if ChipsModule exports InputTextModule, and InputTextModule exports InputText,
+   * this method will ensure ChipsModule's exports include both InputTextModule and InputText.
+   * @param moduleName The name of the module being processed.
+   * @param directExports The direct exports of the module.
+   * @param visited Set of already visited modules to prevent infinite recursion.
+   * @returns A Set containing all direct and transitive exports.
+   * @internal
+   */
+  private expandModuleExportsRecursive(
+    moduleName: string,
+    directExports: Set<string>,
+    visited: Set<string>
+  ): Set<string> {
+    // Protect against circular dependencies
+    if (visited.has(moduleName)) {
+      return new Set<string>();
+    }
+    visited.add(moduleName);
+
+    const result = new Set<string>();
+
+    // Process each direct export
+    for (const exportedItem of directExports) {
+      // Always add the item itself
+      result.add(exportedItem);
+
+      // If the exported item is a module, recursively expand its exports
+      if (this.isModule(exportedItem)) {
+        const nestedExports = this.externalModuleExportsIndex.get(exportedItem);
+
+        if (nestedExports) {
+          // Recursively expand nested module exports
+          const expandedNested = this.expandModuleExportsRecursive(exportedItem, nestedExports, visited);
+
+          // Add all expanded exports to the result
+          for (const item of expandedNested) {
+            result.add(item);
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Expands all module exports to include transitive exports.
+   * This post-processing step ensures that when a module re-exports another module,
+   * all the re-exported module's exports are also available.
+   *
+   * Example:
+   * Before: ChipsModule -> Set(["InputTextModule", "ChipsComponent"])
+   * After:  ChipsModule -> Set(["InputTextModule", "InputText", "ChipsComponent"])
+   *
+   * Should be called after all modules are indexed (both project and node_modules).
+   * @internal
+   */
+  private expandAllModuleExports(): void {
+    const expandedIndex = new Map<string, Set<string>>();
+
+    // Process each module in the index
+    for (const [moduleName, directExports] of this.externalModuleExportsIndex) {
+      // Create a fresh visited set for each module's expansion
+      const visited = new Set<string>();
+
+      // Recursively expand the module's exports
+      const expandedExports = this.expandModuleExportsRecursive(moduleName, directExports, visited);
+
+      // Store the expanded exports
+      expandedIndex.set(moduleName, expandedExports);
+    }
+
+    // Update the index in place (can't replace readonly Map)
+    this.externalModuleExportsIndex.clear();
+    for (const [moduleName, expandedExports] of expandedIndex) {
+      this.externalModuleExportsIndex.set(moduleName, expandedExports);
+    }
+
+    logger.info(`[AngularIndexer] Expanded ${expandedIndex.size} module exports to include transitive dependencies`);
   }
 
   /**
