@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.12.2",
+  "version": "1.12.3",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"

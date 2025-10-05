@@ -174,11 +174,9 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     // that ts-morph knows about. We avoid updating it with unsaved content
     // because that's a very slow operation (re-parsing).
     // The cache is invalidated on save, which will trigger a re-read.
-    if (!sourceFile) {
-      sourceFile = project.createSourceFile(document.fileName, document.getText(), {
-        overwrite: true,
-      });
-    }
+    sourceFile ??= project.createSourceFile(document.fileName, document.getText(), {
+      overwrite: true,
+    });
 
     return sourceFile;
   }

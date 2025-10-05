@@ -1499,10 +1499,9 @@ export class AngularIndexer {
     for (const declarations of exportedDeclarations.values()) {
       for (const declaration of declarations) {
         if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
-          const classDecl = declaration as ClassDeclaration;
-          const name = classDecl.getName();
+          const name = declaration.getName();
           if (name && !allLibraryClasses.has(name)) {
-            allLibraryClasses.set(name, classDecl);
+            allLibraryClasses.set(name, declaration);
           }
         }
       }
