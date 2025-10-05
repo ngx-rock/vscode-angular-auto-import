@@ -31,7 +31,7 @@ Angular Auto-Import Team
 
 > **activate**(`context`): `Promise`\<`void`\>
 
-Defined in: [extension.ts:74](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L74)
+Defined in: [extension.ts:105](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L105)
 
 Activates the Angular Auto-Import extension.
 
@@ -69,7 +69,7 @@ await activate(context);
 
 > **deactivate**(): `void`
 
-Defined in: [extension.ts:160](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L160)
+Defined in: [extension.ts:191](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L191)
 
 Deactivates the Angular Auto-Import extension and cleans up all resources.
 
@@ -97,7 +97,7 @@ deactivate();
 
 > **determineProjectRoots**(`config?`): `Promise`\<`string`[]\>
 
-Defined in: [extension.ts:203](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L203)
+Defined in: [extension.ts:234](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L234)
 
 **`Internal`**
 
@@ -140,7 +140,7 @@ logger.info('Found project roots:', roots);
 
 > **getProjectContextForDocument**(`document`): `undefined` \| [`ProjectContext`](types/angular.md#projectcontext)
 
-Defined in: [extension.ts:471](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L471)
+Defined in: [extension.ts:472](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L472)
 
 Retrieves the project context for a given VS Code document.
 

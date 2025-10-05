@@ -10,11 +10,44 @@ Utilities for working with Angular elements and selectors.
 
 ## Functions
 
+### createElementComparator()
+
+> **createElementComparator**(`selector?`): (`a`, `b`) => `number`
+
+Defined in: [utils/angular.ts:429](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L429)
+
+Comparator function for sorting Angular elements by priority
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `selector?` | `string` | The selector to match against (for PascalCase matching) |
+
+#### Returns
+
+A comparator function for use with Array.sort
+
+> (`a`, `b`): `number`
+
+##### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `a` | [`AngularElementData`](../types/angular.md#angularelementdata) |
+| `b` | [`AngularElementData`](../types/angular.md#angularelementdata) |
+
+##### Returns
+
+`number`
+
+***
+
 ### generateImportStatement()
 
 > **generateImportStatement**(`name`, `path`): `string`
 
-Defined in: [utils/angular.ts:520](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L520)
+Defined in: [utils/angular.ts:550](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L550)
 
 Generates an import statement for a given symbol and path.
 
@@ -84,7 +117,7 @@ An array of `AngularElementData` that match the selector.
 
 > **isAngularFile**(`filePath`): `boolean`
 
-Defined in: [utils/angular.ts:505](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L505)
+Defined in: [utils/angular.ts:535](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L535)
 
 Checks if a file path corresponds to an Angular file type (component, directive, or pipe).
 
@@ -160,7 +193,7 @@ console.log(selectors); // ['my-component[some-attribute]', '.another-class']
 
 > **resolveRelativePath**(`from`, `to`): `string`
 
-Defined in: [utils/angular.ts:531](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L531)
+Defined in: [utils/angular.ts:561](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L561)
 
 Resolves the relative path from one file to another.
 

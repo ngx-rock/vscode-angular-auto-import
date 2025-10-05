@@ -4,6 +4,11 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.12.3] - 2025-10-05
+
+### Changed
+- Updated dependencies (@angular/compiler 20.3.2)
+
 ## [1.12.2]  - 2025-09-21
 
 ### Improved

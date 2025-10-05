@@ -55,7 +55,7 @@ Defined in: [providers/completion.ts:62](https://github.com/ngx-rock/vscode-angu
 
 > `private` **calculateClassNameRelevance**(`className`, `attrName`): `number`
 
-Defined in: [providers/completion.ts:522](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L522)
+Defined in: [providers/completion.ts:503](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L503)
 
 Calculates relevance based on class name match.
 
@@ -74,7 +74,7 @@ Calculates relevance based on class name match.
 
 > `private` **calculateTagMatchRelevance**(`elementSelector`, `linePrefix`): `number`
 
-Defined in: [providers/completion.ts:534](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L534)
+Defined in: [providers/completion.ts:515](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L515)
 
 Calculates relevance based on tag match.
 
@@ -93,7 +93,7 @@ Calculates relevance based on tag match.
 
 > `private` **convertPotentialSuggestionsToCompletionItems**(`potentialSuggestions`, `contextData`, `seenElements`): `CompletionItem`[]
 
-Defined in: [providers/completion.ts:551](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L551)
+Defined in: [providers/completion.ts:532](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L532)
 
 Converts potential suggestions to completion items.
 
@@ -113,7 +113,7 @@ Converts potential suggestions to completion items.
 
 > `private` **createCompletionItem**(`suggestion`, `isSharedSelector`, `contextData`): `CompletionItem`
 
-Defined in: [providers/completion.ts:602](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L602)
+Defined in: [providers/completion.ts:583](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L583)
 
 Creates a single completion item.
 
@@ -133,7 +133,7 @@ Creates a single completion item.
 
 > `private` **createPotentialSuggestions**(`elementEntries`, `contextData`): `PotentialSuggestion`[]
 
-Defined in: [providers/completion.ts:378](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L378)
+Defined in: [providers/completion.ts:359](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L359)
 
 Creates potential suggestions from element entries.
 
@@ -152,7 +152,7 @@ Creates potential suggestions from element entries.
 
 > `private` **createStandardElementCompletionItem**(`stdSelector`, `stdElement`, `match`, `contextData`): `CompletionItem`
 
-Defined in: [providers/completion.ts:729](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L729)
+Defined in: [providers/completion.ts:710](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L710)
 
 Creates completion item for standard Angular elements.
 
@@ -176,7 +176,7 @@ Creates completion item for standard Angular elements.
 
 > `private` **deduplicateAndSortSuggestions**(`suggestions`): `CompletionItem`[]
 
-Defined in: [providers/completion.ts:770](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L770)
+Defined in: [providers/completion.ts:751](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L751)
 
 Deduplicates and sorts suggestions.
 
@@ -194,7 +194,7 @@ Deduplicates and sorts suggestions.
 
 > `private` **detectCompletionContext**(`document`, `position`): `CompletionContextData`
 
-Defined in: [providers/completion.ts:212](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L212)
+Defined in: [providers/completion.ts:193](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L193)
 
 Detects the completion context based on cursor position.
 
@@ -229,7 +229,7 @@ Dispose this object.
 
 > `private` **evaluateAttributeMatch**(`element`, `elementSelector`, `contextData`): `object`
 
-Defined in: [providers/completion.ts:469](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L469)
+Defined in: [providers/completion.ts:450](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L450)
 
 Evaluates attribute-specific matches.
 
@@ -247,15 +247,15 @@ Evaluates attribute-specific matches.
 
 | Name | Type | Defined in |
 | ------ | ------ | ------ |
-| `insertText` | `string` | [providers/completion.ts:473](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L473) |
-| `itemKind` | `CompletionItemKind` | [providers/completion.ts:473](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L473) |
-| `relevance` | `number` | [providers/completion.ts:473](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L473) |
+| `insertText` | `string` | [providers/completion.ts:454](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L454) |
+| `itemKind` | `CompletionItemKind` | [providers/completion.ts:454](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L454) |
+| `relevance` | `number` | [providers/completion.ts:454](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L454) |
 
 ##### evaluateSelectorMatch()
 
 > `private` **evaluateSelectorMatch**(`element`, `elementSelector`, `contextData`): `object`
 
-Defined in: [providers/completion.ts:434](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L434)
+Defined in: [providers/completion.ts:415](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L415)
 
 Evaluates a single selector match.
 
@@ -273,15 +273,15 @@ Evaluates a single selector match.
 
 | Name | Type | Defined in |
 | ------ | ------ | ------ |
-| `insertText` | `string` | [providers/completion.ts:438](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L438) |
-| `itemKind` | `CompletionItemKind` | [providers/completion.ts:438](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L438) |
-| `relevance` | `number` | [providers/completion.ts:438](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L438) |
+| `insertText` | `string` | [providers/completion.ts:419](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L419) |
+| `itemKind` | `CompletionItemKind` | [providers/completion.ts:419](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L419) |
+| `relevance` | `number` | [providers/completion.ts:419](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L419) |
 
 ##### evaluateStandardElementMatch()
 
 > `private` **evaluateStandardElementMatch**(`stdSelector`, `stdElement`, `contextData`): `object`
 
-Defined in: [providers/completion.ts:689](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L689)
+Defined in: [providers/completion.ts:670](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L670)
 
 Evaluates if a standard element should be included.
 
@@ -299,16 +299,16 @@ Evaluates if a standard element should be included.
 
 | Name | Type | Defined in |
 | ------ | ------ | ------ |
-| `insertText` | `string` | [providers/completion.ts:695](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L695) |
-| `itemKind` | `CompletionItemKind` | [providers/completion.ts:696](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L696) |
-| `relevance` | `number` | [providers/completion.ts:697](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L697) |
-| `shouldInclude` | `boolean` | [providers/completion.ts:694](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L694) |
+| `insertText` | `string` | [providers/completion.ts:676](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L676) |
+| `itemKind` | `CompletionItemKind` | [providers/completion.ts:677](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L677) |
+| `relevance` | `number` | [providers/completion.ts:678](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L678) |
+| `shouldInclude` | `boolean` | [providers/completion.ts:675](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L675) |
 
 ##### extractAttributeName()
 
 > `private` **extractAttributeName**(`elementSelector`): `string`
 
-Defined in: [providers/completion.ts:496](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L496)
+Defined in: [providers/completion.ts:477](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L477)
 
 Extracts clean attribute name from selector.
 
@@ -326,7 +326,7 @@ Extracts clean attribute name from selector.
 
 > `private` **findBestSelectorMatch**(`element`, `selectors`, `contextData`): `object`
 
-Defined in: [providers/completion.ts:403](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L403)
+Defined in: [providers/completion.ts:384](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L384)
 
 Finds the best selector match for an element.
 
@@ -344,16 +344,16 @@ Finds the best selector match for an element.
 
 | Name | Type | Defined in |
 | ------ | ------ | ------ |
-| `insertText` | `string` | [providers/completion.ts:407](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L407) |
-| `itemKind` | `CompletionItemKind` | [providers/completion.ts:407](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L407) |
-| `relevance` | `number` | [providers/completion.ts:407](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L407) |
-| `selector` | `string` | [providers/completion.ts:407](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L407) |
+| `insertText` | `string` | [providers/completion.ts:388](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L388) |
+| `itemKind` | `CompletionItemKind` | [providers/completion.ts:388](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L388) |
+| `relevance` | `number` | [providers/completion.ts:388](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L388) |
+| `selector` | `string` | [providers/completion.ts:388](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L388) |
 
 ##### formatAttributeInsertText()
 
 > `private` **formatAttributeInsertText**(`attrName`, `contextData`): `string`
 
-Defined in: [providers/completion.ts:509](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L509)
+Defined in: [providers/completion.ts:490](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L490)
 
 Formats insert text for attributes.
 
@@ -372,7 +372,7 @@ Formats insert text for attributes.
 
 > `private` **generateCompletionSuggestions**(`projCtx`, `contextData`): `Promise`\<`CompletionItem`[]\>
 
-Defined in: [providers/completion.ts:297](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L297)
+Defined in: [providers/completion.ts:278](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L278)
 
 Generates all completion suggestions.
 
@@ -391,7 +391,7 @@ Generates all completion suggestions.
 
 > `private` **generateIndexedElementSuggestions**(`indexer`, `contextData`, `seenElements`): `Promise`\<`CompletionItem`[]\>
 
-Defined in: [providers/completion.ts:318](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L318)
+Defined in: [providers/completion.ts:299](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L299)
 
 Generates suggestions from indexed elements.
 
@@ -413,7 +413,7 @@ Generates suggestions from indexed elements.
 
 > `private` **generateStandardElementSuggestions**(`contextData`, `seenElements`): `CompletionItem`[]
 
-Defined in: [providers/completion.ts:661](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L661)
+Defined in: [providers/completion.ts:642](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L642)
 
 Generates suggestions from standard Angular elements.
 
@@ -446,9 +446,9 @@ Defined in: [providers/completion.ts:145](https://github.com/ngx-rock/vscode-ang
 
 ##### getProjectContextForDocument()
 
-> `private` **getProjectContextForDocument**(`document`): `undefined` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
+> `private` **getProjectContextForDocument**(`document`): `undefined` \| [`ProjectContext`](../types/angular.md#projectcontext)
 
-Defined in: [providers/completion.ts:789](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L789)
+Defined in: [providers/completion.ts:770](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L770)
 
 ###### Parameters
 
@@ -458,7 +458,7 @@ Defined in: [providers/completion.ts:789](https://github.com/ngx-rock/vscode-ang
 
 ###### Returns
 
-`undefined` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
+`undefined` \| [`ProjectContext`](../types/angular.md#projectcontext)
 
 ##### getSourceFile()
 
@@ -476,28 +476,11 @@ Defined in: [providers/completion.ts:164](https://github.com/ngx-rock/vscode-ang
 
 `undefined` \| `SourceFile`
 
-##### getTsDocument()
-
-> `private` **getTsDocument**(`document`, `componentPath`): `Promise`\<`null` \| `TextDocument`\>
-
-Defined in: [providers/completion.ts:186](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L186)
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `document` | `TextDocument` |
-| `componentPath` | `string` |
-
-###### Returns
-
-`Promise`\<`null` \| `TextDocument`\>
-
 ##### groupSearchResultsByElement()
 
 > `private` **groupSearchResultsByElement**(`searchResults`): `object`[]
 
-Defined in: [providers/completion.ts:333](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L333)
+Defined in: [providers/completion.ts:314](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L314)
 
 Groups search results by element to avoid duplicates.
 
@@ -515,7 +498,7 @@ Groups search results by element to avoid duplicates.
 
 > `private` **groupSuggestionsByInsertText**(`potentialSuggestions`): `Map`\<`string`, `PotentialSuggestion`[]\>
 
-Defined in: [providers/completion.ts:578](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L578)
+Defined in: [providers/completion.ts:559](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L559)
 
 Groups suggestions by insert text.
 
@@ -549,7 +532,7 @@ Defined in: [providers/completion.ts:116](https://github.com/ngx-rock/vscode-ang
 
 > `private` **parseAttributeContext**(`tagContent`): `object`
 
-Defined in: [providers/completion.ts:265](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L265)
+Defined in: [providers/completion.ts:246](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L246)
 
 Parses attribute context from tag content.
 
@@ -565,9 +548,9 @@ Parses attribute context from tag content.
 
 | Name | Type | Defined in |
 | ------ | ------ | ------ |
-| `context` | `"attribute"` \| `"structural-directive"` | [providers/completion.ts:266](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L266) |
-| `filterText` | `string` | [providers/completion.ts:267](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L267) |
-| `triggerChar` | `undefined` \| `"*"` \| `"["` | [providers/completion.ts:268](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L268) |
+| `context` | `"attribute"` \| `"structural-directive"` | [providers/completion.ts:247](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L247) |
+| `filterText` | `string` | [providers/completion.ts:248](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L248) |
+| `triggerChar` | `undefined` \| `"*"` \| `"["` | [providers/completion.ts:249](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L249) |
 
 ##### provideCompletionItems()
 
@@ -600,7 +583,7 @@ A list of completion items.
 
 > `private` **setCompletionItemDetails**(`item`, `element`, `originalBestSelector`): `void`
 
-Defined in: [providers/completion.ts:635](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L635)
+Defined in: [providers/completion.ts:616](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L616)
 
 Sets completion item details and documentation.
 
@@ -620,7 +603,7 @@ Sets completion item details and documentation.
 
 > `private` **sortElementEntriesIfNeeded**(`elementEntries`, `contextData`): `object`[]
 
-Defined in: [providers/completion.ts:352](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L352)
+Defined in: [providers/completion.ts:333](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L333)
 
 Sorts element entries based on context if needed.
 

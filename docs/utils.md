@@ -28,6 +28,12 @@ Re-exports [clearTemplateCache](utils/template-detection.md#cleartemplatecache)
 
 ***
 
+### createElementComparator
+
+Re-exports [createElementComparator](utils/angular.md#createelementcomparator)
+
+***
+
 ### debounce
 
 Re-exports [debounce](utils/debounce.md#debounce)
@@ -64,9 +70,21 @@ Re-exports [getLibraryEntryPoints](utils/package-json.md#getlibraryentrypoints)
 
 ***
 
+### getProjectContextForDocument
+
+Re-exports [getProjectContextForDocument](utils/project-context.md#getprojectcontextfordocument)
+
+***
+
 ### getRelativeFilePath
 
 Re-exports [getRelativeFilePath](utils/path.md#getrelativefilepath)
+
+***
+
+### getTsDocument
+
+Re-exports [getTsDocument](utils/vscode-helpers.md#gettsdocument)
 
 ***
 

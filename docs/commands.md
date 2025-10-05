@@ -12,7 +12,7 @@ VSCode Commands Registration
 
 ### CommandContext
 
-Defined in: [commands/index.ts:33](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L33)
+Defined in: [commands/index.ts:34](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L34)
 
 Context object containing shared state and dependencies for extension commands.
 
@@ -32,10 +32,10 @@ const commandContext: CommandContext = {
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
-| <a id="diagnosticprovider"></a> `diagnosticProvider?` | [`DiagnosticProvider`](providers/diagnostics.md#diagnosticprovider) | - | [commands/index.ts:40](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L40) |
-| <a id="extensionconfig"></a> `extensionConfig` | [`ExtensionConfig`](config/settings.md#extensionconfig) | Current extension configuration settings | [commands/index.ts:39](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L39) |
-| <a id="projectindexers"></a> `projectIndexers` | `Map`\<`string`, [`AngularIndexer`](services/indexer.md#angularindexer)\> | Map of project root paths to their corresponding Angular indexers | [commands/index.ts:35](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L35) |
-| <a id="projecttsconfigs"></a> `projectTsConfigs` | `Map`\<`string`, `null` \| [`ProcessedTsConfig`](types/tsconfig.md#processedtsconfig)\> | Map of project root paths to their parsed TypeScript configurations | [commands/index.ts:37](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L37) |
+| <a id="diagnosticprovider"></a> `diagnosticProvider?` | [`DiagnosticProvider`](providers/diagnostics.md#diagnosticprovider) | - | [commands/index.ts:41](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L41) |
+| <a id="extensionconfig"></a> `extensionConfig` | [`ExtensionConfig`](config/settings.md#extensionconfig) | Current extension configuration settings | [commands/index.ts:40](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L40) |
+| <a id="projectindexers"></a> `projectIndexers` | `Map`\<`string`, [`AngularIndexer`](services/indexer.md#angularindexer)\> | Map of project root paths to their corresponding Angular indexers | [commands/index.ts:36](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L36) |
+| <a id="projecttsconfigs"></a> `projectTsConfigs` | `Map`\<`string`, `null` \| [`ProcessedTsConfig`](types/tsconfig.md#processedtsconfig)\> | Map of project root paths to their parsed TypeScript configurations | [commands/index.ts:38](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L38) |
 
 ## Functions
 
@@ -43,7 +43,7 @@ const commandContext: CommandContext = {
 
 > **registerCommands**(`context`, `commandContext`): `void`
 
-Defined in: [commands/index.ts:62](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L62)
+Defined in: [commands/index.ts:63](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L63)
 
 Registers all extension commands with the VS Code command registry.
 

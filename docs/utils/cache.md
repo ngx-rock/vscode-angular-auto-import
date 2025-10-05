@@ -10,7 +10,7 @@ LRUCache
 
 ## Classes
 
-### LruCache\<K, V\>
+### LruCache
 
 Defined in: [utils/cache.ts:13](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/cache.ts#L13)
 

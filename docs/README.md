@@ -116,4 +116,6 @@ The following commands are available from the Command Palette (`Ctrl+Shift+P` or
 | [utils/import](utils/import.md) | Angular Auto-Import Utility Functions |
 | [utils/package-json](utils/package-json.md) | Utilities for working with `package.json` files. |
 | [utils/path](utils/path.md) | Utilities for working with file paths. |
+| [utils/project-context](utils/project-context.md) | Utility functions for managing project context and document-to-project mapping. |
 | [utils/template-detection](utils/template-detection.md) | Optimized Template String Detection Utility |
+| [utils/vscode-helpers](utils/vscode-helpers.md) | VS Code Helper Utilities |
