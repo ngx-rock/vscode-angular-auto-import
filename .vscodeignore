@@ -24,3 +24,9 @@ biome.json
 knip.json
 typedoc.json
 CLAUDE.md
+.env
+.c8rc.json
+sonar-project.properties
+coverage/
+.scannerwork/
+scripts/
