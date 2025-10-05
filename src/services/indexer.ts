@@ -1437,13 +1437,25 @@ export class AngularIndexer {
   private expandAllModuleExports(): void {
     const expandedIndex = new Map<string, Set<string>>();
 
+    logger.info(
+      `[AngularIndexer] Starting module export expansion for ${this.externalModuleExportsIndex.size} modules`
+    );
+
     // Process each module in the index
     for (const [moduleName, directExports] of this.externalModuleExportsIndex) {
       // Create a fresh visited set for each module's expansion
       const visited = new Set<string>();
 
+      logger.debug(
+        `[AngularIndexer] Expanding ${moduleName}: direct exports = [${Array.from(directExports).join(", ")}]`
+      );
+
       // Recursively expand the module's exports
       const expandedExports = this.expandModuleExportsRecursive(moduleName, directExports, visited);
+
+      logger.debug(
+        `[AngularIndexer] Expanded ${moduleName}: transitive exports = [${Array.from(expandedExports).join(", ")}]`
+      );
 
       // Store the expanded exports
       expandedIndex.set(moduleName, expandedExports);
@@ -1989,6 +2001,13 @@ export class AngularIndexer {
       }
 
       if (this._isReexportedModule(exportedClassDecl)) {
+        // Add the re-exported module name to parent's exports (for transitive expansion)
+        moduleExports?.add(exportedClassName);
+        logger.debug(
+          `[ExternalModules] ${moduleName} re-exports module ${exportedClassName} (will be expanded transitively)`
+        );
+
+        // Still process the module's contents recursively (for componentToModuleMap, etc)
         this._processReexportedModule(
           exportedClassDecl,
           moduleName,
