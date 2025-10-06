@@ -26,7 +26,7 @@ import { type ProviderContext, registerProviders } from "./providers";
 import { AngularIndexer } from "./services";
 import * as TsConfigHelper from "./services/tsconfig";
 import type { ProcessedTsConfig, ProjectContext } from "./types";
-import { getProjectContextForDocument as getProjectContextForDocumentUtil } from "./utils/project-context";
+import { getProjectContextForDocumentWithLogging } from "./utils/project-context";
 import { clearAllTemplateCache, clearTemplateCache } from "./utils/template-detection";
 
 /**
@@ -437,10 +437,7 @@ async function generateIndexForProject(
   context: vscode.ExtensionContext
 ): Promise<void> {
   logger.info(`GENERATE_INDEX: For project ${projectRootPath}`);
-  if (indexer.workspaceFileCacheKey === "" || indexer.workspaceIndexCacheKey === "") {
-    logger.warn(`generateIndexForProject: Cache keys not set for ${projectRootPath}, attempting to set them now.`);
-    indexer.setProjectRoot(projectRootPath);
-  }
+  indexer.ensureCacheKeys(projectRootPath);
   await indexer.generateFullIndex(context);
 
   if (!indexer.fileWatcher) {
@@ -470,13 +467,7 @@ async function generateIndexForProject(
  * ```
  */
 export function getProjectContextForDocument(document: vscode.TextDocument): ProjectContext | undefined {
-  const context = getProjectContextForDocumentUtil(document, projectIndexers, projectTsConfigs);
-
-  if (!context) {
-    logger.warn(`Document ${document.uri.fsPath} does not belong to any known workspace folder or project root.`);
-  }
-
-  return context;
+  return getProjectContextForDocumentWithLogging(document, projectIndexers, projectTsConfigs);
 }
 
 /**

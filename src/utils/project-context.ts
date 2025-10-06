@@ -6,6 +6,7 @@
 
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { logger } from "../logger";
 import type { AngularIndexer } from "../services/indexer";
 import type { ProjectContext } from "../types/angular";
 import type { ProcessedTsConfig } from "../types/tsconfig";
@@ -44,4 +45,26 @@ export function getProjectContextForDocument(
     }
   }
   return undefined;
+}
+
+/**
+ * Gets project context for a document and logs a warning if not found.
+ *
+ * @param document The document to find the project context for.
+ * @param projectIndexers Map of project root paths to their indexers.
+ * @param projectTsConfigs Map of project root paths to their tsConfigs.
+ * @returns The project context or undefined if not found.
+ */
+export function getProjectContextForDocumentWithLogging(
+  document: vscode.TextDocument,
+  projectIndexers: Map<string, AngularIndexer>,
+  projectTsConfigs: Map<string, ProcessedTsConfig | null>
+): ProjectContext | undefined {
+  const context = getProjectContextForDocument(document, projectIndexers, projectTsConfigs);
+
+  if (!context) {
+    logger.warn(`Document ${document.uri.fsPath} does not belong to any known workspace folder or project root`);
+  }
+
+  return context;
 }

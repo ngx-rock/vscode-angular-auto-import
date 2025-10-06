@@ -76,6 +76,12 @@ Re-exports [getProjectContextForDocument](utils/project-context.md#getprojectcon
 
 ***
 
+### getProjectContextForDocumentWithLogging
+
+Re-exports [getProjectContextForDocumentWithLogging](utils/project-context.md#getprojectcontextfordocumentwithlogging)
+
+***
+
 ### getRelativeFilePath
 
 Re-exports [getRelativeFilePath](utils/path.md#getrelativefilepath)

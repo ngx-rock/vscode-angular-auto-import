@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.12.3",
+  "version": "1.13.0",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"
@@ -91,6 +91,11 @@
           "type": "number",
           "default": 60,
           "description": "Interval in minutes for automatically reindexing Angular elements. Set to 0 to disable periodic reindexing."
+        },
+        "angular-auto-import.completion.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable auto-completion suggestions for Angular components, directives, and pipes in templates."
         },
         "angular-auto-import.diagnostics.enabled": {
           "type": "boolean",
@@ -187,7 +192,7 @@
     "vsce:publish": "vsce publish --no-dependencies",
     "release": "pnpm run vsce:package && pnpm run vsce:publish",
     "docs:build": "rm -rf docs && typedoc",
-    "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 100 --language typescript --dir src --format text --exclude 'src/test'",
+    "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format text --exclude 'src/test'",
     "pmd:cpd:md": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format markdown --exclude 'src/test' --exclude 'src/test/fixtures' > duplicates-report.md"
   },
   "devDependencies": {

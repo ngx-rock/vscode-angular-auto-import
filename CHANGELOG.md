@@ -4,6 +4,14 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.13.0] - 2025-10-06
+
+### Added
+- **Completion Control**: `angular-auto-import.completion.enabled` setting to toggle auto-completion (default: true)
+
+### Improved
+- **Transitive Module Exports**: Modules now include all transitive dependencies from re-exported module
+ 
 ## [1.12.3] - 2025-10-05
 
 ### Changed

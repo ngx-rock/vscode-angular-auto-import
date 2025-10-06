@@ -47,21 +47,24 @@ export function registerProviders(
 ): DiagnosticProvider | undefined {
   logger.info("🔌 Registering VSCode providers...");
 
-  // Completion Provider
-  const completionProvider = new CompletionProvider(providerContext);
-  const completionDisposable = vscode.languages.registerCompletionItemProvider(
-    [
-      { scheme: "file", language: "html" },
-      { scheme: "file", language: "typescript" },
-    ],
-    completionProvider,
-    "<",
-    "|",
-    " ",
-    "[",
-    "*" // Trigger characters
-  );
-  context.subscriptions.push(completionDisposable);
+  // Completion Provider (if enabled)
+  if (providerContext.extensionConfig.completionEnabled) {
+    const completionProvider = new CompletionProvider(providerContext);
+    const completionDisposable = vscode.languages.registerCompletionItemProvider(
+      [
+        { scheme: "file", language: "html" },
+        { scheme: "file", language: "typescript" },
+      ],
+      completionProvider,
+      "<",
+      "|",
+      " ",
+      "[",
+      "*" // Trigger characters
+    );
+    context.subscriptions.push(completionDisposable);
+    context.subscriptions.push(completionProvider);
+  }
 
   // Quickfix Provider
   const quickfixProvider = new QuickfixImportProvider(providerContext);

@@ -23,6 +23,7 @@ function createMockConfig(overrides: Partial<ExtensionConfig> = {}): ExtensionCo
   return {
     projectPath: null,
     indexRefreshInterval: 60,
+    completionEnabled: true,
     diagnosticsEnabled: true,
     diagnosticsSeverity: "warning",
     logging: {
@@ -110,6 +111,7 @@ describe("determineProjectRoots", function () {
       const mockConfig: ExtensionConfig = {
         projectPath: invalidPath,
         indexRefreshInterval: 60,
+        completionEnabled: true,
         diagnosticsEnabled: true,
         diagnosticsSeverity: "warning",
         logging: {
@@ -134,6 +136,7 @@ describe("determineProjectRoots", function () {
       const mockConfig: ExtensionConfig = {
         projectPath: relativePath,
         indexRefreshInterval: 60,
+        completionEnabled: true,
         diagnosticsEnabled: true,
         diagnosticsSeverity: "warning",
         logging: {
@@ -185,6 +188,7 @@ describe("determineProjectRoots", function () {
       const mockConfig: ExtensionConfig = {
         projectPath: null,
         indexRefreshInterval: 60,
+        completionEnabled: true,
         diagnosticsEnabled: true,
         diagnosticsSeverity: "warning",
         logging: {
@@ -237,6 +241,7 @@ describe("determineProjectRoots", function () {
       const mockConfig: ExtensionConfig = {
         projectPath: null,
         indexRefreshInterval: 60,
+        completionEnabled: true,
         diagnosticsEnabled: true,
         diagnosticsSeverity: "warning",
         logging: {

@@ -653,4 +653,340 @@ export class ComplexDirective {}
       fs.rmSync(testProjectPath, { recursive: true, force: true });
     }
   }
+
+  /**
+   * Tests for transitive module exports expansion functionality.
+   * Verifies that when a module re-exports another module, all the re-exported module's
+   * exports are also available (e.g., ChipsModule exports InputTextModule, which exports InputText).
+   */
+  describe("Transitive Module Exports", () => {
+    const modulesPath = path.join(testProjectPath, "src", "app", "modules");
+
+    beforeEach(async () => {
+      if (!fs.existsSync(modulesPath)) {
+        fs.mkdirSync(modulesPath, { recursive: true });
+      }
+      indexer.setProjectRoot(testProjectPath);
+    });
+
+    afterEach(() => {
+      // Clean up module files
+      if (fs.existsSync(modulesPath)) {
+        fs.rmSync(modulesPath, { recursive: true, force: true });
+      }
+    });
+
+    it("should expand direct module re-exports", async () => {
+      // Create InputText directive
+      const inputTextDirectiveContent = `
+import { Directive } from '@angular/core';
+
+@Directive({
+  selector: '[pInputText]',
+  standalone: false
+})
+export class InputText {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "input-text.directive.ts"), inputTextDirectiveContent);
+
+      // Create InputTextModule that exports InputText
+      const inputTextModuleContent = `
+import { NgModule } from '@angular/core';
+import { InputText } from './input-text.directive';
+
+@NgModule({
+  declarations: [InputText],
+  exports: [InputText]
+})
+export class InputTextModule {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "input-text.module.ts"), inputTextModuleContent);
+
+      // Create ChipsComponent
+      const chipsComponentContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'p-chips',
+  template: '<div>Chips</div>',
+  standalone: false
+})
+export class ChipsComponent {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "chips.component.ts"), chipsComponentContent);
+
+      // Create ChipsModule that re-exports InputTextModule
+      const chipsModuleContent = `
+import { NgModule } from '@angular/core';
+import { InputTextModule } from './input-text.module';
+import { ChipsComponent } from './chips.component';
+
+@NgModule({
+  declarations: [ChipsComponent],
+  imports: [InputTextModule],
+  exports: [InputTextModule, ChipsComponent]
+})
+export class ChipsModule {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "chips.module.ts"), chipsModuleContent);
+
+      // Index the modules
+      await indexer.generateFullIndex(mockContext);
+
+      // Verify that ChipsModule exports include transitive exports from InputTextModule
+      const chipsModuleExports = indexer.getExternalModuleExports("ChipsModule");
+      assert.ok(chipsModuleExports, "ChipsModule should have exports");
+      assert.ok(chipsModuleExports.has("InputTextModule"), "ChipsModule should export InputTextModule");
+      assert.ok(chipsModuleExports.has("InputText"), "ChipsModule should transitively export InputText");
+      assert.ok(chipsModuleExports.has("ChipsComponent"), "ChipsModule should export ChipsComponent");
+    });
+
+    it("should expand nested module re-exports", async () => {
+      // Create InputText directive
+      const inputTextDirectiveContent = `
+import { Directive } from '@angular/core';
+
+@Directive({
+  selector: '[pInputText]',
+  standalone: false
+})
+export class InputText {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "input-text.directive.ts"), inputTextDirectiveContent);
+
+      // Create InputTextModule
+      const inputTextModuleContent = `
+import { NgModule } from '@angular/core';
+import { InputText } from './input-text.directive';
+
+@NgModule({
+  declarations: [InputText],
+  exports: [InputText]
+})
+export class InputTextModule {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "input-text.module.ts"), inputTextModuleContent);
+
+      // Create ChipsComponent
+      const chipsComponentContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'p-chips',
+  template: '<div>Chips</div>',
+  standalone: false
+})
+export class ChipsComponent {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "chips.component.ts"), chipsComponentContent);
+
+      // Create ChipsModule
+      const chipsModuleContent = `
+import { NgModule } from '@angular/core';
+import { InputTextModule } from './input-text.module';
+import { ChipsComponent } from './chips.component';
+
+@NgModule({
+  declarations: [ChipsComponent],
+  imports: [InputTextModule],
+  exports: [InputTextModule, ChipsComponent]
+})
+export class ChipsModule {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "chips.module.ts"), chipsModuleContent);
+
+      // Create FormComponent
+      const formComponentContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'p-form',
+  template: '<div>Form</div>',
+  standalone: false
+})
+export class FormComponent {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "form.component.ts"), formComponentContent);
+
+      // Create FormModule that re-exports ChipsModule
+      const formModuleContent = `
+import { NgModule } from '@angular/core';
+import { ChipsModule } from './chips.module';
+import { FormComponent } from './form.component';
+
+@NgModule({
+  declarations: [FormComponent],
+  imports: [ChipsModule],
+  exports: [ChipsModule, FormComponent]
+})
+export class FormModule {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "form.module.ts"), formModuleContent);
+
+      // Index the modules
+      await indexer.generateFullIndex(mockContext);
+
+      // Verify nested transitive exports
+      const formModuleExports = indexer.getExternalModuleExports("FormModule");
+      assert.ok(formModuleExports, "FormModule should have exports");
+      assert.ok(formModuleExports.has("ChipsModule"), "FormModule should export ChipsModule");
+      assert.ok(formModuleExports.has("InputTextModule"), "FormModule should transitively export InputTextModule");
+      assert.ok(formModuleExports.has("InputText"), "FormModule should transitively export InputText");
+      assert.ok(formModuleExports.has("ChipsComponent"), "FormModule should transitively export ChipsComponent");
+      assert.ok(formModuleExports.has("FormComponent"), "FormModule should export FormComponent");
+    });
+
+    it("should expand module exports after loading from cache", async () => {
+      // Create InputText directive
+      const inputTextDirectiveContent = `
+import { Directive } from '@angular/core';
+
+@Directive({
+  selector: '[pInputText]',
+  standalone: false
+})
+export class InputText {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "input-text.directive.ts"), inputTextDirectiveContent);
+
+      // Create InputTextModule
+      const inputTextModuleContent = `
+import { NgModule } from '@angular/core';
+import { InputText } from './input-text.directive';
+
+@NgModule({
+  declarations: [InputText],
+  exports: [InputText]
+})
+export class InputTextModule {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "input-text.module.ts"), inputTextModuleContent);
+
+      // Create ChipsComponent
+      const chipsComponentContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'p-chips',
+  template: '<div>Chips</div>',
+  standalone: false
+})
+export class ChipsComponent {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "chips.component.ts"), chipsComponentContent);
+
+      // Create ChipsModule
+      const chipsModuleContent = `
+import { NgModule } from '@angular/core';
+import { InputTextModule } from './input-text.module';
+import { ChipsComponent } from './chips.component';
+
+@NgModule({
+  declarations: [ChipsComponent],
+  imports: [InputTextModule],
+  exports: [InputTextModule, ChipsComponent]
+})
+export class ChipsModule {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "chips.module.ts"), chipsModuleContent);
+
+      // Index and save to cache
+      await indexer.generateFullIndex(mockContext);
+
+      // Verify exports before loading from cache
+      let chipsModuleExports = indexer.getExternalModuleExports("ChipsModule");
+      assert.ok(chipsModuleExports?.has("InputText"), "Should have transitive exports before cache");
+
+      // Create new indexer and load from cache
+      const newIndexer = new AngularIndexer();
+      newIndexer.setProjectRoot(testProjectPath);
+      const loaded = await newIndexer.loadFromWorkspace(mockContext);
+      assert.ok(loaded, "Should successfully load from cache");
+
+      // Verify that transitive exports are still present after loading from cache
+      chipsModuleExports = newIndexer.getExternalModuleExports("ChipsModule");
+      assert.ok(chipsModuleExports, "ChipsModule should have exports after loading from cache");
+      assert.ok(chipsModuleExports.has("InputTextModule"), "Should have InputTextModule after cache load");
+      assert.ok(chipsModuleExports.has("InputText"), "Should have transitive InputText after cache load");
+      assert.ok(chipsModuleExports.has("ChipsComponent"), "Should have ChipsComponent after cache load");
+
+      newIndexer.dispose();
+    });
+
+    it("should handle circular module dependencies", async () => {
+      // Create ComponentA
+      const componentaContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'component-a',
+  template: '<div>Component A</div>',
+  standalone: false
+})
+export class ComponentA {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "component-a.component.ts"), componentaContent);
+
+      // Create ComponentB
+      const componentbContent = `
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'component-b',
+  template: '<div>Component B</div>',
+  standalone: false
+})
+export class ComponentB {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "component-b.component.ts"), componentbContent);
+
+      // Create ModuleA that exports ModuleB
+      const moduleaContent = `
+import { NgModule } from '@angular/core';
+import { ModuleB } from './module-b.module';
+import { ComponentA } from './component-a.component';
+
+@NgModule({
+  declarations: [ComponentA],
+  imports: [ModuleB],
+  exports: [ModuleB, ComponentA]
+})
+export class ModuleA {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "module-a.module.ts"), moduleaContent);
+
+      // Create ModuleB that exports ModuleA (circular dependency)
+      const modulebContent = `
+import { NgModule } from '@angular/core';
+import { ModuleA } from './module-a.module';
+import { ComponentB } from './component-b.component';
+
+@NgModule({
+  declarations: [ComponentB],
+  imports: [ModuleA],
+  exports: [ModuleA, ComponentB]
+})
+export class ModuleB {}
+`;
+      fs.writeFileSync(path.join(modulesPath, "module-b.module.ts"), modulebContent);
+
+      // Index should not hang or crash
+      await indexer.generateFullIndex(mockContext);
+
+      // Verify that both modules were indexed and circular dependency was handled
+      const moduleaExports = indexer.getExternalModuleExports("ModuleA");
+      const modulebExports = indexer.getExternalModuleExports("ModuleB");
+
+      assert.ok(moduleaExports, "ModuleA should be indexed");
+      assert.ok(modulebExports, "ModuleB should be indexed");
+
+      // Each module should have its own component
+      assert.ok(moduleaExports.has("ComponentA"), "ModuleA should have ComponentA");
+      assert.ok(modulebExports.has("ComponentB"), "ModuleB should have ComponentB");
+
+      // Verify circular references are handled (modules reference each other)
+      assert.ok(moduleaExports.has("ModuleB"), "ModuleA should reference ModuleB");
+      assert.ok(modulebExports.has("ModuleA"), "ModuleB should reference ModuleA");
+    });
+  });
 });

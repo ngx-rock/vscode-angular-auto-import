@@ -311,6 +311,17 @@ export class DiagnosticProvider {
   }
 
   /**
+   * Gets source file and logs if not found.
+   */
+  private getSourceFileWithLogging(document: vscode.TextDocument): SourceFile | undefined {
+    const sourceFile = this.getSourceFile(document);
+    if (!sourceFile) {
+      logger.debug(`[DiagnosticProvider] Could not get source file for ${document.fileName}`);
+    }
+    return sourceFile;
+  }
+
+  /**
    * Processes HTML document diagnostics.
    */
   private async processHtmlDocument(document: vscode.TextDocument): Promise<void> {
@@ -327,9 +338,8 @@ export class DiagnosticProvider {
       return;
     }
 
-    const sourceFile = this.getSourceFile(tsDocument);
+    const sourceFile = this.getSourceFileWithLogging(tsDocument);
     if (!sourceFile) {
-      logger.debug(`[DiagnosticProvider] Could not get source file for ${tsDocument.fileName}`);
       return;
     }
 
@@ -344,9 +354,8 @@ export class DiagnosticProvider {
    * Processes TypeScript document diagnostics.
    */
   private async processTypescriptDocument(document: vscode.TextDocument): Promise<void> {
-    const sourceFile = this.getSourceFile(document);
+    const sourceFile = this.getSourceFileWithLogging(document);
     if (!sourceFile) {
-      logger.debug(`[DiagnosticProvider] Could not get source file for ${document.fileName}`);
       return;
     }
 
