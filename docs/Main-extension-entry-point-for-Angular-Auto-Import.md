@@ -140,7 +140,7 @@ logger.info('Found project roots:', roots);
 
 > **getProjectContextForDocument**(`document`): `undefined` \| [`ProjectContext`](types/angular.md#projectcontext)
 
-Defined in: [extension.ts:472](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L472)
+Defined in: [extension.ts:469](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L469)
 
 Retrieves the project context for a given VS Code document.
 
