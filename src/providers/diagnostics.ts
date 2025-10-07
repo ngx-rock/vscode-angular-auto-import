@@ -1185,26 +1185,34 @@ export class DiagnosticProvider {
     processingCtx: ProcessingContext,
     docCtx: TemplateDocumentContext
   ): void {
-    // For each attribute, check if there's a directive with compound selector like "button[mat-button]"
+    // A single element can have multiple directives, but we should not add the same directive instance twice.
+    const processedDirectives = new Set<unknown>(); // Assuming 'candidate' objects from indexer can be used for equality.
+
+    // Pre-calculate the element's range as it's the same for all directives found on it.
+    const elementRange = new vscode.Range(
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
+      docCtx.document.positionAt(docCtx.offset + node.startSourceSpan.start.offset),
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
+      docCtx.document.positionAt(docCtx.offset + node.startSourceSpan.end.offset)
+    );
+
+    // For each attribute, check if there's a directive with a compound selector like "button[mat-button]"
     for (const attr of attributes) {
       const compoundSelector = `${nodeName}[${attr.name}]`;
-      const foundElements = processingCtx.indexer.getElements(compoundSelector);
+      const foundCandidates = processingCtx.indexer.getElements(compoundSelector);
 
-      for (const candidate of foundElements) {
-        const isKnownAngularElement = candidate.type === "component" || candidate.type === "directive";
+      for (const candidate of foundCandidates) {
+        const isAngularElement = candidate.type === "component" || candidate.type === "directive";
 
-        if (isKnownAngularElement) {
+        if (isAngularElement && !processedDirectives.has(candidate)) {
+          processedDirectives.add(candidate);
+
           processingCtx.elements.push({
             name: compoundSelector,
             // @ts-expect-error: Complex Angular template AST node types from ts-morph
             type: candidate.type,
             isAttribute: false,
-            range: new vscode.Range(
-              // @ts-expect-error: Complex Angular template AST node types from ts-morph
-              docCtx.document.positionAt(docCtx.offset + node.startSourceSpan.start.offset),
-              // @ts-expect-error: Complex Angular template AST node types from ts-morph
-              docCtx.document.positionAt(docCtx.offset + node.startSourceSpan.end.offset)
-            ),
+            range: elementRange, // Use the pre-calculated range
             tagName: nodeName, // Keep original tagName (e.g., "button"), not compound selector
             attributes,
           });
