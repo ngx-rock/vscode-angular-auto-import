@@ -1164,10 +1164,53 @@ export class DiagnosticProvider {
         docCtx.offset,
         attributes
       );
+    } else {
+      // For known HTML tags (like button, input, a), check if they have Angular directives
+      // by searching for compound selectors like "button[mat-button]", "input[matInput]"
+      this.checkKnownHtmlTagWithAttributes(node, nodeName, attributes, processingCtx, docCtx);
     }
 
     // Process attributes
     this.processAttributes(regularAttrs, templateAttrs, nodeName, attributes, processingCtx, docCtx, astCtors);
+  }
+
+  /**
+   * Checks if a known HTML tag (like button, input, a) has Angular directives
+   * by searching for compound selectors like "button[mat-button]", "input[matInput]"
+   */
+  private checkKnownHtmlTagWithAttributes(
+    node: TmplAstElement | TmplAstTemplate,
+    nodeName: string,
+    attributes: Array<{ name: string; value: string }>,
+    processingCtx: ProcessingContext,
+    docCtx: TemplateDocumentContext
+  ): void {
+    // For each attribute, check if there's a directive with compound selector like "button[mat-button]"
+    for (const attr of attributes) {
+      const compoundSelector = `${nodeName}[${attr.name}]`;
+      const foundElements = processingCtx.indexer.getElements(compoundSelector);
+
+      for (const candidate of foundElements) {
+        const isKnownAngularElement = candidate.type === "component" || candidate.type === "directive";
+
+        if (isKnownAngularElement) {
+          processingCtx.elements.push({
+            name: compoundSelector,
+            // @ts-expect-error: Complex Angular template AST node types from ts-morph
+            type: candidate.type,
+            isAttribute: false,
+            range: new vscode.Range(
+              // @ts-expect-error: Complex Angular template AST node types from ts-morph
+              docCtx.document.positionAt(docCtx.offset + node.startSourceSpan.start.offset),
+              // @ts-expect-error: Complex Angular template AST node types from ts-morph
+              docCtx.document.positionAt(docCtx.offset + node.startSourceSpan.end.offset)
+            ),
+            tagName: nodeName, // Keep original tagName (e.g., "button"), not compound selector
+            attributes,
+          });
+        }
+      }
+    }
   }
 
   private addAngularElementsToList(
