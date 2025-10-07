@@ -208,7 +208,8 @@ export class DiagnosticProvider {
         return;
       }
 
-      const sourceFile = projCtx.indexer.project.getSourceFile(tsDocument.fileName);
+      // Synchronize ts-morph sourceFile with current VSCode document content
+      const sourceFile = this.getSourceFile(tsDocument);
       if (!sourceFile) {
         return;
       }

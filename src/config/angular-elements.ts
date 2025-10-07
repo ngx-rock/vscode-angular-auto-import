@@ -397,6 +397,4 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     selectors: ["i18nPlural"],
     originalSelector: "i18nPlural",
   },
-
-   
 };
