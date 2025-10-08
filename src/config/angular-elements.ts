@@ -13,7 +13,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     importPath: string;
     type: "directive" | "pipe";
     selectors: string[];
-    originalSelector: string;
+    originalSelector: string; 
   };
 } = {
   // ========== STRUCTURAL DIRECTIVES ==========
@@ -245,23 +245,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     selectors: ["ngModelGroup", "[ngModelGroup]"],
     originalSelector: "[ngModelGroup]",
   },
-
-  // FormGroup (reactive forms) - requires ReactiveFormsModule
-  formGroup: {
-    name: "ReactiveFormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["formGroup", "[formGroup]"],
-    originalSelector: "[formGroup]",
-  },
-  "[formGroup]": {
-    name: "ReactiveFormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["formGroup", "[formGroup]"],
-    originalSelector: "[formGroup]",
-  },
-
+ 
   // NgPluralCase - individual plural cases
   ngPluralCase: {
     name: "NgPluralCase",
