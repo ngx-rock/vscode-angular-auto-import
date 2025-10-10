@@ -13,7 +13,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     importPath: string;
     type: "directive" | "pipe";
     selectors: string[];
-    originalSelector: string; 
+    originalSelector: string;
   };
 } = {
   // ========== STRUCTURAL DIRECTIVES ==========
@@ -198,39 +198,28 @@ export const STANDARD_ANGULAR_ELEMENTS: {
   },
 
   // ========== FORMS DIRECTIVES ==========
-  // NgModel - two-way data binding (requires FormsModule)
+  // FormsModule (Template-Driven)
+  form: {
+    name: "FormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["form"],
+    originalSelector: "form:not([ngNoForm]):not([formGroup])",
+  },
+  ngForm: {
+    name: "FormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["ngForm"],
+    originalSelector: "ng-form",
+  },
   ngModel: {
     name: "FormsModule",
     importPath: "@angular/forms",
     type: "directive",
     selectors: ["ngModel", "[ngModel]"],
-    originalSelector: "[ngModel]",
+    originalSelector: "[ngModel]:not([formControlName]):not([formControl])",
   },
-  "[ngModel]": {
-    name: "FormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["ngModel", "[ngModel]"],
-    originalSelector: "[ngModel]",
-  },
-
-  // NgForm (template-driven forms) - requires FormsModule
-  ngForm: {
-    name: "FormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["ngForm", "[ngForm]"],
-    originalSelector: "[ngForm]",
-  },
-  "[ngForm]": {
-    name: "FormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["ngForm", "[ngForm]"],
-    originalSelector: "[ngForm]",
-  },
-
-  // NgModelGroup (template-driven nested forms) - requires FormsModule
   ngModelGroup: {
     name: "FormsModule",
     importPath: "@angular/forms",
@@ -238,14 +227,53 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     selectors: ["ngModelGroup", "[ngModelGroup]"],
     originalSelector: "[ngModelGroup]",
   },
-  "[ngModelGroup]": {
+
+  // ReactiveFormsModule
+  formGroup: {
+    name: "ReactiveFormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["formGroup", "[formGroup]"],
+    originalSelector: "[formGroup]",
+  },
+  formGroupName: {
+    name: "ReactiveFormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["formGroupName", "[formGroupName]"],
+    originalSelector: "[formGroupName]",
+  },
+  formArrayName: {
+    name: "ReactiveFormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["formArrayName", "[formArrayName]"],
+    originalSelector: "[formArrayName]",
+  },
+  formControl: {
+    name: "ReactiveFormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["formControl", "[formControl]"],
+    originalSelector: "[formControl]",
+  },
+  formControlName: {
+    name: "ReactiveFormsModule",
+    importPath: "@angular/forms",
+    type: "directive",
+    selectors: ["formControlName", "[formControlName]"],
+    originalSelector: "[formControlName]",
+  },
+
+  // Common directives (often used with forms)
+  ngSubmit: {
     name: "FormsModule",
     importPath: "@angular/forms",
     type: "directive",
-    selectors: ["ngModelGroup", "[ngModelGroup]"],
-    originalSelector: "[ngModelGroup]",
+    selectors: ["ngSubmit", "(ngSubmit)"],
+    originalSelector: "form",
   },
- 
+
   // NgPluralCase - individual plural cases
   ngPluralCase: {
     name: "NgPluralCase",
