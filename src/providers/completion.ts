@@ -8,7 +8,7 @@
 import type { SourceFile } from "ts-morph";
 import * as vscode from "vscode";
 import { STANDARD_ANGULAR_ELEMENTS } from "../config";
-import { AngularElementData, type ProcessedTsConfig } from "../types";
+import { AngularElementData, type Element, type ProcessedTsConfig } from "../types";
 import { getTsDocument, isStandalone, LruCache, switchFileType } from "../utils";
 import { getProjectContextForDocument } from "../utils/project-context";
 import { isInsideTemplateString } from "../utils/template-detection";
@@ -31,14 +31,6 @@ interface PotentialSuggestion {
   relevance: number;
   kind: vscode.CompletionItemKind;
   originalBestSelector: string;
-}
-
-interface StandardAngularElement {
-  name: string;
-  importPath: string;
-  type: "directive" | "pipe";
-  selectors: string[];
-  originalSelector: string;
 }
 
 interface ProjectContextForCompletion {
@@ -657,12 +649,12 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
         continue;
       }
 
-      const match = this.evaluateStandardElementMatch(stdSelector, stdElement, contextData);
+      const match = this.evaluateStandardElementMatch(stdSelector, stdElement as Element, contextData);
       if (match.shouldInclude) {
         const elementKey = `${stdElement.importPath}:${stdElement.name}`;
         if (!seenElements.has(elementKey)) {
           seenElements.add(elementKey);
-          const item = this.createStandardElementCompletionItem(stdSelector, stdElement, match, contextData);
+          const item = this.createStandardElementCompletionItem(stdSelector, stdElement as Element, match, contextData);
           suggestions.push(item);
         }
       }
@@ -676,7 +668,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
    */
   private evaluateStandardElementMatch(
     stdSelector: string,
-    stdElement: StandardAngularElement,
+    stdElement: Element,
     contextData: CompletionContextData
   ): {
     shouldInclude: boolean;
@@ -716,7 +708,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
    */
   private createStandardElementCompletionItem(
     stdSelector: string,
-    stdElement: StandardAngularElement,
+    stdElement: Element,
     match: { insertText: string; itemKind: vscode.CompletionItemKind; relevance: number },
     contextData: CompletionContextData
   ): vscode.CompletionItem {
@@ -732,7 +724,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     item.documentation = new vscode.MarkdownString(`Import from \`${stdElement.importPath}\`.`);
 
     const elementDataForCommand = new AngularElementData({
-      path: stdElement.importPath,
+      path: stdElement.importPath ?? "",
       name: stdElement.name,
       type: stdElement.type,
       originalSelector: stdSelector,

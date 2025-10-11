@@ -1,3 +1,6 @@
+import type { Element } from "../types/angular";
+import { FORMS_DIRECTIVES, REACTIVE_FORMS_DIRECTIVES } from "./forms";
+
 /**
  * Configuration for standard Angular directives and pipes.
  * @module
@@ -7,15 +10,7 @@
  * A map of standard Angular directives and pipes, keyed by their selectors.
  * This is used to provide auto-import suggestions for built-in Angular elements.
  */
-export const STANDARD_ANGULAR_ELEMENTS: {
-  [selector: string]: {
-    name: string;
-    importPath: string;
-    type: "directive" | "pipe";
-    selectors: string[];
-    originalSelector: string;
-  };
-} = {
+export const STANDARD_ANGULAR_ELEMENTS: Record<string, Element> = {
   // ========== STRUCTURAL DIRECTIVES ==========
   // NgIf - conditional rendering
   ngIf: {
@@ -24,6 +19,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngIf", "*ngIf", "[ngIf]"],
     originalSelector: "[ngIf]",
+    standalone: true,
   },
   "*ngIf": {
     name: "NgIf",
@@ -31,6 +27,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngIf", "*ngIf", "[ngIf]"],
     originalSelector: "[ngIf]",
+    standalone: true,
   },
   "[ngIf]": {
     name: "NgIf",
@@ -38,6 +35,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngIf", "*ngIf", "[ngIf]"],
     originalSelector: "[ngIf]",
+    standalone: true,
   },
 
   // NgForOf - list iteration
@@ -47,6 +45,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngForOf", "*ngFor", "ngFor", "[ngForOf]"],
     originalSelector: "[ngForOf]",
+    standalone: true,
   },
   "*ngFor": {
     name: "NgForOf",
@@ -54,6 +53,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngForOf", "*ngFor", "ngFor", "[ngForOf]"],
     originalSelector: "[ngForOf]",
+    standalone: true,
   },
   ngFor: {
     name: "NgForOf",
@@ -61,6 +61,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngForOf", "*ngFor", "ngFor", "[ngForOf]"],
     originalSelector: "[ngForOf]",
+    standalone: true,
   },
   "[ngForOf]": {
     name: "NgForOf",
@@ -68,6 +69,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngForOf", "*ngFor", "ngFor", "[ngForOf]"],
     originalSelector: "[ngForOf]",
+    standalone: true,
   },
 
   // NgSwitch - switch-case conditional rendering
@@ -77,6 +79,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngSwitch", "[ngSwitch]"],
     originalSelector: "[ngSwitch]",
+    standalone: true,
   },
   "[ngSwitch]": {
     name: "NgSwitch",
@@ -84,6 +87,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngSwitch", "[ngSwitch]"],
     originalSelector: "[ngSwitch]",
+    standalone: true,
   },
 
   // NgSwitchCase - case branches for NgSwitch
@@ -93,6 +97,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngSwitchCase", "*ngSwitchCase", "[ngSwitchCase]"],
     originalSelector: "[ngSwitchCase]",
+    standalone: true,
   },
   "*ngSwitchCase": {
     name: "NgSwitchCase",
@@ -100,6 +105,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngSwitchCase", "*ngSwitchCase", "[ngSwitchCase]"],
     originalSelector: "[ngSwitchCase]",
+    standalone: true,
   },
   "[ngSwitchCase]": {
     name: "NgSwitchCase",
@@ -107,6 +113,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngSwitchCase", "*ngSwitchCase", "[ngSwitchCase]"],
     originalSelector: "[ngSwitchCase]",
+    standalone: true,
   },
 
   // NgSwitchDefault - default case for NgSwitch
@@ -116,6 +123,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngSwitchDefault", "*ngSwitchDefault", "[ngSwitchDefault]"],
     originalSelector: "[ngSwitchDefault]",
+    standalone: true,
   },
   "*ngSwitchDefault": {
     name: "NgSwitchDefault",
@@ -123,6 +131,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngSwitchDefault", "*ngSwitchDefault", "[ngSwitchDefault]"],
     originalSelector: "[ngSwitchDefault]",
+    standalone: true,
   },
   "[ngSwitchDefault]": {
     name: "NgSwitchDefault",
@@ -130,6 +139,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngSwitchDefault", "*ngSwitchDefault", "[ngSwitchDefault]"],
     originalSelector: "[ngSwitchDefault]",
+    standalone: true,
   },
 
   // ========== ATTRIBUTE DIRECTIVES ==========
@@ -140,6 +150,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngClass", "[ngClass]"],
     originalSelector: "[ngClass]",
+    standalone: true,
   },
   "[ngClass]": {
     name: "NgClass",
@@ -147,6 +158,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngClass", "[ngClass]"],
     originalSelector: "[ngClass]",
+    standalone: true,
   },
 
   // NgStyle - dynamic inline styles
@@ -156,6 +168,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngStyle", "[ngStyle]"],
     originalSelector: "[ngStyle]",
+    standalone: true,
   },
   "[ngStyle]": {
     name: "NgStyle",
@@ -163,6 +176,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngStyle", "[ngStyle]"],
     originalSelector: "[ngStyle]",
+    standalone: true,
   },
 
   // NgTemplateOutlet - render template fragments
@@ -172,6 +186,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngTemplateOutlet", "[ngTemplateOutlet]"],
     originalSelector: "[ngTemplateOutlet]",
+    standalone: true,
   },
   "[ngTemplateOutlet]": {
     name: "NgTemplateOutlet",
@@ -179,6 +194,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngTemplateOutlet", "[ngTemplateOutlet]"],
     originalSelector: "[ngTemplateOutlet]",
+    standalone: true,
   },
 
   // NgComponentOutlet - dynamic component rendering
@@ -188,6 +204,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngComponentOutlet", "[ngComponentOutlet]"],
     originalSelector: "[ngComponentOutlet]",
+    standalone: true,
   },
   "[ngComponentOutlet]": {
     name: "NgComponentOutlet",
@@ -195,84 +212,23 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngComponentOutlet", "[ngComponentOutlet]"],
     originalSelector: "[ngComponentOutlet]",
+    standalone: true,
   },
 
   // ========== FORMS DIRECTIVES ==========
-  // FormsModule (Template-Driven)
-  form: {
-    name: "FormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["form"],
-    originalSelector: "form:not([ngNoForm]):not([formGroup])",
-  },
-  ngForm: {
-    name: "FormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["ngForm"],
-    originalSelector: "ng-form",
-  },
-  ngModel: {
-    name: "FormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["ngModel", "[ngModel]"],
-    originalSelector: "[ngModel]:not([formControlName]):not([formControl])",
-  },
-  ngModelGroup: {
-    name: "FormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["ngModelGroup", "[ngModelGroup]"],
-    originalSelector: "[ngModelGroup]",
-  },
-
-  // ReactiveFormsModule
-  formGroup: {
-    name: "ReactiveFormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["formGroup", "[formGroup]"],
-    originalSelector: "[formGroup]",
-  },
-  formGroupName: {
-    name: "ReactiveFormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["formGroupName", "[formGroupName]"],
-    originalSelector: "[formGroupName]",
-  },
-  formArrayName: {
-    name: "ReactiveFormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["formArrayName", "[formArrayName]"],
-    originalSelector: "[formArrayName]",
-  },
-  formControl: {
-    name: "ReactiveFormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["formControl", "[formControl]"],
-    originalSelector: "[formControl]",
-  },
-  formControlName: {
-    name: "ReactiveFormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["formControlName", "[formControlName]"],
-    originalSelector: "[formControlName]",
-  },
-
-  // Common directives (often used with forms)
-  ngSubmit: {
-    name: "FormsModule",
-    importPath: "@angular/forms",
-    type: "directive",
-    selectors: ["ngSubmit", "(ngSubmit)"],
-    originalSelector: "form",
-  },
+  ...Object.fromEntries(
+    [...FORMS_DIRECTIVES, ...REACTIVE_FORMS_DIRECTIVES].flatMap((d) => {
+      const selectors = (d.originalSelector ?? "").split(",").map((s: string) => s.trim());
+      return selectors.map((selector: string) => [
+        selector,
+        {
+          ...d,
+          selectors,
+          originalSelector: d.originalSelector ?? "",
+        },
+      ]);
+    })
+  ),
 
   // NgPluralCase - individual plural cases
   ngPluralCase: {
@@ -281,6 +237,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngPluralCase", "[ngPluralCase]"],
     originalSelector: "[ngPluralCase]",
+    standalone: true,
   },
 
   "[ngPluralCase]": {
@@ -289,6 +246,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["ngPluralCase", "[ngPluralCase]"],
     originalSelector: "[ngPluralCase]",
+    standalone: true,
   },
 
   "[ngPlural]": {
@@ -297,6 +255,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "directive",
     selectors: ["[ngPlural]"],
     originalSelector: "[ngPlural]",
+    standalone: true,
   },
 
   // ========== BUILT-IN PIPES ==========
@@ -307,6 +266,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["uppercase"],
     originalSelector: "uppercase",
+    standalone: true,
   },
   lowercase: {
     name: "LowerCasePipe",
@@ -314,6 +274,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["lowercase"],
     originalSelector: "lowercase",
+    standalone: true,
   },
   titlecase: {
     name: "TitleCasePipe",
@@ -321,6 +282,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["titlecase"],
     originalSelector: "titlecase",
+    standalone: true,
   },
 
   // Number formatting pipes
@@ -330,6 +292,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["decimal", "number"],
     originalSelector: "decimal",
+    standalone: true,
   },
   number: {
     name: "DecimalPipe",
@@ -337,6 +300,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["decimal", "number"],
     originalSelector: "number",
+    standalone: true,
   },
   percent: {
     name: "PercentPipe",
@@ -344,6 +308,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["percent"],
     originalSelector: "percent",
+    standalone: true,
   },
   currency: {
     name: "CurrencyPipe",
@@ -351,6 +316,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["currency"],
     originalSelector: "currency",
+    standalone: true,
   },
 
   // Date formatting pipes
@@ -360,6 +326,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["date"],
     originalSelector: "date",
+    standalone: true,
   },
 
   // Data manipulation pipes
@@ -369,6 +336,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["slice"],
     originalSelector: "slice",
+    standalone: true,
   },
   json: {
     name: "JsonPipe",
@@ -376,6 +344,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["json"],
     originalSelector: "json",
+    standalone: true,
   },
   keyvalue: {
     name: "KeyValuePipe",
@@ -383,6 +352,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["keyvalue"],
     originalSelector: "keyvalue",
+    standalone: true,
   },
 
   // Async pipes
@@ -392,6 +362,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["async"],
     originalSelector: "async",
+    standalone: true,
   },
 
   // Internationalization pipes
@@ -401,6 +372,7 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["i18nSelect"],
     originalSelector: "i18nSelect",
+    standalone: true,
   },
   i18nPlural: {
     name: "I18nPluralPipe",
@@ -408,5 +380,6 @@ export const STANDARD_ANGULAR_ELEMENTS: {
     type: "pipe",
     selectors: ["i18nPlural"],
     originalSelector: "i18nPlural",
+    standalone: true,
   },
 };
