@@ -216,14 +216,19 @@ export const STANDARD_ANGULAR_ELEMENTS: Record<string, Element> = {
   },
 
   // ========== FORMS DIRECTIVES ==========
+  // Note: We use the `selectors` field (not `originalSelector`) for indexing.
+  // The `originalSelector` contains complex CSS selectors with :not() and other
+  // pseudo-selectors that are used for Angular's selector matching, but we index
+  // by the simple selector variants in the `selectors` array.
   ...Object.fromEntries(
     [...FORMS_DIRECTIVES, ...REACTIVE_FORMS_DIRECTIVES].flatMap((d) => {
-      const selectors = (d.originalSelector ?? "").split(",").map((s: string) => s.trim());
-      return selectors.map((selector: string) => [
+      // Use the selectors array from the directive, not originalSelector
+      const selectorsArray = d.selectors || [];
+      return selectorsArray.map((selector: string) => [
         selector,
         {
           ...d,
-          selectors,
+          selectors: selectorsArray,
           originalSelector: d.originalSelector ?? "",
         },
       ]);
