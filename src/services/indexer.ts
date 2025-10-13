@@ -20,6 +20,7 @@ import {
   type TypeReferenceNode,
 } from "ts-morph";
 import * as vscode from "vscode";
+import { isLibraryExcluded } from "../config/excluded-libraries";
 import { logger } from "../logger";
 import { AngularElementData, type ComponentInfo, type FileElementsInfo } from "../types";
 import {
@@ -1627,6 +1628,12 @@ export class AngularIndexer {
     const libraryFiles: { importPath: string; sourceFile: SourceFile }[] = [];
 
     for (const [importPath, filePath] of entryPoints.entries()) {
+      // Skip excluded libraries
+      if (isLibraryExcluded(importPath)) {
+        logger.info(`[Indexer] Skipping excluded library: ${importPath}`);
+        continue;
+      }
+
       try {
         const sourceFile = this.project.addSourceFileAtPathIfExists(filePath);
         if (sourceFile) {
