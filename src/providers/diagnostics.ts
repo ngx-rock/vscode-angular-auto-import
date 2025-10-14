@@ -618,7 +618,13 @@ export class DiagnosticProvider {
     SelectorMatcher: any
   ): Promise<vscode.Diagnostic | null> {
     if (candidate.type === "pipe") {
-      return this.processPipeCandidate(element, candidate, severity, sourceFile, processedCandidates);
+      // Only process pipe candidates if the element is actually a pipe usage (not a property binding)
+      // This prevents false positives when an @Input() and a @Pipe() share the same name
+      if (element.type === "pipe") {
+        return this.processPipeCandidate(element, candidate, severity, sourceFile, processedCandidates);
+      }
+      // Skip pipe candidates for non-pipe elements (like property bindings)
+      return null;
     }
 
     return this.processNonPipeCandidate(
