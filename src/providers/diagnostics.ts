@@ -208,7 +208,8 @@ export class DiagnosticProvider {
         return;
       }
 
-      const sourceFile = projCtx.indexer.project.getSourceFile(tsDocument.fileName);
+      // Synchronize ts-morph sourceFile with current VSCode document content
+      const sourceFile = this.getSourceFile(tsDocument);
       if (!sourceFile) {
         return;
       }
@@ -1164,10 +1165,79 @@ export class DiagnosticProvider {
         docCtx.offset,
         attributes
       );
+    } else {
+      // For known HTML tags (like button, input, a), check if they have Angular directives
+      // by searching for compound selectors like "button[mat-button]", "input[matInput]"
+      this.checkKnownHtmlTagWithAttributes(node, nodeName, regularAttrs, attributes, processingCtx, docCtx);
     }
 
     // Process attributes
     this.processAttributes(regularAttrs, templateAttrs, nodeName, attributes, processingCtx, docCtx, astCtors);
+  }
+
+  /**
+   * Checks if a known HTML tag (like button, input, a) has Angular directives
+   * by searching for compound selectors like "button[mat-button]", "input[matInput]".
+   *
+   * Note: This method is specifically for directives that use compound selectors
+   * (e.g., "button[mat-button]"). Regular attribute directives are handled by
+   * processAttributes() which already creates diagnostics with correct attribute positions.
+   */
+  private checkKnownHtmlTagWithAttributes(
+    _node: TmplAstElement | TmplAstTemplate,
+    nodeName: string,
+    regularAttrs: unknown[],
+    attributes: Array<{ name: string; value: string }>,
+    processingCtx: ProcessingContext,
+    docCtx: TemplateDocumentContext
+  ): void {
+    // A single element can have multiple directives, but we should not add the same directive instance twice.
+    const processedDirectives = new Set<unknown>();
+
+    // For each attribute, check if there's a directive with a compound selector like "button[mat-button]"
+    for (let i = 0; i < attributes.length; i++) {
+      const attr = attributes[i];
+      const attrAstNode = regularAttrs[i];
+
+      const compoundSelector = `${nodeName}[${attr.name}]`;
+      const foundCandidates = processingCtx.indexer.getElements(compoundSelector);
+
+      // Only process if we actually found a directive with this compound selector
+      if (foundCandidates.length === 0) {
+        continue;
+      }
+
+      // @ts-expect-error: Complex Angular template AST node types from ts-morph
+      const keySpan = attrAstNode?.keySpan ?? attrAstNode?.sourceSpan;
+      if (!keySpan) {
+        // Fallback to tag range if attribute position not available
+        continue;
+      }
+
+      // Create range for the attribute only, not the entire tag
+      const attributeRange = new vscode.Range(
+        docCtx.document.positionAt(docCtx.offset + keySpan.start.offset),
+        docCtx.document.positionAt(docCtx.offset + keySpan.end.offset)
+      );
+
+      for (const candidate of foundCandidates) {
+        const isAngularElement = candidate.type === "component" || candidate.type === "directive";
+
+        if (isAngularElement && !processedDirectives.has(candidate)) {
+          processedDirectives.add(candidate);
+
+          processingCtx.elements.push({
+            name: attr.name, // Use attribute name, not compound selector, for config matching
+            // @ts-expect-error: Complex Angular template AST node types from ts-morph
+            type: candidate.type,
+            isAttribute: true, // Mark as attribute since we're highlighting the attribute
+            range: attributeRange, // Use attribute position, not entire tag
+            tagName: nodeName,
+            attributes,
+          });
+        }
+      }
+    }
   }
 
   private addAngularElementsToList(

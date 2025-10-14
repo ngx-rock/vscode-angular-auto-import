@@ -322,7 +322,7 @@ function findStandardElement(selector: string, seenElements: Set<string>): Angul
   }
 
   const element = new AngularElementData({
-    path: std.importPath,
+    path: std.importPath ?? "",
     name: std.name,
     type: std.type,
     originalSelector: std.originalSelector,

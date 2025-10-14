@@ -7,6 +7,11 @@ import type * as vscode from "vscode";
 import type { ProcessedTsConfig } from "./tsconfig";
 
 /**
+ * Defines the possible types for an Angular element.
+ */
+type AngularElementType = "component" | "directive" | "pipe";
+
+/**
  * Represents information about an Angular component, directive, or pipe.
  */
 export interface ComponentInfo {
@@ -25,7 +30,7 @@ export interface ComponentInfo {
   /**
    * The type of the element.
    */
-  type: "component" | "directive" | "pipe";
+  type: AngularElementType;
   /**
    * The timestamp of the last modification of the file.
    */
@@ -41,6 +46,18 @@ export interface ComponentInfo {
 }
 
 /**
+ * Represents a generic Angular element configuration.
+ */
+export type Element = {
+  name: string;
+  importPath?: string;
+  type: AngularElementType;
+  selectors: string[];
+  originalSelector: string;
+  standalone: boolean;
+};
+
+/**
  * Options for creating an AngularElementData instance.
  * @public Part of the public API for creating AngularElementData instances
  */
@@ -50,7 +67,7 @@ interface AngularElementDataOptions {
   /** The name of the element's class. */
   name: string;
   /** The type of the element. */
-  type: "component" | "directive" | "pipe";
+  type: AngularElementType;
   /** The original selector of the element. */
   originalSelector: string;
   /** An array of possible selectors for the element. */
@@ -69,7 +86,7 @@ interface AngularElementDataOptions {
 export class AngularElementData {
   public readonly path: string;
   public readonly name: string;
-  public readonly type: "component" | "directive" | "pipe";
+  public readonly type: AngularElementType;
   public readonly originalSelector: string;
   public readonly selectors: string[];
   public readonly isStandalone: boolean;

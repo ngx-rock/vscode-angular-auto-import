@@ -4,6 +4,12 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.14.0] - 2025-10-14
+
+### Changed
+- **Forms Directives Refactoring**: Extracted forms directives configuration to separate module for better maintainability
+- **Library Exclusion Logic**: Implemented centralized exclusion logic for Angular core packages, compiler tools, and infrastructure libraries
+
 ## [1.13.0] - 2025-10-06
 
 ### Added
