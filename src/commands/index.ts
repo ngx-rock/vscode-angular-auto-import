@@ -12,6 +12,7 @@ import type { ExtensionConfig } from "../config";
 import { logger } from "../logger";
 import type { DiagnosticProvider } from "../providers/diagnostics";
 import type { AngularIndexer } from "../services";
+import { type DiagnosticsReport, generateFullDiagnosticsReport } from "../services/diagnostics-reporter";
 import * as TsConfigHelper from "../services/tsconfig";
 import type { AngularElementData, ProcessedTsConfig } from "../types";
 import { importElementsToFile, switchFileType } from "../utils";
@@ -244,6 +245,325 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
     }
   });
   context.subscriptions.push(fixAllCommand);
+
+  // Generate diagnostics report command (debugging/development tool)
+  const generateDiagnosticsReportCommand = vscode.commands.registerCommand(
+    "angular-auto-import.generateDiagnosticsReport",
+    async () => {
+      logger.info("Generate diagnostics report command invoked by user");
+
+      const diagnosticProvider = commandContext.diagnosticProvider;
+      if (!diagnosticProvider) {
+        vscode.window.showErrorMessage("Diagnostic provider is not available.");
+        return;
+      }
+
+      try {
+        const report = await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: "Angular Auto Import: Generating Diagnostics Report",
+            cancellable: false,
+          },
+          async (progress) => {
+            return await generateFullDiagnosticsReport(diagnosticProvider, progress);
+          }
+        );
+
+        // Display the report in a webview
+        const panel = vscode.window.createWebviewPanel(
+          "angularDiagnosticsReport",
+          "Angular Auto Import - Diagnostics Report",
+          vscode.ViewColumn.One,
+          {
+            enableScripts: true,
+            retainContextWhenHidden: false,
+            localResourceRoots: [],
+          }
+        );
+
+        context.subscriptions.push(panel);
+        panel.webview.html = getDiagnosticsReportHtml(report);
+
+        vscode.window.showInformationMessage(
+          `✅ Diagnostics report generated: ${report.totalIssues} issue(s) found across ${report.fileReports.length} file(s)`
+        );
+      } catch (error) {
+        logger.error("Error generating diagnostics report:", error as Error);
+        vscode.window.showErrorMessage(
+          "Failed to generate diagnostics report. Check the extension output for details."
+        );
+      }
+    }
+  );
+  context.subscriptions.push(generateDiagnosticsReportCommand);
+}
+
+/**
+ * Generates HTML content for the diagnostics report webview.
+ *
+ * @param report - The diagnostics report data
+ * @returns HTML string for the webview
+ */
+function getDiagnosticsReportHtml(report: DiagnosticsReport): string {
+  const formatTimestamp = report.timestamp.toLocaleString();
+  let filesHtml = "";
+
+  if (report.fileReports.length === 0) {
+    filesHtml = '<div class="no-issues">✅ No diagnostic issues found in any templates!</div>';
+  } else {
+    for (const fileReport of report.fileReports) {
+      const relativePath = vscode.workspace.asRelativePath(fileReport.filePath);
+      const templateTypeLabel = fileReport.templateType === "inline" ? "Inline Template" : "External Template";
+
+      let diagnosticsHtml = "";
+      for (const diagnostic of fileReport.diagnostics) {
+        const severityClass = getSeverityClass(diagnostic.severity);
+        const severityLabel = getSeverityLabel(diagnostic.severity);
+        const line = diagnostic.range.start.line + 1;
+        const column = diagnostic.range.start.character + 1;
+
+        diagnosticsHtml += `
+          <div class="diagnostic ${severityClass}">
+            <div class="diagnostic-header">
+              <span class="severity-badge">${severityLabel}</span>
+              <span class="location">Line ${line}, Col ${column}</span>
+            </div>
+            <div class="diagnostic-message">${escapeHtml(diagnostic.message)}</div>
+            ${diagnostic.code ? `<div class="diagnostic-code">Code: ${escapeHtml(String(diagnostic.code))}</div>` : ""}
+          </div>
+        `;
+      }
+
+      filesHtml += `
+        <div class="file-report">
+          <div class="file-header">
+            <h3 class="file-path">${escapeHtml(relativePath)}</h3>
+            <span class="template-type">${templateTypeLabel}</span>
+            <span class="issue-count">${fileReport.diagnostics.length} issue(s)</span>
+          </div>
+          <div class="diagnostics-list">
+            ${diagnosticsHtml}
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+    <title>Diagnostics Report</title>
+    <style>
+        body {
+            font-family: var(--vscode-font-family), 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: var(--vscode-font-size, 13px);
+            padding: 20px;
+            line-height: 1.6;
+            background: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+            margin: 0;
+        }
+        h1 {
+          font-size: 1.5em;
+          font-weight: 600;
+          border-bottom: 1px solid var(--vscode-separator-foreground);
+          padding-bottom: 8px;
+          margin: 0 0 20px 0;
+        }
+        .summary {
+          display: flex;
+          gap: 20px;
+          margin-bottom: 25px;
+          padding: 15px;
+          background: var(--vscode-textBlockQuote-background);
+          border-radius: 3px;
+          border-left: 3px solid var(--vscode-textBlockQuote-border);
+        }
+        .summary-item {
+          display: flex;
+          flex-direction: column;
+        }
+        .summary-label {
+          font-size: 0.85em;
+          color: var(--vscode-descriptionForeground);
+          margin-bottom: 4px;
+        }
+        .summary-value {
+          font-size: 1.2em;
+          font-weight: 600;
+        }
+        .no-issues {
+          padding: 20px;
+          text-align: center;
+          background: var(--vscode-inputValidation-infoBackground);
+          border: 1px solid var(--vscode-inputValidation-infoBorder);
+          border-radius: 3px;
+          font-size: 1.1em;
+        }
+        .file-report {
+          margin-bottom: 30px;
+          border: 1px solid var(--vscode-separator-foreground);
+          border-radius: 3px;
+          overflow: hidden;
+        }
+        .file-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 15px;
+          background: var(--vscode-sideBar-background);
+          border-bottom: 1px solid var(--vscode-separator-foreground);
+        }
+        .file-path {
+          margin: 0;
+          font-size: 1em;
+          font-weight: 600;
+          flex: 1;
+          word-break: break-all;
+        }
+        .template-type {
+          font-size: 0.85em;
+          padding: 3px 8px;
+          background: var(--vscode-badge-background);
+          color: var(--vscode-badge-foreground);
+          border-radius: 3px;
+        }
+        .issue-count {
+          font-size: 0.85em;
+          padding: 3px 8px;
+          background: var(--vscode-inputValidation-warningBackground);
+          border: 1px solid var(--vscode-inputValidation-warningBorder);
+          border-radius: 3px;
+        }
+        .diagnostics-list {
+          padding: 10px 15px;
+        }
+        .diagnostic {
+          padding: 10px;
+          margin-bottom: 10px;
+          border-left: 3px solid;
+          background: var(--vscode-editor-background);
+          border-radius: 3px;
+        }
+        .diagnostic.error {
+          border-left-color: var(--vscode-inputValidation-errorBorder);
+          background: var(--vscode-inputValidation-errorBackground);
+        }
+        .diagnostic.warning {
+          border-left-color: var(--vscode-inputValidation-warningBorder);
+          background: var(--vscode-inputValidation-warningBackground);
+        }
+        .diagnostic.info {
+          border-left-color: var(--vscode-inputValidation-infoBorder);
+          background: var(--vscode-inputValidation-infoBackground);
+        }
+        .diagnostic-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 6px;
+        }
+        .severity-badge {
+          font-size: 0.75em;
+          font-weight: 600;
+          padding: 2px 6px;
+          border-radius: 3px;
+          text-transform: uppercase;
+        }
+        .diagnostic.error .severity-badge {
+          background: var(--vscode-inputValidation-errorBorder);
+          color: var(--vscode-editor-background);
+        }
+        .diagnostic.warning .severity-badge {
+          background: var(--vscode-inputValidation-warningBorder);
+          color: var(--vscode-editor-background);
+        }
+        .diagnostic.info .severity-badge {
+          background: var(--vscode-inputValidation-infoBorder);
+          color: var(--vscode-editor-background);
+        }
+        .location {
+          font-size: 0.85em;
+          color: var(--vscode-descriptionForeground);
+        }
+        .diagnostic-message {
+          font-size: 0.95em;
+          margin-bottom: 4px;
+        }
+        .diagnostic-code {
+          font-size: 0.85em;
+          color: var(--vscode-descriptionForeground);
+          font-family: var(--vscode-editor-font-family);
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Angular Auto Import - Diagnostics Report</h1>
+    <div class="summary">
+      <div class="summary-item">
+        <span class="summary-label">Total Issues</span>
+        <span class="summary-value">${report.totalIssues}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Files with Issues</span>
+        <span class="summary-value">${report.fileReports.length}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Generated</span>
+        <span class="summary-value" style="font-size: 0.9em;">${escapeHtml(formatTimestamp)}</span>
+      </div>
+    </div>
+    ${filesHtml}
+</body>
+</html>`;
+}
+
+/**
+ * Gets CSS class for diagnostic severity.
+ */
+function getSeverityClass(severity: vscode.DiagnosticSeverity | undefined): string {
+  switch (severity) {
+    case vscode.DiagnosticSeverity.Error:
+      return "error";
+    case vscode.DiagnosticSeverity.Warning:
+      return "warning";
+    case vscode.DiagnosticSeverity.Information:
+      return "info";
+    default:
+      return "info";
+  }
+}
+
+/**
+ * Gets label for diagnostic severity.
+ */
+function getSeverityLabel(severity: vscode.DiagnosticSeverity | undefined): string {
+  switch (severity) {
+    case vscode.DiagnosticSeverity.Error:
+      return "Error";
+    case vscode.DiagnosticSeverity.Warning:
+      return "Warning";
+    case vscode.DiagnosticSeverity.Information:
+      return "Info";
+    default:
+      return "Info";
+  }
+}
+
+/**
+ * Escapes HTML special characters.
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 /**

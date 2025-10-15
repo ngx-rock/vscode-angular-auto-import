@@ -74,6 +74,12 @@
         "title": "Angular Auto Import: Fix all missing imports in current file",
         "category": "Angular Auto Import",
         "icon": "$(check-all)"
+      },
+      {
+        "command": "angular-auto-import.generateDiagnosticsReport",
+        "title": "Generate Diagnostics Report (Debug)",
+        "category": "Angular Auto Import",
+        "icon": "$(file-text)"
       }
     ],
     "configuration": {
