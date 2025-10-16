@@ -355,6 +355,94 @@ function getCommonWebviewStyles(): string {
 }
 
 /**
+ * Generates files HTML section.
+ */
+function generateFilesHtml(report: DiagnosticsReport): string {
+  if (report.fileReports.length === 0) {
+    return '<div class="no-issues">✅ No diagnostic issues found in any templates!</div>';
+  }
+
+  return report.fileReports
+    .map((fileReport) => {
+      const relativePath = vscode.workspace.asRelativePath(fileReport.filePath);
+      const templateTypeLabel = fileReport.templateType === "inline" ? "Inline Template" : "External Template";
+      const diagnosticsHtml = fileReport.diagnostics
+        .map((diagnostic) => {
+          const severityClass = getSeverityClass(diagnostic.severity);
+          const severityLabel = getSeverityLabel(diagnostic.severity);
+          const line = diagnostic.range.start.line + 1;
+          const column = diagnostic.range.start.character + 1;
+
+          return `
+        <div class="diagnostic ${severityClass}">
+          <div class="diagnostic-header">
+            <span class="severity-badge">${severityLabel}</span>
+            <span class="location">Line ${line}, Col ${column}</span>
+          </div>
+          <div class="diagnostic-message">${escapeHtml(diagnostic.message)}</div>
+          ${diagnostic.code ? `<div class="diagnostic-code">Code: ${escapeHtml(String(diagnostic.code))}</div>` : ""}
+        </div>
+      `;
+        })
+        .join("");
+
+      return `
+      <div class="file-report">
+        <div class="file-header">
+          <h3 class="file-path">${escapeHtml(relativePath)}</h3>
+          <span class="template-type">${templateTypeLabel}</span>
+          <span class="issue-count">${fileReport.diagnostics.length} issue(s)</span>
+        </div>
+        <div class="diagnostics-list">
+          ${diagnosticsHtml}
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+}
+
+/**
+ * Generates truncation warning HTML.
+ */
+function generateTruncationWarning(report: DiagnosticsReport): string {
+  if (!report.truncated) {
+    return "";
+  }
+
+  return `
+    <div class="truncation-warning">
+      <div class="truncation-warning-title">⚠️ Report Truncated</div>
+      <div class="truncation-warning-message">${escapeHtml(report.truncationReason || "Report was limited to prevent memory overflow")}</div>
+    </div>
+  `;
+}
+
+/**
+ * Generates summary HTML section.
+ */
+function generateSummaryHtml(report: DiagnosticsReport, formatTimestamp: string): string {
+  const plusSign = report.truncated ? "+" : "";
+
+  return `
+    <div class="summary">
+      <div class="summary-item">
+        <span class="summary-label">Total Issues</span>
+        <span class="summary-value">${report.totalIssues}${plusSign}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Files with Issues</span>
+        <span class="summary-value">${report.fileReports.length}${plusSign}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Generated</span>
+        <span class="summary-value" style="font-size: 0.9em;">${escapeHtml(formatTimestamp)}</span>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Generates HTML content for the diagnostics report webview.
  *
  * @param report - The diagnostics report data
@@ -362,48 +450,9 @@ function getCommonWebviewStyles(): string {
  */
 function getDiagnosticsReportHtml(report: DiagnosticsReport): string {
   const formatTimestamp = report.timestamp.toLocaleString();
-  let filesHtml = "";
-
-  if (report.fileReports.length === 0) {
-    filesHtml = '<div class="no-issues">✅ No diagnostic issues found in any templates!</div>';
-  } else {
-    for (const fileReport of report.fileReports) {
-      const relativePath = vscode.workspace.asRelativePath(fileReport.filePath);
-      const templateTypeLabel = fileReport.templateType === "inline" ? "Inline Template" : "External Template";
-
-      let diagnosticsHtml = "";
-      for (const diagnostic of fileReport.diagnostics) {
-        const severityClass = getSeverityClass(diagnostic.severity);
-        const severityLabel = getSeverityLabel(diagnostic.severity);
-        const line = diagnostic.range.start.line + 1;
-        const column = diagnostic.range.start.character + 1;
-
-        diagnosticsHtml += `
-          <div class="diagnostic ${severityClass}">
-            <div class="diagnostic-header">
-              <span class="severity-badge">${severityLabel}</span>
-              <span class="location">Line ${line}, Col ${column}</span>
-            </div>
-            <div class="diagnostic-message">${escapeHtml(diagnostic.message)}</div>
-            ${diagnostic.code ? `<div class="diagnostic-code">Code: ${escapeHtml(String(diagnostic.code))}</div>` : ""}
-          </div>
-        `;
-      }
-
-      filesHtml += `
-        <div class="file-report">
-          <div class="file-header">
-            <h3 class="file-path">${escapeHtml(relativePath)}</h3>
-            <span class="template-type">${templateTypeLabel}</span>
-            <span class="issue-count">${fileReport.diagnostics.length} issue(s)</span>
-          </div>
-          <div class="diagnostics-list">
-            ${diagnosticsHtml}
-          </div>
-        </div>
-      `;
-    }
-  }
+  const filesHtml = generateFilesHtml(report);
+  const truncationWarning = generateTruncationWarning(report);
+  const summaryHtml = generateSummaryHtml(report, formatTimestamp);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -421,6 +470,21 @@ function getDiagnosticsReportHtml(report: DiagnosticsReport): string {
           border: 1px solid var(--vscode-inputValidation-infoBorder);
           border-radius: 3px;
           font-size: 1.1em;
+        }
+        .truncation-warning {
+          padding: 15px;
+          margin-bottom: 20px;
+          background: var(--vscode-inputValidation-warningBackground);
+          border: 1px solid var(--vscode-inputValidation-warningBorder);
+          border-radius: 3px;
+          border-left: 4px solid var(--vscode-inputValidation-warningBorder);
+        }
+        .truncation-warning-title {
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+        .truncation-warning-message {
+          font-size: 0.95em;
         }
         .file-report {
           margin-bottom: 30px;
@@ -521,20 +585,8 @@ function getDiagnosticsReportHtml(report: DiagnosticsReport): string {
 </head>
 <body>
     <h1>🔍 Angular Auto Import - Diagnostics Report</h1>
-    <div class="summary">
-      <div class="summary-item">
-        <span class="summary-label">Total Issues</span>
-        <span class="summary-value">${report.totalIssues}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Files with Issues</span>
-        <span class="summary-value">${report.fileReports.length}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Generated</span>
-        <span class="summary-value" style="font-size: 0.9em;">${escapeHtml(formatTimestamp)}</span>
-      </div>
-    </div>
+    ${truncationWarning}
+    ${summaryHtml}
     ${filesHtml}
 </body>
 </html>`;

@@ -36,10 +36,17 @@ export interface DiagnosticsReport {
   fileReports: FileReport[];
   /** Timestamp when the report was generated */
   timestamp: Date;
+  /** Whether the report was truncated due to limits */
+  truncated?: boolean;
+  /** Truncation details if applicable */
+  truncationReason?: string;
 }
 
 const BATCH_SIZE = 20; // Process files in batches to manage memory
 const GC_PAUSE_MS = 10; // Small pause between batches for garbage collection
+const MAX_DIAGNOSTICS_PER_FILE = 50; // Limit diagnostics per file to prevent memory overflow
+const MAX_TOTAL_DIAGNOSTICS = 1000; // Limit total diagnostics to prevent memory overflow
+const MAX_FILES_IN_REPORT = 200; // Limit total files in report to prevent memory overflow
 
 /**
  * Generates a comprehensive diagnostics report for all templates in the workspace.
@@ -106,33 +113,107 @@ async function processBatchedFiles(
       throw new Error("Operation cancelled by user");
     }
 
-    const batch = files.slice(i, i + BATCH_SIZE);
-
-    for (const fileUri of batch) {
-      context.processedFiles++;
-      if (progress) {
-        progress.report({
-          message: `Scanning ${fileTypeLabel} (${context.processedFiles}/${context.totalFiles})...`,
-          increment: (1 / context.totalFiles) * 100,
-        });
-      }
-
-      try {
-        const document = await vscode.workspace.openTextDocument(fileUri);
-        const fileReport = await generateFileReport(document, templateType, diagnosticProvider);
-
-        if (fileReport.diagnostics.length > 0) {
-          report.fileReports.push(fileReport);
-          report.totalIssues += fileReport.diagnostics.length;
-        }
-      } catch (error) {
-        logger.error(`[DiagnosticsReporter] Error processing ${fileUri.fsPath}:`, error as Error);
-      }
+    // Check if we've hit the limits
+    if (checkReportLimits(report)) {
+      return;
     }
+
+    const batch = files.slice(i, i + BATCH_SIZE);
+    await processSingleBatch(batch, templateType, fileTypeLabel, diagnosticProvider, report, progress, context);
 
     // Small pause between batches to allow garbage collection
     await new Promise((resolve) => setTimeout(resolve, GC_PAUSE_MS));
   }
+}
+
+/**
+ * Checks if report has reached memory limits.
+ */
+function checkReportLimits(report: DiagnosticsReport): boolean {
+  if (report.fileReports.length >= MAX_FILES_IN_REPORT) {
+    report.truncated = true;
+    report.truncationReason = `Report limited to ${MAX_FILES_IN_REPORT} files to prevent memory overflow`;
+    logger.warn(`[DiagnosticsReporter] Reached max files limit (${MAX_FILES_IN_REPORT}), stopping scan`);
+    return true;
+  }
+
+  if (report.totalIssues >= MAX_TOTAL_DIAGNOSTICS) {
+    report.truncated = true;
+    report.truncationReason = `Report limited to ${MAX_TOTAL_DIAGNOSTICS} total diagnostics to prevent memory overflow`;
+    logger.warn(`[DiagnosticsReporter] Reached max diagnostics limit (${MAX_TOTAL_DIAGNOSTICS}), stopping scan`);
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Processes a single batch of files.
+ */
+async function processSingleBatch(
+  batch: vscode.Uri[],
+  templateType: "inline" | "external",
+  fileTypeLabel: string,
+  diagnosticProvider: DiagnosticProvider,
+  report: DiagnosticsReport,
+  progress: vscode.Progress<{ message?: string; increment?: number }> | undefined,
+  context: { processedFiles: number; totalFiles: number }
+): Promise<void> {
+  for (const fileUri of batch) {
+    context.processedFiles++;
+    updateProgress(progress, fileTypeLabel, context);
+
+    try {
+      const document = await vscode.workspace.openTextDocument(fileUri);
+      const fileReport = await generateFileReport(document, templateType, diagnosticProvider);
+
+      if (fileReport.diagnostics.length > 0) {
+        addFileReportWithLimits(fileReport, fileUri, report);
+
+        // Early exit if we hit the total diagnostics limit
+        if (report.totalIssues >= MAX_TOTAL_DIAGNOSTICS) {
+          report.truncated = true;
+          report.truncationReason = `Report limited to ${MAX_TOTAL_DIAGNOSTICS} total diagnostics to prevent memory overflow`;
+          logger.warn(`[DiagnosticsReporter] Reached max diagnostics limit, stopping scan`);
+          return;
+        }
+      }
+    } catch (error) {
+      logger.error(`[DiagnosticsReporter] Error processing ${fileUri.fsPath}:`, error as Error);
+    }
+  }
+}
+
+/**
+ * Updates progress reporter.
+ */
+function updateProgress(
+  progress: vscode.Progress<{ message?: string; increment?: number }> | undefined,
+  fileTypeLabel: string,
+  context: { processedFiles: number; totalFiles: number }
+): void {
+  if (progress) {
+    progress.report({
+      message: `Scanning ${fileTypeLabel} (${context.processedFiles}/${context.totalFiles})...`,
+      increment: (1 / context.totalFiles) * 100,
+    });
+  }
+}
+
+/**
+ * Adds file report with diagnostic limits.
+ */
+function addFileReportWithLimits(fileReport: FileReport, fileUri: vscode.Uri, report: DiagnosticsReport): void {
+  // Limit diagnostics per file to prevent memory overflow
+  if (fileReport.diagnostics.length > MAX_DIAGNOSTICS_PER_FILE) {
+    fileReport.diagnostics = fileReport.diagnostics.slice(0, MAX_DIAGNOSTICS_PER_FILE);
+    logger.warn(
+      `[DiagnosticsReporter] Truncated diagnostics for ${fileUri.fsPath} to ${MAX_DIAGNOSTICS_PER_FILE} items`
+    );
+  }
+
+  report.fileReports.push(fileReport);
+  report.totalIssues += fileReport.diagnostics.length;
 }
 
 /**
