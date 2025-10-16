@@ -263,10 +263,10 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
           {
             location: vscode.ProgressLocation.Notification,
             title: "Angular Auto Import: Generating Diagnostics Report",
-            cancellable: false,
+            cancellable: true,
           },
-          async (progress) => {
-            return await generateFullDiagnosticsReport(diagnosticProvider, progress);
+          async (progress, token) => {
+            return await generateFullDiagnosticsReport(diagnosticProvider, progress, token);
           }
         );
 
@@ -297,6 +297,61 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
     }
   );
   context.subscriptions.push(generateDiagnosticsReportCommand);
+}
+
+/**
+ * Returns common CSS styles for webview panels.
+ * Centralizes shared styles to avoid duplication.
+ *
+ * @returns Common CSS styles string
+ */
+function getCommonWebviewStyles(): string {
+  return `
+    body {
+      font-family: var(--vscode-font-family), 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: var(--vscode-font-size, 13px);
+      padding: 20px;
+      line-height: 1.6;
+      background: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+      margin: 0;
+    }
+    h1 {
+      font-size: 1.5em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--vscode-separator-foreground);
+      padding-bottom: 8px;
+      margin: 0 0 20px 0;
+    }
+    h2 {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-top: 25px;
+      margin-bottom: 10px;
+    }
+    .summary {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 25px;
+      padding: 15px;
+      background: var(--vscode-textBlockQuote-background);
+      border-radius: 3px;
+      border-left: 3px solid var(--vscode-textBlockQuote-border);
+    }
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .summary-label {
+      font-size: 0.85em;
+      color: var(--vscode-descriptionForeground);
+      margin-bottom: 4px;
+    }
+    .summary-value {
+      font-size: 1.2em;
+      font-weight: 600;
+    }
+  `;
 }
 
 /**
@@ -358,44 +413,7 @@ function getDiagnosticsReportHtml(report: DiagnosticsReport): string {
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
     <title>Diagnostics Report</title>
     <style>
-        body {
-            font-family: var(--vscode-font-family), 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: var(--vscode-font-size, 13px);
-            padding: 20px;
-            line-height: 1.6;
-            background: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            margin: 0;
-        }
-        h1 {
-          font-size: 1.5em;
-          font-weight: 600;
-          border-bottom: 1px solid var(--vscode-separator-foreground);
-          padding-bottom: 8px;
-          margin: 0 0 20px 0;
-        }
-        .summary {
-          display: flex;
-          gap: 20px;
-          margin-bottom: 25px;
-          padding: 15px;
-          background: var(--vscode-textBlockQuote-background);
-          border-radius: 3px;
-          border-left: 3px solid var(--vscode-textBlockQuote-border);
-        }
-        .summary-item {
-          display: flex;
-          flex-direction: column;
-        }
-        .summary-label {
-          font-size: 0.85em;
-          color: var(--vscode-descriptionForeground);
-          margin-bottom: 4px;
-        }
-        .summary-value {
-          font-size: 1.2em;
-          font-weight: 600;
-        }
+        ${getCommonWebviewStyles()}
         .no-issues {
           padding: 20px;
           text-align: center;
@@ -595,28 +613,7 @@ function getWebviewContent(metricsReport: string): string {
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
     <title>Performance Metrics</title>
     <style>
-        body { 
-            font-family: var(--vscode-font-family), 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: var(--vscode-font-size, 13px);
-            padding: 20px;
-            line-height: 1.6;
-            background: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            margin: 0;
-        }
-        h1 {
-          font-size: 1.5em;
-          font-weight: 600;
-          border-bottom: 1px solid var(--vscode-separator-foreground);
-          padding-bottom: 8px;
-          margin: 0 0 20px 0;
-        }
-        h2 {
-          font-size: 1.2em;
-          font-weight: 600;
-          margin-top: 25px;
-          margin-bottom: 10px;
-        }
+        ${getCommonWebviewStyles()}
         ul {
           list-style-type: none;
           padding-left: 5px;

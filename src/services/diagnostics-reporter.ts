@@ -38,16 +38,21 @@ export interface DiagnosticsReport {
   timestamp: Date;
 }
 
+const BATCH_SIZE = 20; // Process files in batches to manage memory
+const GC_PAUSE_MS = 10; // Small pause between batches for garbage collection
+
 /**
  * Generates a comprehensive diagnostics report for all templates in the workspace.
  *
  * @param diagnosticProvider - The diagnostic provider instance
  * @param progress - Optional progress reporter
+ * @param token - Optional cancellation token
  * @returns A structured report containing all diagnostic issues grouped by file
  */
 export async function generateFullDiagnosticsReport(
   diagnosticProvider: DiagnosticProvider,
-  progress?: vscode.Progress<{ message?: string; increment?: number }>
+  progress?: vscode.Progress<{ message?: string; increment?: number }>,
+  token?: vscode.CancellationToken
 ): Promise<DiagnosticsReport> {
   const report: DiagnosticsReport = {
     totalIssues: 0,
@@ -59,56 +64,110 @@ export async function generateFullDiagnosticsReport(
   const tsFiles = await vscode.workspace.findFiles("**/*.ts", "**/node_modules/**");
   const htmlFiles = await vscode.workspace.findFiles("**/*.html", "**/node_modules/**");
 
-  const totalFiles = tsFiles.length + htmlFiles.length;
-  let processedFiles = 0;
+  // Fast pre-filter TypeScript files to reduce memory usage
+  const candidateTsFiles = await filterCandidateFiles(tsFiles, token);
 
-  // Process TypeScript files (for inline templates)
-  for (const tsFileUri of tsFiles) {
-    processedFiles++;
-    if (progress) {
-      progress.report({
-        message: `Scanning TypeScript files (${processedFiles}/${totalFiles})...`,
-        increment: (1 / totalFiles) * 100,
-      });
-    }
-
-    try {
-      const document = await vscode.workspace.openTextDocument(tsFileUri);
-      const fileReport = await generateFileReport(document, "inline", diagnosticProvider);
-
-      if (fileReport.diagnostics.length > 0) {
-        report.fileReports.push(fileReport);
-        report.totalIssues += fileReport.diagnostics.length;
-      }
-    } catch (error) {
-      logger.error(`[DiagnosticsReporter] Error processing ${tsFileUri.fsPath}:`, error as Error);
-    }
+  if (token?.isCancellationRequested) {
+    throw new Error("Operation cancelled by user");
   }
 
-  // Process HTML files (external templates)
-  for (const htmlFileUri of htmlFiles) {
-    processedFiles++;
-    if (progress) {
-      progress.report({
-        message: `Scanning HTML templates (${processedFiles}/${totalFiles})...`,
-        increment: (1 / totalFiles) * 100,
-      });
-    }
+  const totalFiles = candidateTsFiles.length + htmlFiles.length;
 
-    try {
-      const document = await vscode.workspace.openTextDocument(htmlFileUri);
-      const fileReport = await generateFileReport(document, "external", diagnosticProvider);
+  logger.info(
+    `[DiagnosticsReporter] Found ${candidateTsFiles.length} candidate TypeScript files and ${htmlFiles.length} HTML files`
+  );
 
-      if (fileReport.diagnostics.length > 0) {
-        report.fileReports.push(fileReport);
-        report.totalIssues += fileReport.diagnostics.length;
-      }
-    } catch (error) {
-      logger.error(`[DiagnosticsReporter] Error processing ${htmlFileUri.fsPath}:`, error as Error);
-    }
-  }
+  // Process TypeScript files in batches (for inline templates)
+  const tsContext = { processedFiles: 0, totalFiles };
+  await processBatchedFiles(candidateTsFiles, "inline", diagnosticProvider, report, progress, token, tsContext);
+
+  // Process HTML files in batches (external templates)
+  await processBatchedFiles(htmlFiles, "external", diagnosticProvider, report, progress, token, tsContext);
 
   return report;
+}
+
+/**
+ * Processes files in batches to manage memory usage.
+ */
+async function processBatchedFiles(
+  files: vscode.Uri[],
+  templateType: "inline" | "external",
+  diagnosticProvider: DiagnosticProvider,
+  report: DiagnosticsReport,
+  progress: vscode.Progress<{ message?: string; increment?: number }> | undefined,
+  token: vscode.CancellationToken | undefined,
+  context: { processedFiles: number; totalFiles: number }
+): Promise<void> {
+  const fileTypeLabel = templateType === "inline" ? "TypeScript files" : "HTML templates";
+
+  for (let i = 0; i < files.length; i += BATCH_SIZE) {
+    if (token?.isCancellationRequested) {
+      throw new Error("Operation cancelled by user");
+    }
+
+    const batch = files.slice(i, i + BATCH_SIZE);
+
+    for (const fileUri of batch) {
+      context.processedFiles++;
+      if (progress) {
+        progress.report({
+          message: `Scanning ${fileTypeLabel} (${context.processedFiles}/${context.totalFiles})...`,
+          increment: (1 / context.totalFiles) * 100,
+        });
+      }
+
+      try {
+        const document = await vscode.workspace.openTextDocument(fileUri);
+        const fileReport = await generateFileReport(document, templateType, diagnosticProvider);
+
+        if (fileReport.diagnostics.length > 0) {
+          report.fileReports.push(fileReport);
+          report.totalIssues += fileReport.diagnostics.length;
+        }
+      } catch (error) {
+        logger.error(`[DiagnosticsReporter] Error processing ${fileUri.fsPath}:`, error as Error);
+      }
+    }
+
+    // Small pause between batches to allow garbage collection
+    await new Promise((resolve) => setTimeout(resolve, GC_PAUSE_MS));
+  }
+}
+
+/**
+ * Fast pre-filter TypeScript files to find Angular component candidates.
+ * Uses fs.readFile for fast content check without opening VS Code documents.
+ *
+ * @param files - Array of file URIs to filter
+ * @param token - Optional cancellation token
+ * @returns Filtered array of candidate files
+ */
+async function filterCandidateFiles(files: vscode.Uri[], token?: vscode.CancellationToken): Promise<vscode.Uri[]> {
+  const candidates: vscode.Uri[] = [];
+
+  for (let i = 0; i < files.length; i++) {
+    if (token?.isCancellationRequested) {
+      break;
+    }
+
+    const file = files[i];
+
+    try {
+      // Fast check: read file content and look for @Component and standalone
+      const content = await fs.promises.readFile(file.fsPath, "utf-8");
+
+      // Only include files that contain @Component decorator and standalone
+      if (content.includes("@Component") && content.includes("standalone")) {
+        candidates.push(file);
+      }
+    } catch (_error) {
+      // Skip files that can't be read
+      logger.debug(`[DiagnosticsReporter] Could not read file for filtering: ${file.fsPath}`);
+    }
+  }
+
+  return candidates;
 }
 
 /**
