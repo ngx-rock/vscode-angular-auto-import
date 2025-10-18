@@ -4,6 +4,19 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.15.0] - 2025-10-18
+
+### Added
+- **Enhanced Diagnostics Mode**: Introduced a new `quickfix-only` mode that enables quick fixes for missing imports without displaying diagnostic underlines, giving users more control over editor feedback.
+- **Debugging Tools**: Added a "Generate Diagnostics Report" command for advanced troubleshooting.
+
+### Changed
+- **Settings Refactor**: The `diagnostics.enabled` setting has been replaced with `diagnostics.mode`, which now supports three options: `full` (diagnostics with quick fixes), `quickfix-only`, and `disabled`.
+- **Command Naming**: Renamed "Show Performance Metrics" to "Show Performance Metrics (Debug)" to better reflect its purpose.
+
+### Fixed 
+- **Error Resilience**: Improved the stability of the quick fix provider by adding graceful error handling for indexer failures.
+
 ## [1.14.0] - 2025-10-14
 
 ### Changed

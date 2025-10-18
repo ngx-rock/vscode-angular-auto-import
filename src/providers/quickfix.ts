@@ -30,7 +30,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     context: vscode.CodeActionContext,
     token: vscode.CancellationToken
   ): Promise<(vscode.Command | vscode.CodeAction)[]> {
-    const filteredDiagnostics = this.filterRelevantDiagnostics(context, range);
+    const filteredDiagnostics = this.filterRelevantDiagnostics(context, range, document);
     if (filteredDiagnostics.length === 0) {
       return [];
     }
@@ -55,16 +55,28 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
 
   /**
    * Filters diagnostics that are relevant to the current range.
+   * Gets diagnostics from both VSCode context and internal diagnostic provider storage.
    */
   private filterRelevantDiagnostics(
     context: vscode.CodeActionContext,
-    range: vscode.Range | vscode.Selection
+    range: vscode.Range | vscode.Selection,
+    document: vscode.TextDocument
   ): vscode.Diagnostic[] {
-    if (!context || !context.diagnostics || !Array.isArray(context.diagnostics)) {
-      return [];
+    const contextDiagnostics = context?.diagnostics || [];
+
+    // Also get diagnostics from internal storage (works in 'quickfix-only' mode)
+    const internalDiagnostics = this.context.diagnosticProvider?.getDiagnosticsForDocument(document.uri) || [];
+
+    // Merge and deduplicate
+    const allDiagnostics = [...contextDiagnostics];
+    for (const diag of internalDiagnostics) {
+      const exists = allDiagnostics.some((d) => d.message === diag.message && d.range.isEqual(diag.range));
+      if (!exists) {
+        allDiagnostics.push(diag);
+      }
     }
 
-    return context.diagnostics.filter((diagnostic) => diagnostic.range.intersection(range));
+    return allDiagnostics.filter((diagnostic) => diagnostic.range.intersection(range));
   }
 
   /**

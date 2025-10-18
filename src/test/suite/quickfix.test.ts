@@ -21,9 +21,11 @@ describe("QuickfixImportProvider", function () {
   let mockDocument: any;
   let mockContext: any;
   let mockProviderContext: any;
+  let internalDiagnostics: vscode.Diagnostic[] = [];
   const testProjectPath = "/test/project";
 
   beforeEach(() => {
+    internalDiagnostics = [];
     // Create mock indexer with all required methods
     mockIndexer = {
       getAllSelectors: () =>
@@ -326,10 +328,19 @@ describe("QuickfixImportProvider", function () {
       extensionConfig: {
         projectPath: null,
         indexRefreshInterval: 60,
-        diagnosticsEnabled: true,
+        diagnosticsMode: "full", // Changed from diagnosticsEnabled: true
         diagnosticsSeverity: "warning" as any,
       },
       extensionContext: mockContext,
+      diagnosticProvider: {
+        // Mock diagnostic provider for quickfix-only tests
+        getDiagnosticsForDocument: (uri: vscode.Uri) => {
+          if (uri.toString() === mockDocument.uri.toString()) {
+            return internalDiagnostics;
+          }
+          return [];
+        },
+      } as any,
     };
 
     provider = new QuickfixImportProvider(mockProviderContext);
@@ -392,6 +403,40 @@ describe("QuickfixImportProvider", function () {
       );
 
       assert.deepStrictEqual(result, [], "Should return empty array when no project context");
+    });
+
+    it("should provide code actions when diagnostics are only in internal storage (quickfix-only mode)", async () => {
+      // Simulate quickfix-only mode: no diagnostics in context, but present in internal storage
+      mockProviderContext.extensionConfig.diagnosticsMode = "quickfix-only";
+      const diagnostic = new vscode.Diagnostic(
+        new vscode.Range(0, 0, 0, 14),
+        "'test-component' is part of a known component, but it is not imported.",
+        vscode.DiagnosticSeverity.Error
+      );
+      diagnostic.code = "missing-component-import:test-component";
+      diagnostic.source = "angular-auto-import";
+      internalDiagnostics = [diagnostic];
+      const context = {
+        diagnostics: [], // VS Code context has no diagnostics
+        only: undefined,
+        triggerKind: vscode.CodeActionTriggerKind.Invoke,
+      };
+
+      const result = await provider.provideCodeActions(
+        mockDocument,
+        new vscode.Range(0, 0, 0, 14),
+        context,
+        new vscode.CancellationTokenSource().token
+      );
+
+      assert.ok(Array.isArray(result), "Should return array of code actions");
+      assert.ok(result.length > 0, "Should have at least one code action");
+
+      const action = result[0] as vscode.CodeAction;
+      assert.ok(action.title.includes("TestComponent"), "Should include component name in title");
+      assert.strictEqual(action.kind, vscode.CodeActionKind.QuickFix, "Should be QuickFix kind");
+      assert.ok(action.command, "Should have command");
+      assert.strictEqual(action.command?.command, "angular-auto-import.importElement", "Should have correct command");
     });
 
     it("should provide code actions for known Angular component", async () => {

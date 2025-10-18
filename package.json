@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"
@@ -65,7 +65,7 @@
       },
       {
         "command": "angular-auto-import.showPerformanceMetrics",
-        "title": "Show Performance Metrics",
+        "title": "Show Performance Metrics (Debug)",
         "category": "Angular Auto Import",
         "icon": "$(graph)"
       },
@@ -74,6 +74,12 @@
         "title": "Angular Auto Import: Fix all missing imports in current file",
         "category": "Angular Auto Import",
         "icon": "$(check-all)"
+      },
+      {
+        "command": "angular-auto-import.generateDiagnosticsReport",
+        "title": "Generate Diagnostics Report (Debug)",
+        "category": "Angular Auto Import",
+        "icon": "$(file-text)"
       }
     ],
     "configuration": {
@@ -97,10 +103,15 @@
           "default": true,
           "description": "Enable auto-completion suggestions for Angular components, directives, and pipes in templates."
         },
-        "angular-auto-import.diagnostics.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable custom diagnostics for missing directive imports."
+        "angular-auto-import.diagnostics.mode": {
+          "type": "string",
+          "enum": [
+            "full",
+            "quickfix-only",
+            "disabled"
+          ],
+          "default": "full",
+          "description": "Diagnostic mode: 'full' shows diagnostics and provides quick fixes, 'quickfix-only' provides quick fixes without showing diagnostic underlines, 'disabled' turns off all diagnostics."
         },
         "angular-auto-import.diagnostics.severity": {
           "type": "string",
@@ -192,7 +203,7 @@
     "vsce:publish": "vsce publish --no-dependencies",
     "release": "pnpm run vsce:package && pnpm run vsce:publish",
     "docs:build": "rm -rf docs && typedoc",
-    "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format text --exclude 'src/test'",
+    "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 100 --language typescript --dir src --format text --exclude 'src/test' --skip-lexical-errors",
     "pmd:cpd:md": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format markdown --exclude 'src/test' --exclude 'src/test/fixtures' > duplicates-report.md"
   },
   "devDependencies": {

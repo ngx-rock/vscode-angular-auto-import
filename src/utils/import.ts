@@ -110,6 +110,11 @@ async function processElementImports(
     }
   }
 
+  // Format import statements after all elements are added
+  if (modified) {
+    formatImportStatements(sourceFile);
+  }
+
   return modified;
 }
 
@@ -346,4 +351,27 @@ function addNewImportsProperty(objectLiteral: ObjectLiteralExpression, importNam
 
   objectLiteral.addPropertyAssignment(newPropertyAssignment);
   return true;
+}
+
+/**
+ * Formats all import statements in the source file.
+ * Applies multi-line formatting if import statement exceeds 120 characters.
+ */
+function formatImportStatements(sourceFile: SourceFile): void {
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const importText = importDeclaration.getText();
+
+    if (importText.length > 120) {
+      const namedImports = importDeclaration.getNamedImports();
+
+      if (namedImports.length > 0) {
+        const moduleSpecifier = importDeclaration.getModuleSpecifierValue();
+        const importNames = namedImports.map((ni) => ni.getName());
+        const formattedImports = importNames.join(",\n  ");
+        const newImportText = `import {\n  ${formattedImports}\n} from "${moduleSpecifier}";`;
+
+        importDeclaration.replaceWithText(newImportText);
+      }
+    }
+  }
 }

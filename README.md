@@ -51,7 +51,7 @@ You can customize the extension's behavior via VS Code settings (`settings.json`
 | `angular-auto-import.projectPath`           | Optional. Absolute path to the Angular project root. If set, overrides workspace folders. If not set, uses open workspace folders. | `null`    |
 | `angular-auto-import.index.refreshInterval` | Interval in minutes for automatically reindexing Angular elements. Set to `0` to disable periodic reindexing. | `60`      |
 | `angular-auto-import.completion.enabled`    | Enable or disable auto-completion suggestions for Angular components, directives, and pipes in templates.     | `true`    |
-| `angular-auto-import.diagnostics.enabled`   | Enable or disable diagnostics for missing imports.                                                            | `true`    |
+| `angular-auto-import.diagnostics.mode`      | Diagnostic mode: `full` (show diagnostics + quick fixes), `quickfix-only` (quick fixes without visible diagnostics), `disabled` (turn off all diagnostics). | `full`    |
 | `angular-auto-import.diagnostics.severity`  | The severity of diagnostics for missing imports (`error`, `warning`, `info`).                                 | `warning` |
 
 ## Troubleshooting
@@ -67,8 +67,7 @@ The following commands are available from the Command Palette (`Ctrl+Shift+P` or
 - **Angular Auto Import: Fix all missing imports in current file**: Automatically imports all components, directives, and pipes that are used in the current file but not yet imported.
 - **Angular Auto Import: Reindex Project(s)**: Manually triggers a reindex of your project to discover all available Angular elements.
 - **Angular Auto Import: Clear Cache**: Clears the extension's cache. Use this if you encounter persistent issues.
-- **Angular Auto Import: Show Logs**: Opens the extension's output channel to view logs.
-- **Angular Auto Import: Show Performance Metrics**: Displays a panel with memory and CPU usage statistics.
+- **Angular Auto Import: Show Logs**: Opens the extension's output channel to view logs. 
 
 ---
 
