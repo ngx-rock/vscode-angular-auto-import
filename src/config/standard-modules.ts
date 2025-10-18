@@ -11,7 +11,7 @@
  */
 const STANDARD_MODULE_EXPORTS: Record<string, Set<string>> = {
   // CommonModule exports all common directives and pipes
-  CommonModule: new Set([
+  ['CommonModule']: new Set([
     // Directives
     "NgIf",
     "NgForOf",
@@ -41,7 +41,7 @@ const STANDARD_MODULE_EXPORTS: Record<string, Set<string>> = {
   ]),
 
   // FormsModule exports template-driven forms directives
-  FormsModule: new Set([
+['FormsModule']: new Set([
     "NgModel",
     "NgModelGroup",
     "NgForm",
@@ -51,7 +51,7 @@ const STANDARD_MODULE_EXPORTS: Record<string, Set<string>> = {
   ]),
 
   // ReactiveFormsModule exports reactive forms directives
-  ReactiveFormsModule: new Set([
+  ['ReactiveFormsModule']: new Set([
     "FormControlDirective",
     "FormControlName",
     "FormGroupDirective",

@@ -824,7 +824,7 @@ async function processFixAllCommand(commandContext: CommandContext): Promise<{
   if (commandContext.diagnosticProvider) {
     await commandContext.diagnosticProvider.forceUpdateDiagnosticsForFile(document.fileName);
   }
-  const diagnostics = getRelevantDiagnostics(document);
+  const diagnostics = getRelevantDiagnostics(document, commandContext);
 
   if (diagnostics.length === 0) {
     return { success: false, message: "No auto-import diagnostics to fix." };
@@ -852,9 +852,28 @@ async function processFixAllCommand(commandContext: CommandContext): Promise<{
 
 /**
  * Gets relevant auto-import diagnostics from a document.
+ * Uses internal diagnostic storage to work in all modes including 'quickfix-only'.
  */
-function getRelevantDiagnostics(document: vscode.TextDocument): vscode.Diagnostic[] {
-  return vscode.languages.getDiagnostics(document.uri).filter((d) => d.source === "angular-auto-import");
+function getRelevantDiagnostics(document: vscode.TextDocument, commandContext: CommandContext): vscode.Diagnostic[] {
+  const vscodeDiagnostics = vscode.languages
+    .getDiagnostics(document.uri)
+    .filter((d) => d.source === "angular-auto-import");
+
+  // Also get from internal storage (works in 'quickfix-only' mode)
+  const internalDiagnostics = commandContext.diagnosticProvider?.getDiagnosticsForDocument(document.uri) || [];
+
+  // Merge and deduplicate
+  const allDiagnostics = [...vscodeDiagnostics];
+  for (const diag of internalDiagnostics) {
+    const exists = allDiagnostics.some(
+      (d) => d.message === diag.message && d.range.isEqual(diag.range) && d.source === diag.source
+    );
+    if (!exists) {
+      allDiagnostics.push(diag);
+    }
+  }
+
+  return allDiagnostics;
 }
 
 /**

@@ -244,6 +244,16 @@ export class DiagnosticProvider {
   }
 
   /**
+   * Gets diagnostics for a document from internal storage.
+   * This works in all modes including 'quickfix-only'.
+   * @param uri The document URI
+   * @returns Array of diagnostics for the document
+   */
+  public getDiagnosticsForDocument(uri: vscode.Uri): vscode.Diagnostic[] {
+    return this.candidateDiagnostics.get(uri.toString()) || [];
+  }
+
+  /**
    * Public method to force-update diagnostics for a file.
    */
   public async forceUpdateDiagnosticsForFile(filePath: string): Promise<void> {
@@ -290,7 +300,8 @@ export class DiagnosticProvider {
   private async updateDiagnostics(document: vscode.TextDocument): Promise<void> {
     const startTime = process.hrtime.bigint();
 
-    if (!this.context.extensionConfig.diagnosticsEnabled) {
+    const diagnosticsMode = this.context.extensionConfig.diagnosticsMode;
+    if (diagnosticsMode === "disabled") {
       this.clearDiagnostics(document);
       return;
     }
@@ -1442,7 +1453,16 @@ export class DiagnosticProvider {
         candidateDiags.push(diag);
       }
     }
-    this.diagnosticCollection.set(uri, candidateDiags);
+
+    // Only publish to collection in 'full' mode
+    // In 'quickfix-only' mode, diagnostics are stored internally but not shown
+    const diagnosticsMode = this.context.extensionConfig.diagnosticsMode;
+    if (diagnosticsMode === "full") {
+      this.diagnosticCollection.set(uri, candidateDiags);
+    } else if (diagnosticsMode === "quickfix-only") {
+      // Clear visible diagnostics but keep internal storage
+      this.diagnosticCollection.set(uri, []);
+    }
   }
 
   private loadCompiler(): void {

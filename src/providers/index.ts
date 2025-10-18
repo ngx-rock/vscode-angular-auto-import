@@ -34,6 +34,10 @@ export interface ProviderContext {
    * The extension context.
    */
   extensionContext: vscode.ExtensionContext;
+  /**
+   * The diagnostic provider instance (optional, set after registration).
+   */
+  diagnosticProvider?: DiagnosticProvider;
 }
 
 /**
@@ -82,19 +86,19 @@ export function registerProviders(
 
   let diagnosticProvider: DiagnosticProvider | undefined;
 
-  // Diagnostic Provider (if enabled)
-  if (providerContext.extensionConfig.diagnosticsEnabled) {
+  // Diagnostic Provider (always create unless disabled)
+  const diagnosticsMode = providerContext.extensionConfig.diagnosticsMode;
+  if (diagnosticsMode !== "disabled") {
     diagnosticProvider = new DiagnosticProvider(providerContext);
     diagnosticProvider.activate();
 
-    // Set global diagnostic provider for import utils
-    // setGlobalDiagnosticProvider(diagnosticProvider); // This line is removed
+    // Add to provider context so QuickFix and Fix All can access it
+    providerContext.diagnosticProvider = diagnosticProvider;
 
     // Deactivate when the extension is deactivated
     context.subscriptions.push({
       dispose: () => {
         diagnosticProvider?.deactivate();
-        // setGlobalDiagnosticProvider(null); // This line is removed
       },
     });
   }

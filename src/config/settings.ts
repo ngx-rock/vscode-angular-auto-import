@@ -44,10 +44,13 @@ export interface ExtensionConfig {
    */
   completionEnabled: boolean;
   /**
-   * Whether to enable diagnostic messages for missing imports.
-   * @default true
+   * Diagnostic mode for missing imports.
+   * - 'full': Show diagnostic underlines and provide quick fixes
+   * - 'quickfix-only': Provide quick fixes without showing diagnostic underlines
+   * - 'disabled': Turn off all diagnostics
+   * @default 'full'
    */
-  diagnosticsEnabled: boolean;
+  diagnosticsMode: string;
   /**
    * Severity level for diagnostic messages.
    * Valid values: 'error', 'warning', 'information', 'hint'
@@ -119,7 +122,7 @@ export function getConfiguration(): ExtensionConfig {
     projectPath: config.get<string | null>("projectPath", null),
     indexRefreshInterval: config.get<number>("index.refreshInterval", 60),
     completionEnabled: config.get<boolean>("completion.enabled", true),
-    diagnosticsEnabled: config.get<boolean>("diagnostics.enabled", true),
+    diagnosticsMode: config.get<string>("diagnostics.mode", "full"),
     diagnosticsSeverity: config.get<string>("diagnostics.severity", "warning"),
     logging: {
       enabled: config.get<boolean>("logging.enabled", true),
