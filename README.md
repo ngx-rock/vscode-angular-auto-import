@@ -67,8 +67,7 @@ The following commands are available from the Command Palette (`Ctrl+Shift+P` or
 - **Angular Auto Import: Fix all missing imports in current file**: Automatically imports all components, directives, and pipes that are used in the current file but not yet imported.
 - **Angular Auto Import: Reindex Project(s)**: Manually triggers a reindex of your project to discover all available Angular elements.
 - **Angular Auto Import: Clear Cache**: Clears the extension's cache. Use this if you encounter persistent issues.
-- **Angular Auto Import: Show Logs**: Opens the extension's output channel to view logs.
-- **Angular Auto Import: Show Performance Metrics**: Displays a panel with memory and CPU usage statistics.
+- **Angular Auto Import: Show Logs**: Opens the extension's output channel to view logs. 
 
 ---
 

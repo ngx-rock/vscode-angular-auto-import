@@ -65,7 +65,7 @@
       },
       {
         "command": "angular-auto-import.showPerformanceMetrics",
-        "title": "Show Performance Metrics",
+        "title": "Show Performance Metrics (Debug)",
         "category": "Angular Auto Import",
         "icon": "$(graph)"
       },

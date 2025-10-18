@@ -19,6 +19,7 @@ import {
   SyntaxKind,
 } from "ts-morph";
 import * as vscode from "vscode";
+import { getStandardModuleExports } from "../config/standard-modules";
 import { knownTags } from "../consts";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
@@ -981,6 +982,16 @@ export class DiagnosticProvider {
       const importedModules = importsArray.getElements().map((el: Expression) => el.getText().trim());
 
       for (const moduleName of importedModules) {
+        // First check if it's a standard Angular module (CommonModule, FormsModule, etc.)
+        const standardModuleExports = getStandardModuleExports(moduleName);
+        if (standardModuleExports?.has(element.name)) {
+          logger.debug(
+            `[DiagnosticProvider] Element '${element.name}' found in standard Angular module '${moduleName}'`
+          );
+          return true;
+        }
+
+        // Then check indexer for custom modules
         const moduleExports = indexer.getExternalModuleExports(moduleName);
         if (moduleExports?.has(element.name)) {
           logger.debug(
