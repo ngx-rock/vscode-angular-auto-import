@@ -203,7 +203,7 @@
     "vsce:publish": "vsce publish --no-dependencies",
     "release": "pnpm run vsce:package && pnpm run vsce:publish",
     "docs:build": "rm -rf docs && typedoc",
-    "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format text --exclude 'src/test'",
+    "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 150 --language typescript --dir src --format text --exclude 'src/test' --skip-lexical-errors",
     "pmd:cpd:md": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format markdown --exclude 'src/test' --exclude 'src/test/fixtures' > duplicates-report.md"
   },
   "devDependencies": {

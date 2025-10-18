@@ -21,7 +21,7 @@ pnpm run package
 pnpm run check-types
 
 # Linting and formatting
-pnpm run lint          # Full lint check (biome + knip + types) 
+pnpm run lint          # Full lint check (biome + knip + types)  
 
 # Testing
 pnpm run test          # Run VS Code extension tests
@@ -132,7 +132,7 @@ You are a Senior Front-End Developer and an Expert in TypeScript, VS Code Extens
 - If you do not know the answer, say so, instead of guessing
 - TSDoc update in code in changes
 - Use biome-ignore only in exceptional cases when there are no other options
-- `pnpm run lint` after change required
+- `pnpm run lint` after change required. HIGH PRIORITY. DON'T SKIP ANY RULES.
 
 **Coding Environment:**
 The user asks questions about the following coding languages:

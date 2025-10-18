@@ -300,6 +300,33 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
 }
 
 /**
+ * Generates common HTML document header.
+ * @param title - Document title
+ * @returns HTML header string
+ */
+function getHtmlDocumentHeader(title: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+    <title>${title}</title>`;
+}
+
+/**
+ * Returns warning box styling for validation messages.
+ * @returns CSS string for warning styled elements
+ */
+function getWarningBoxStyles(): string {
+  return `
+          margin-bottom: 20px;
+          background: var(--vscode-inputValidation-warningBackground);
+          border: 1px solid var(--vscode-inputValidation-warningBorder);
+          border-radius: 3px;`;
+}
+
+/**
  * Returns common CSS styles for webview panels.
  * Centralizes shared styles to avoid duplication.
  *
@@ -454,13 +481,7 @@ function getDiagnosticsReportHtml(report: DiagnosticsReport): string {
   const truncationWarning = generateTruncationWarning(report);
   const summaryHtml = generateSummaryHtml(report, formatTimestamp);
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
-    <title>Diagnostics Report</title>
+  return `${getHtmlDocumentHeader("Diagnostics Report")}
     <style>
         ${getCommonWebviewStyles()}
         .no-issues {
@@ -472,11 +493,7 @@ function getDiagnosticsReportHtml(report: DiagnosticsReport): string {
           font-size: 1.1em;
         }
         .truncation-warning {
-          padding: 15px;
-          margin-bottom: 20px;
-          background: var(--vscode-inputValidation-warningBackground);
-          border: 1px solid var(--vscode-inputValidation-warningBorder);
-          border-radius: 3px;
+          padding: 15px;${getWarningBoxStyles()}
           border-left: 4px solid var(--vscode-inputValidation-warningBorder);
         }
         .truncation-warning-title {
@@ -516,10 +533,7 @@ function getDiagnosticsReportHtml(report: DiagnosticsReport): string {
         }
         .issue-count {
           font-size: 0.85em;
-          padding: 3px 8px;
-          background: var(--vscode-inputValidation-warningBackground);
-          border: 1px solid var(--vscode-inputValidation-warningBorder);
-          border-radius: 3px;
+          padding: 3px 8px;${getWarningBoxStyles()}
         }
         .diagnostics-list {
           padding: 10px 15px;
@@ -657,13 +671,7 @@ function getWebviewContent(metricsReport: string): string {
   // Wrap consecutive list items in a <ul> tag
   htmlContent = htmlContent.replace(/(<li>(.|\n)*?<\/li>)/gs, "<ul>$1</ul>").replace(/<\/ul>\s*<ul>/gs, "");
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
-    <title>Performance Metrics</title>
+  return `${getHtmlDocumentHeader("Performance Metrics")}
     <style>
         ${getCommonWebviewStyles()}
         ul {

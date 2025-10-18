@@ -4,6 +4,12 @@
  * @module
  */
 
+const key = {
+  commonModule: "CommonModule",
+  formsModule: "FormsModule",
+  reactiveFormsModule: "ReactiveFormsModule",
+};
+
 /**
  * Maps standard Angular module names to the elements they export.
  * This is used by the diagnostic provider to check if an element is available
@@ -11,7 +17,7 @@
  */
 const STANDARD_MODULE_EXPORTS: Record<string, Set<string>> = {
   // CommonModule exports all common directives and pipes
-  ['CommonModule']: new Set([
+  [key.commonModule]: new Set([
     // Directives
     "NgIf",
     "NgForOf",
@@ -41,7 +47,7 @@ const STANDARD_MODULE_EXPORTS: Record<string, Set<string>> = {
   ]),
 
   // FormsModule exports template-driven forms directives
-['FormsModule']: new Set([
+  [key.formsModule]: new Set([
     "NgModel",
     "NgModelGroup",
     "NgForm",
@@ -51,7 +57,7 @@ const STANDARD_MODULE_EXPORTS: Record<string, Set<string>> = {
   ]),
 
   // ReactiveFormsModule exports reactive forms directives
-  ['ReactiveFormsModule']: new Set([
+  [key.reactiveFormsModule]: new Set([
     "FormControlDirective",
     "FormControlName",
     "FormGroupDirective",

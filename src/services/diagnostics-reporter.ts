@@ -49,6 +49,11 @@ const MAX_TOTAL_DIAGNOSTICS = 2000; // Limit total diagnostics to prevent memory
 const MAX_FILES_IN_REPORT = 500; // Limit total files in report to prevent memory overflow
 
 /**
+ * Message shown when max diagnostics limit is reached.
+ */
+const TRUNCATION_MESSAGE_MAX_DIAGNOSTICS = `Report limited to ${MAX_TOTAL_DIAGNOSTICS} total diagnostics to prevent memory overflow`;
+
+/**
  * Generates a comprehensive diagnostics report for all templates in the workspace.
  *
  * @param diagnosticProvider - The diagnostic provider instance
@@ -127,20 +132,33 @@ async function processBatchedFiles(
 }
 
 /**
+ * Marks report as truncated and logs warning.
+ */
+function markReportTruncated(report: DiagnosticsReport, reason: string, logMessage: string): void {
+  report.truncated = true;
+  report.truncationReason = reason;
+  logger.warn(logMessage);
+}
+
+/**
  * Checks if report has reached memory limits.
  */
 function checkReportLimits(report: DiagnosticsReport): boolean {
   if (report.fileReports.length >= MAX_FILES_IN_REPORT) {
-    report.truncated = true;
-    report.truncationReason = `Report limited to ${MAX_FILES_IN_REPORT} files to prevent memory overflow`;
-    logger.warn(`[DiagnosticsReporter] Reached max files limit (${MAX_FILES_IN_REPORT}), stopping scan`);
+    markReportTruncated(
+      report,
+      `Report limited to ${MAX_FILES_IN_REPORT} files to prevent memory overflow`,
+      `[DiagnosticsReporter] Reached max files limit (${MAX_FILES_IN_REPORT}), stopping scan`
+    );
     return true;
   }
 
   if (report.totalIssues >= MAX_TOTAL_DIAGNOSTICS) {
-    report.truncated = true;
-    report.truncationReason = `Report limited to ${MAX_TOTAL_DIAGNOSTICS} total diagnostics to prevent memory overflow`;
-    logger.warn(`[DiagnosticsReporter] Reached max diagnostics limit (${MAX_TOTAL_DIAGNOSTICS}), stopping scan`);
+    markReportTruncated(
+      report,
+      TRUNCATION_MESSAGE_MAX_DIAGNOSTICS,
+      `[DiagnosticsReporter] Reached max diagnostics limit (${MAX_TOTAL_DIAGNOSTICS}), stopping scan`
+    );
     return true;
   }
 
@@ -172,9 +190,11 @@ async function processSingleBatch(
 
         // Early exit if we hit the total diagnostics limit
         if (report.totalIssues >= MAX_TOTAL_DIAGNOSTICS) {
-          report.truncated = true;
-          report.truncationReason = `Report limited to ${MAX_TOTAL_DIAGNOSTICS} total diagnostics to prevent memory overflow`;
-          logger.warn(`[DiagnosticsReporter] Reached max diagnostics limit, stopping scan`);
+          markReportTruncated(
+            report,
+            TRUNCATION_MESSAGE_MAX_DIAGNOSTICS,
+            "[DiagnosticsReporter] Reached max diagnostics limit, stopping scan"
+          );
           return;
         }
       }
