@@ -21,9 +21,11 @@ describe("QuickfixImportProvider", function () {
   let mockDocument: any;
   let mockContext: any;
   let mockProviderContext: any;
+  let internalDiagnostics: vscode.Diagnostic[] = [];
   const testProjectPath = "/test/project";
 
   beforeEach(() => {
+    internalDiagnostics = [];
     // Create mock indexer with all required methods
     mockIndexer = {
       getAllSelectors: () =>
@@ -334,14 +336,7 @@ describe("QuickfixImportProvider", function () {
         // Mock diagnostic provider for quickfix-only tests
         getDiagnosticsForDocument: (uri: vscode.Uri) => {
           if (uri.toString() === mockDocument.uri.toString()) {
-            const diagnostic = new vscode.Diagnostic(
-              new vscode.Range(0, 0, 0, 14),
-              "'test-component' is part of a known component, but it is not imported.",
-              vscode.DiagnosticSeverity.Error
-            );
-            diagnostic.code = "missing-component-import:test-component";
-            diagnostic.source = "angular-auto-import";
-            return [diagnostic];
+            return internalDiagnostics;
           }
           return [];
         },
@@ -413,6 +408,14 @@ describe("QuickfixImportProvider", function () {
     it("should provide code actions when diagnostics are only in internal storage (quickfix-only mode)", async () => {
       // Simulate quickfix-only mode: no diagnostics in context, but present in internal storage
       mockProviderContext.extensionConfig.diagnosticsMode = "quickfix-only";
+      const diagnostic = new vscode.Diagnostic(
+        new vscode.Range(0, 0, 0, 14),
+        "'test-component' is part of a known component, but it is not imported.",
+        vscode.DiagnosticSeverity.Error
+      );
+      diagnostic.code = "missing-component-import:test-component";
+      diagnostic.source = "angular-auto-import";
+      internalDiagnostics = [diagnostic];
       const context = {
         diagnostics: [], // VS Code context has no diagnostics
         only: undefined,

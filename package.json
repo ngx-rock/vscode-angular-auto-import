@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"
@@ -203,7 +203,7 @@
     "vsce:publish": "vsce publish --no-dependencies",
     "release": "pnpm run vsce:package && pnpm run vsce:publish",
     "docs:build": "rm -rf docs && typedoc",
-    "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 150 --language typescript --dir src --format text --exclude 'src/test' --skip-lexical-errors",
+    "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 100 --language typescript --dir src --format text --exclude 'src/test' --skip-lexical-errors",
     "pmd:cpd:md": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format markdown --exclude 'src/test' --exclude 'src/test/fixtures' > duplicates-report.md"
   },
   "devDependencies": {
