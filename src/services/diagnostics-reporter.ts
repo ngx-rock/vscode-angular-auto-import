@@ -44,9 +44,9 @@ export interface DiagnosticsReport {
 
 const BATCH_SIZE = 20; // Process files in batches to manage memory
 const GC_PAUSE_MS = 10; // Small pause between batches for garbage collection
-const MAX_DIAGNOSTICS_PER_FILE = 50; // Limit diagnostics per file to prevent memory overflow
-const MAX_TOTAL_DIAGNOSTICS = 1000; // Limit total diagnostics to prevent memory overflow
-const MAX_FILES_IN_REPORT = 200; // Limit total files in report to prevent memory overflow
+const MAX_DIAGNOSTICS_PER_FILE = 100; // Limit diagnostics per file to prevent memory overflow
+const MAX_TOTAL_DIAGNOSTICS = 2000; // Limit total diagnostics to prevent memory overflow
+const MAX_FILES_IN_REPORT = 500; // Limit total files in report to prevent memory overflow
 
 /**
  * Generates a comprehensive diagnostics report for all templates in the workspace.
@@ -235,11 +235,11 @@ async function filterCandidateFiles(files: vscode.Uri[], token?: vscode.Cancella
     const file = files[i];
 
     try {
-      // Fast check: read file content and look for @Component and standalone
+      // Fast check: read file content and look for @Component decorator
       const content = await fs.promises.readFile(file.fsPath, "utf-8");
 
-      // Only include files that contain @Component decorator and standalone
-      if (content.includes("@Component") && content.includes("standalone")) {
+      // Only include files that contain @Component decorator
+      if (content.includes("@Component")) {
         candidates.push(file);
       }
     } catch (_error) {
@@ -273,14 +273,14 @@ async function generateFileReport(
   try {
     // For TypeScript files, check if they have inline templates
     if (templateType === "inline") {
-      // Check if it's a component file with standalone
+      // Check if it's a component file
       const content = document.getText();
-      if (!content.includes("@Component") || !content.includes("standalone")) {
+      if (!content.includes("@Component")) {
         return fileReport;
       }
     }
 
-    // For HTML files, check if corresponding .ts file exists and is standalone
+    // For HTML files, check if corresponding .ts file exists and is a component
     if (templateType === "external") {
       const componentPath = switchFileType(document.fileName, ".ts");
       if (!fs.existsSync(componentPath)) {
@@ -292,9 +292,9 @@ async function generateFileReport(
         return fileReport;
       }
 
-      // Quick check if it's a standalone component (without full parsing)
+      // Quick check if it's a component (without full parsing)
       const tsContent = tsDocument.getText();
-      if (!tsContent.includes("@Component") || !tsContent.includes("standalone")) {
+      if (!tsContent.includes("@Component")) {
         return fileReport;
       }
     }
