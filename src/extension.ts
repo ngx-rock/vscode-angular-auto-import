@@ -138,11 +138,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.subscriptions.push(documentCloseHandler);
 
     logger.info("✅ Angular Auto-Import: Extension activated successfully");
-    const message =
-      projectRoots.length === 1
-        ? "✅ Angular Auto-Import activated"
-        : `✅ Angular Auto-Import activated for ${projectRoots.length} projects`;
-    vscode.window.showInformationMessage(message);
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     logger.fatal("❌ Error activating Angular Auto-Import extension:", err);
