@@ -85,7 +85,8 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     }
 
     // For TypeScript files, ensure we are inside a template string
-    if (document.languageId === "typescript" && !isInsideTemplateString(document, position)) {
+    // Pass the ts-morph project for robust AST-based detection
+    if (document.languageId === "typescript" && !isInsideTemplateString(document, position, projCtx.indexer.project)) {
       return new vscode.CompletionList([], true);
     }
 

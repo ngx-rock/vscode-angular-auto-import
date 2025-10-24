@@ -2,13 +2,15 @@
  *
  * Optimized Template String Detection Utility
  *
- * This module provides fast, regex-based detection of whether a cursor position
- * is inside an Angular component's template string, replacing the expensive
- * ts-morph AST parsing approach with efficient string operations.
+ * This module provides template detection for Angular component inline templates.
+ * It uses a hybrid approach:
+ * - Primary: ts-morph AST parsing for robust, reliable detection
+ * - Fallback: regex-based detection for performance when AST is unavailable
  *
  * @module
  */
 
+import { type NoSubstitutionTemplateLiteral, type StringLiteral, SyntaxKind } from "ts-morph";
 import type * as vscode from "vscode";
 
 /**
@@ -39,18 +41,215 @@ interface CacheEntry {
 const templateCache = new Map<string, CacheEntry>();
 
 /**
- * Optimized function to check if a position is inside an Angular template string.
- * Uses regex-based parsing instead of ts-morph for significant performance improvement.
+ * Check if a position is inside an Angular template string.
+ * Uses a hybrid approach: tries ts-morph AST parsing first (robust), falls back to regex (fast).
  *
  * @param document The VS Code text document.
  * @param position The position to check.
+ * @param project Optional ts-morph Project for AST-based detection.
  * @returns `true` if the position is inside a template string, `false` otherwise.
  */
-export function isInsideTemplateString(document: vscode.TextDocument, position: vscode.Position): boolean {
+export function isInsideTemplateString(
+  document: vscode.TextDocument,
+  position: vscode.Position,
+  project?: import("ts-morph").Project
+): boolean {
+  // Try AST-based detection first if project is available (more robust)
+  if (project) {
+    const astResult = isInsideTemplateStringUsingAst(document, position, project);
+    if (astResult !== undefined) {
+      return astResult;
+    }
+  }
+
+  // Fallback to regex-based detection
   const offset = document.offsetAt(position);
   const templateRanges = getTemplateStringRanges(document);
 
   return templateRanges.some((range) => offset >= range.start && offset <= range.end);
+}
+
+/**
+ * Robust template detection using ts-morph AST parsing.
+ * This approach handles all edge cases correctly (whitespace, comments, multiline, etc.)
+ *
+ * @param document The VS Code text document.
+ * @param position The position to check.
+ * @param project The ts-morph Project instance.
+ * @returns `true` if inside template, `false` if not, `undefined` if detection failed.
+ * @internal
+ */
+function isInsideTemplateStringUsingAst(
+  document: vscode.TextDocument,
+  position: vscode.Position,
+  project: import("ts-morph").Project
+): boolean | undefined {
+  try {
+    const sourceFile = project.getSourceFile(document.fileName);
+    if (!sourceFile) {
+      return undefined;
+    }
+
+    const offset = document.offsetAt(position);
+    const templateRanges = extractTemplateRangesFromAst(sourceFile);
+
+    return templateRanges.some((range) => offset >= range.start && offset <= range.end);
+  } catch {
+    // If AST parsing fails, return undefined to fall back to regex
+    return undefined;
+  }
+}
+
+/**
+ * Extract all template string ranges from a TypeScript source file using AST parsing.
+ * This is the robust approach used by DiagnosticProvider.
+ *
+ * @param sourceFile The ts-morph SourceFile instance.
+ * @returns An array of template string ranges.
+ * @internal
+ */
+function extractTemplateRangesFromAst(sourceFile: import("ts-morph").SourceFile): TemplateStringRange[] {
+  const ranges: TemplateStringRange[] = [];
+
+  // Find all class declarations
+  for (const classDecl of sourceFile.getClasses()) {
+    const templateRange = extractTemplateRangeFromComponent(classDecl);
+    if (templateRange) {
+      ranges.push(templateRange);
+    }
+  }
+
+  return ranges;
+}
+
+/**
+ * Extract template range from a single component class.
+ *
+ * @param classDecl The class declaration to extract from.
+ * @returns The template range if found, undefined otherwise.
+ * @internal
+ */
+function extractTemplateRangeFromComponent(
+  classDecl: import("ts-morph").ClassDeclaration
+): TemplateStringRange | undefined {
+  // Find @Component decorator
+  const componentDecorator = findComponentDecorator(classDecl);
+  if (!componentDecorator) {
+    return undefined;
+  }
+
+  // Get decorator call expression and extract metadata object
+  const objectLiteral = extractComponentMetadata(componentDecorator);
+  if (!objectLiteral) {
+    return undefined;
+  }
+
+  // Find the 'template' property and extract its range
+  return extractTemplatePropertyRange(objectLiteral);
+}
+
+/**
+ * Find the @Component decorator in a class.
+ *
+ * @param classDecl The class declaration to search.
+ * @returns The Component decorator if found, undefined otherwise.
+ * @internal
+ */
+function findComponentDecorator(
+  classDecl: import("ts-morph").ClassDeclaration
+): import("ts-morph").Decorator | undefined {
+  return classDecl.getDecorators().find((dec) => {
+    const expression = dec.getExpression();
+    if (expression.getKind() === SyntaxKind.CallExpression) {
+      const callExpr = expression as import("ts-morph").CallExpression;
+      return callExpr.getExpression().getText() === "Component";
+    }
+    return expression.getText() === "Component";
+  });
+}
+
+/**
+ * Extract the component metadata object from a decorator.
+ *
+ * @param decorator The decorator to extract from.
+ * @returns The metadata object literal if found, undefined otherwise.
+ * @internal
+ */
+function extractComponentMetadata(
+  decorator: import("ts-morph").Decorator
+): import("ts-morph").ObjectLiteralExpression | undefined {
+  const decoratorExpr = decorator.getExpression();
+  if (decoratorExpr.getKind() !== SyntaxKind.CallExpression) {
+    return undefined;
+  }
+
+  const callExpr = decoratorExpr as import("ts-morph").CallExpression;
+  const args = callExpr.getArguments();
+  if (args.length === 0) {
+    return undefined;
+  }
+
+  const metadataArg = args[0];
+  if (metadataArg.getKind() !== SyntaxKind.ObjectLiteralExpression) {
+    return undefined;
+  }
+
+  return metadataArg as import("ts-morph").ObjectLiteralExpression;
+}
+
+/**
+ * Extract template property range from component metadata.
+ *
+ * @param objectLiteral The component metadata object.
+ * @returns The template range if found, undefined otherwise.
+ * @internal
+ */
+function extractTemplatePropertyRange(
+  objectLiteral: import("ts-morph").ObjectLiteralExpression
+): TemplateStringRange | undefined {
+  // Find the 'template' property
+  const templateProperty = objectLiteral.getProperty("template");
+  if (!templateProperty) {
+    return undefined;
+  }
+
+  // Check if it's a PropertyAssignment
+  if (templateProperty.getKind() !== SyntaxKind.PropertyAssignment) {
+    return undefined;
+  }
+
+  const propAssignment = templateProperty as import("ts-morph").PropertyAssignment;
+  const initializer = propAssignment.getInitializer();
+
+  if (!initializer) {
+    return undefined;
+  }
+
+  // Check if initializer is a string literal or template literal
+  const kind = initializer.getKind();
+  const isValidTemplate = kind === SyntaxKind.StringLiteral || kind === SyntaxKind.NoSubstitutionTemplateLiteral;
+
+  if (!isValidTemplate) {
+    return undefined;
+  }
+
+  // Extract the template string content
+  const templateInitializer = initializer as StringLiteral | NoSubstitutionTemplateLiteral;
+
+  // Get the literal text and calculate offsets
+  const literalText = templateInitializer.getLiteralText();
+  const startPos = initializer.getStart();
+  const quoteChar = initializer.getText().charAt(0); // Get the quote character
+
+  // Calculate range: skip opening quote, exclude closing quote
+  const rangeStart = startPos + 1; // +1 to skip opening quote
+  const rangeEnd = startPos + 1 + literalText.length; // +1 for quote, +length of content
+
+  return {
+    start: rangeStart,
+    end: rangeEnd,
+    quote: quoteChar,
+  };
 }
 
 /**
