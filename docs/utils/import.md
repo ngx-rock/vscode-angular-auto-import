@@ -34,7 +34,7 @@ Key Bug Fixes:
 
 > **importElementsToFile**(`elements`, `componentFilePathAbs`, `projectRootPath`, `indexerProject`, `_tsConfig`): `Promise`\<`boolean`\>
 
-Defined in: [utils/import.ts:214](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/import.ts#L214)
+Defined in: [utils/import.ts:219](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/import.ts#L219)
 
 Imports multiple Angular elements into a component file. This function handles adding the import statements
 and updating the `@Component` decorator's `imports` array for all elements in one operation.

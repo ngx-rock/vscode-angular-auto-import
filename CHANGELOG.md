@@ -4,6 +4,15 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.16.0] - 2025-10-26
+
+### Improved
+- **Template Parsing**: Enhanced template parser to handle syntactically incorrect HTML, improving error resilience.
+- **Template Detection**: Implemented AST-based detection for inline templates, significantly improving accuracy.
+
+### Changed
+- **Activation Notification**: Removed the extension activation message for a quieter user experience.
+
 ## [1.15.0] - 2025-10-18
 
 ### Added
