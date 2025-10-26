@@ -8,9 +8,10 @@
 
 Optimized Template String Detection Utility
 
-This module provides fast, regex-based detection of whether a cursor position
-is inside an Angular component's template string, replacing the expensive
-ts-morph AST parsing approach with efficient string operations.
+This module provides template detection for Angular component inline templates.
+It uses a hybrid approach:
+- Primary: ts-morph AST parsing for robust, reliable detection
+- Fallback: regex-based detection for performance when AST is unavailable
 
 ## Functions
 
@@ -18,7 +19,7 @@ ts-morph AST parsing approach with efficient string operations.
 
 > **clearAllTemplateCache**(): `void`
 
-Defined in: [utils/template-detection.ts:342](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L342)
+Defined in: [utils/template-detection.ts:541](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L541)
 
 Clear all template cache (useful for cleanup).
 
@@ -32,7 +33,7 @@ Clear all template cache (useful for cleanup).
 
 > **clearTemplateCache**(`documentUri`): `void`
 
-Defined in: [utils/template-detection.ts:335](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L335)
+Defined in: [utils/template-detection.ts:534](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L534)
 
 Clear cache for a specific document (useful when document is closed).
 
@@ -50,12 +51,12 @@ Clear cache for a specific document (useful when document is closed).
 
 ### isInsideTemplateString()
 
-> **isInsideTemplateString**(`document`, `position`): `boolean`
+> **isInsideTemplateString**(`document`, `position`, `project?`): `boolean`
 
-Defined in: [utils/template-detection.ts:49](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L49)
+Defined in: [utils/template-detection.ts:52](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/template-detection.ts#L52)
 
-Optimized function to check if a position is inside an Angular template string.
-Uses regex-based parsing instead of ts-morph for significant performance improvement.
+Check if a position is inside an Angular template string.
+Uses a hybrid approach: tries ts-morph AST parsing first (robust), falls back to regex (fast).
 
 #### Parameters
 
@@ -63,6 +64,7 @@ Uses regex-based parsing instead of ts-morph for significant performance improve
 | ------ | ------ | ------ |
 | `document` | `TextDocument` | The VS Code text document. |
 | `position` | `Position` | The position to check. |
+| `project?` | `Project` | Optional ts-morph Project for AST-based detection. |
 
 #### Returns
 

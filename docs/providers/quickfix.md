@@ -51,7 +51,7 @@ Defined in: [providers/quickfix.ts:25](https://github.com/ngx-rock/vscode-angula
 
 > `private` **createCodeAction**(`element`, `diagnostic`, `document`): `Promise`\<`null` \| `CodeAction`\>
 
-Defined in: [providers/quickfix.ts:178](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L178)
+Defined in: [providers/quickfix.ts:190](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L190)
 
 ###### Parameters
 
@@ -69,7 +69,7 @@ Defined in: [providers/quickfix.ts:178](https://github.com/ngx-rock/vscode-angul
 
 > `private` **createQuickFixesForDiagnostic**(`diagnostic`, `indexer`, `document`): `Promise`\<`CodeAction`[]\>
 
-Defined in: [providers/quickfix.ts:142](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L142)
+Defined in: [providers/quickfix.ts:154](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L154)
 
 ###### Parameters
 
@@ -87,7 +87,7 @@ Defined in: [providers/quickfix.ts:142](https://github.com/ngx-rock/vscode-angul
 
 > `private` **deduplicateAndSortActions**(`actions`): `CodeAction`[]
 
-Defined in: [providers/quickfix.ts:101](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L101)
+Defined in: [providers/quickfix.ts:113](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L113)
 
 Deduplicates and sorts code actions.
 
@@ -103,11 +103,12 @@ Deduplicates and sorts code actions.
 
 ##### filterRelevantDiagnostics()
 
-> `private` **filterRelevantDiagnostics**(`context`, `range`): `Diagnostic`[]
+> `private` **filterRelevantDiagnostics**(`context`, `range`, `document`): `Diagnostic`[]
 
-Defined in: [providers/quickfix.ts:59](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L59)
+Defined in: [providers/quickfix.ts:60](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L60)
 
 Filters diagnostics that are relevant to the current range.
+Gets diagnostics from both VSCode context and internal diagnostic provider storage.
 
 ###### Parameters
 
@@ -115,6 +116,7 @@ Filters diagnostics that are relevant to the current range.
 | ------ | ------ |
 | `context` | `CodeActionContext` |
 | `range` | `Range` \| `Selection` |
+| `document` | `TextDocument` |
 
 ###### Returns
 
@@ -124,7 +126,7 @@ Filters diagnostics that are relevant to the current range.
 
 > `private` **generateQuickFixActions**(`diagnostics`, `indexer`, `document`): `Promise`\<`CodeAction`[]\>
 
-Defined in: [providers/quickfix.ts:73](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L73)
+Defined in: [providers/quickfix.ts:85](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L85)
 
 Generates quick fix actions for filtered diagnostics.
 
@@ -144,7 +146,7 @@ Generates quick fix actions for filtered diagnostics.
 
 > `private` **getActionKey**(`action`): `string`
 
-Defined in: [providers/quickfix.ts:131](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L131)
+Defined in: [providers/quickfix.ts:143](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L143)
 
 Creates a unique key for an action for deduplication.
 
@@ -162,7 +164,7 @@ Creates a unique key for an action for deduplication.
 
 > `private` **getImportPathInfo**(`element`, `document`): `Promise`\<`string`\>
 
-Defined in: [providers/quickfix.ts:205](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L205)
+Defined in: [providers/quickfix.ts:217](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L217)
 
 ###### Parameters
 
@@ -179,7 +181,7 @@ Defined in: [providers/quickfix.ts:205](https://github.com/ngx-rock/vscode-angul
 
 > `private` **getProjectContextForDocument**(`document`): `null` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `undefined` \| `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
 
-Defined in: [providers/quickfix.ts:228](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L228)
+Defined in: [providers/quickfix.ts:240](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L240)
 
 ###### Parameters
 
@@ -195,7 +197,7 @@ Defined in: [providers/quickfix.ts:228](https://github.com/ngx-rock/vscode-angul
 
 > `private` **isFixableDiagnostic**(`diagnostic`): `boolean`
 
-Defined in: [providers/quickfix.ts:137](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L137)
+Defined in: [providers/quickfix.ts:149](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L149)
 
 ###### Parameters
 

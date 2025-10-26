@@ -20,6 +20,7 @@ Context for the providers.
 
 | Property | Type | Description | Defined in |
 | ------ | ------ | ------ | ------ |
+| <a id="diagnosticprovider"></a> `diagnosticProvider?` | [`DiagnosticProvider`](providers/diagnostics.md#diagnosticprovider) | The diagnostic provider instance (optional, set after registration). | [providers/index.ts:40](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L40) |
 | <a id="extensionconfig"></a> `extensionConfig` | [`ExtensionConfig`](config/settings.md#extensionconfig) | The current extension configuration. | [providers/index.ts:32](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L32) |
 | <a id="extensioncontext"></a> `extensionContext` | `ExtensionContext` | The extension context. | [providers/index.ts:36](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L36) |
 | <a id="projectindexers"></a> `projectIndexers` | `Map`\<`string`, [`AngularIndexer`](services/indexer.md#angularindexer)\> | A map of project root paths to their corresponding `AngularIndexer` instances. | [providers/index.ts:24](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L24) |
@@ -31,7 +32,7 @@ Context for the providers.
 
 > **registerProviders**(`context`, `providerContext`): `undefined` \| [`DiagnosticProvider`](providers/diagnostics.md#diagnosticprovider)
 
-Defined in: [providers/index.ts:44](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L44)
+Defined in: [providers/index.ts:48](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L48)
 
 Registers all VSCode providers for the extension.
 

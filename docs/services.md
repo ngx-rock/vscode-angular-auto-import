@@ -22,9 +22,27 @@ Re-exports [clearCache](services/tsconfig.md#clearcache)
 
 ***
 
+### DiagnosticsReport
+
+Re-exports [DiagnosticsReport](services/diagnostics-reporter.md#diagnosticsreport)
+
+***
+
+### FileReport
+
+Re-exports [FileReport](services/diagnostics-reporter.md#filereport)
+
+***
+
 ### findAndParseTsConfig
 
 Re-exports [findAndParseTsConfig](services/tsconfig.md#findandparsetsconfig)
+
+***
+
+### generateFullDiagnosticsReport
+
+Re-exports [generateFullDiagnosticsReport](services/diagnostics-reporter.md#generatefulldiagnosticsreport)
 
 ***
 

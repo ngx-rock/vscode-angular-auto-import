@@ -507,8 +507,32 @@ export class DiagnosticProvider {
         nodes = cached.nodes as TemplateNode[];
       } else {
         logger.debug(`[DiagnosticProvider] Template cache MISS for ${document.fileName}`);
-        const parsed = parseTemplate(text, document.uri.fsPath);
-        nodes = parsed.nodes;
+        try {
+          // Use alwaysAttemptHtmlToR3AstConversion to parse templates with syntax errors
+          // This option ensures we get partial AST even if template HTML is invalid
+          const parsed = parseTemplate(text, document.uri.fsPath, {
+            alwaysAttemptHtmlToR3AstConversion: true,
+            collectCommentNodes: true,
+          });
+
+          nodes = parsed.nodes;
+
+          // Log parse errors if they exist, but continue with partial AST
+          if (parsed.errors && parsed.errors.length > 0) {
+            logger.debug(
+              `[DiagnosticProvider] Template has parse errors for ${document.fileName}, but continuing with partial AST:`,
+              parsed.errors
+            );
+          }
+        } catch (parseError) {
+          // Fallback for unexpected parsing exceptions
+          logger.error(
+            `[DiagnosticProvider] Unexpected error parsing template ${document.fileName}:`,
+            parseError as Error
+          );
+          nodes = [];
+        }
+
         this.templateCache.set(cacheKey, { version: currentVersion, nodes });
       }
 

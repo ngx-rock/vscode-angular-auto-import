@@ -28,6 +28,12 @@ Re-exports [ControlFlowNode](types/template-ast.md#controlflownode)
 
 ***
 
+### Element
+
+Re-exports [Element](types/angular.md#element)
+
+***
+
 ### FileElementsInfo
 
 Re-exports [FileElementsInfo](types/angular.md#fileelementsinfo)
