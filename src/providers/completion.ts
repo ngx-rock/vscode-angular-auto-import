@@ -182,6 +182,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
    */
   /**
    * Detects the completion context based on cursor position.
+   * Handles multi-line tags by looking backwards from the cursor position.
    */
   private detectCompletionContext(document: vscode.TextDocument, position: vscode.Position): CompletionContextData {
     const linePrefix = document.lineAt(position).text.slice(0, position.character);
@@ -189,34 +190,37 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     let context: "tag" | "attribute" | "pipe" | "structural-directive" | "none" = "none";
     let triggerChar: "[" | "*" | undefined;
 
-    const openTagIndex = linePrefix.lastIndexOf("<");
-    const closeTagIndex = linePrefix.lastIndexOf(">");
+    // Check for pipe context on current line first
     const pipeIndex = linePrefix.lastIndexOf("|");
+    const localOpenTagIndex = linePrefix.lastIndexOf("<");
+    const localCloseTagIndex = linePrefix.lastIndexOf(">");
 
-    if (pipeIndex > openTagIndex && pipeIndex > closeTagIndex) {
+    if (pipeIndex > localOpenTagIndex && pipeIndex > localCloseTagIndex) {
       context = "pipe";
       const textAfterPipe = linePrefix.substring(pipeIndex + 1);
       filterText = textAfterPipe.trim();
-    } else if (openTagIndex > closeTagIndex) {
-      const tagContent = linePrefix.substring(openTagIndex + 1);
-      const firstWordMatch = tagContent.match(/^[a-zA-Z0-9-]+/);
-      const tagName = firstWordMatch ? firstWordMatch[0] : "";
-      const contentAfterTag = tagContent.substring(tagName.length);
+    } else {
+      // Look for tag context (including multi-line tags)
+      const tagContext = this.findTagContext(document, position);
 
-      if (contentAfterTag.length > 0 && !/^\s/.test(contentAfterTag)) {
-        context = "none";
-      } else if (!/\s/.test(tagContent)) {
-        context = "tag";
-        filterText = tagContent;
-      } else {
-        const {
-          context: attributeContext,
-          filterText: attrFilterText,
-          triggerChar: attrTriggerChar,
-        } = this.parseAttributeContext(tagContent);
-        context = attributeContext;
-        filterText = attrFilterText;
-        triggerChar = attrTriggerChar;
+      if (tagContext) {
+        const { tagContent, isNewTag } = tagContext;
+
+        if (isNewTag) {
+          // We're right after "<", completing the tag name
+          context = "tag";
+          filterText = tagContent;
+        } else {
+          // We're inside a tag, completing attributes
+          const {
+            context: attributeContext,
+            filterText: attrFilterText,
+            triggerChar: attrTriggerChar,
+          } = this.parseAttributeContext(tagContent);
+          context = attributeContext;
+          filterText = attrFilterText;
+          triggerChar = attrTriggerChar;
+        }
       }
     }
 
@@ -231,6 +235,153 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
       hasTagContext: context === "tag",
       hasPipeContext: context === "pipe",
     };
+  }
+
+  /**
+   * Finds the tag context by looking backwards from the cursor position.
+   * Handles multi-line tags.
+   */
+  private findTagContext(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): { tagContent: string; isNewTag: boolean } | null {
+    const currentLinePrefix = document.lineAt(position).text.slice(0, position.character);
+
+    // Check if we have an opening tag on the current line
+    const currentLineContext = this.checkCurrentLineForTag(currentLinePrefix);
+    if (currentLineContext) {
+      return currentLineContext;
+    }
+
+    // No opening tag on current line, search backwards for multi-line tag
+    return this.findMultiLineTagContext(document, position, currentLinePrefix);
+  }
+
+  /**
+   * Checks if the current line contains an unclosed tag.
+   */
+  private checkCurrentLineForTag(linePrefix: string): { tagContent: string; isNewTag: boolean } | null {
+    const localOpenTagIndex = linePrefix.lastIndexOf("<");
+    const localCloseTagIndex = linePrefix.lastIndexOf(">");
+
+    if (localOpenTagIndex <= localCloseTagIndex) {
+      return null;
+    }
+
+    const tagContent = linePrefix.substring(localOpenTagIndex + 1);
+    return this.validateAndReturnTagContext(tagContent);
+  }
+
+  /**
+   * Validates tag content and returns context if valid.
+   */
+  private validateAndReturnTagContext(tagContent: string): { tagContent: string; isNewTag: boolean } | null {
+    const firstWordMatch = tagContent.match(/^[a-zA-Z0-9-]+/);
+    const tagName = firstWordMatch ? firstWordMatch[0] : "";
+    const contentAfterTag = tagContent.substring(tagName.length);
+
+    // Check if we're still typing the tag name (no space after tag name)
+    if (contentAfterTag.length > 0 && !/^\s/.test(contentAfterTag)) {
+      return null;
+    }
+
+    const isNewTag = !/\s/.test(tagContent);
+    return { tagContent, isNewTag };
+  }
+
+  /**
+   * Finds multi-line tag context by searching backwards.
+   */
+  private findMultiLineTagContext(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    currentLinePrefix: string
+  ): { tagContent: string; isNewTag: boolean } | null {
+    const openTagPosition = this.searchBackwardsForOpenTag(document, position);
+    if (!openTagPosition) {
+      return null;
+    }
+
+    // Check if the tag is closed between opening and current position
+    if (this.isTagClosedBetween(document, openTagPosition, position)) {
+      return null;
+    }
+
+    // Build tag content from multi-line tag
+    const tagContent = this.buildMultiLineTagContent(document, openTagPosition, position, currentLinePrefix);
+    return this.validateAndReturnTagContext(tagContent);
+  }
+
+  /**
+   * Searches backwards for an unclosed opening tag.
+   */
+  private searchBackwardsForOpenTag(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): { line: number; char: number } | null {
+    let searchLine = position.line - 1;
+
+    // Search backwards up to 50 lines for an unclosed tag
+    while (searchLine >= 0 && searchLine >= position.line - 50) {
+      const line = document.lineAt(searchLine).text;
+      const lastOpenTag = line.lastIndexOf("<");
+      const lastCloseTag = line.lastIndexOf(">");
+
+      if (lastOpenTag !== -1 && (lastCloseTag === -1 || lastOpenTag > lastCloseTag)) {
+        return { line: searchLine, char: lastOpenTag };
+      }
+
+      searchLine--;
+    }
+
+    return null;
+  }
+
+  /**
+   * Checks if a tag is closed between two positions.
+   */
+  private isTagClosedBetween(
+    document: vscode.TextDocument,
+    openTagPosition: { line: number; char: number },
+    currentPosition: vscode.Position
+  ): boolean {
+    for (let i = openTagPosition.line; i <= currentPosition.line; i++) {
+      const line = document.lineAt(i).text;
+      const startChar = i === openTagPosition.line ? openTagPosition.char : 0;
+      const endChar = i === currentPosition.line ? currentPosition.character : line.length;
+      const segment = line.substring(startChar, endChar);
+
+      if (segment.includes(">")) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Builds tag content from multi-line tag.
+   */
+  private buildMultiLineTagContent(
+    document: vscode.TextDocument,
+    openTagPosition: { line: number; char: number },
+    currentPosition: vscode.Position,
+    currentLinePrefix: string
+  ): string {
+    let tagContent = "";
+
+    for (let i = openTagPosition.line; i <= currentPosition.line; i++) {
+      const line = document.lineAt(i).text;
+      if (i === openTagPosition.line) {
+        tagContent += line.substring(openTagPosition.char + 1);
+      } else if (i === currentPosition.line) {
+        tagContent += ` ${currentLinePrefix.trimStart()}`;
+      } else {
+        tagContent += ` ${line.trim()}`;
+      }
+    }
+
+    return tagContent;
   }
 
   /**
