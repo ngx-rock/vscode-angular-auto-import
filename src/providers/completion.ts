@@ -419,31 +419,122 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     elementSelector: string,
     contextData: CompletionContextData
   ): { relevance: number; insertText: string; itemKind: vscode.CompletionItemKind } {
-    let itemKind: vscode.CompletionItemKind = vscode.CompletionItemKind.Class;
-    let insertText = elementSelector;
-    let relevance = 0;
+    // Check originalSelector to determine the true type (element vs attribute)
+    // elementSelector can be a simplified version without brackets
+    const isElementSelector = this.isElementSelector(element.originalSelector);
 
-    if (element.type === "component" && contextData.hasTagContext) {
-      if (elementSelector.toLowerCase().startsWith(contextData.filterText.toLowerCase())) {
-        itemKind = vscode.CompletionItemKind.Class;
-        relevance = 2;
-      }
-    } else if (
-      (element.type === "directive" || (element.type === "component" && element.originalSelector.includes("["))) &&
-      contextData.hasAttributeContext
-    ) {
-      const match = this.evaluateAttributeMatch(element, elementSelector, contextData);
-      relevance = match.relevance;
-      insertText = match.insertText;
-      itemKind = match.itemKind;
-    } else if (element.type === "pipe" && contextData.hasPipeContext) {
-      if (elementSelector.toLowerCase().startsWith(contextData.filterText.toLowerCase())) {
-        itemKind = vscode.CompletionItemKind.Function;
-        relevance = 2;
-      }
+    if (element.type === "pipe" && contextData.hasPipeContext) {
+      return this.evaluatePipeMatch(elementSelector, contextData);
     }
 
-    return { relevance, insertText, itemKind };
+    if (element.type === "component") {
+      return this.evaluateComponentMatch(element, elementSelector, contextData, isElementSelector);
+    }
+
+    if (element.type === "directive") {
+      return this.evaluateDirectiveMatch(element, elementSelector, contextData, isElementSelector);
+    }
+
+    return { relevance: 0, insertText: elementSelector, itemKind: vscode.CompletionItemKind.Class };
+  }
+
+  /**
+   * Evaluates a pipe match.
+   */
+  private evaluatePipeMatch(
+    elementSelector: string,
+    contextData: CompletionContextData
+  ): { relevance: number; insertText: string; itemKind: vscode.CompletionItemKind } {
+    if (elementSelector.toLowerCase().startsWith(contextData.filterText.toLowerCase())) {
+      return {
+        relevance: 2,
+        insertText: elementSelector,
+        itemKind: vscode.CompletionItemKind.Function,
+      };
+    }
+    return { relevance: 0, insertText: elementSelector, itemKind: vscode.CompletionItemKind.Function };
+  }
+
+  /**
+   * Evaluates a component match.
+   */
+  private evaluateComponentMatch(
+    element: AngularElementData,
+    elementSelector: string,
+    contextData: CompletionContextData,
+    isElementSelector: boolean
+  ): { relevance: number; insertText: string; itemKind: vscode.CompletionItemKind } {
+    return this.evaluateElementOrAttributeMatch(element, elementSelector, contextData, isElementSelector);
+  }
+
+  /**
+   * Evaluates a directive match.
+   */
+  private evaluateDirectiveMatch(
+    element: AngularElementData,
+    elementSelector: string,
+    contextData: CompletionContextData,
+    isElementSelector: boolean
+  ): { relevance: number; insertText: string; itemKind: vscode.CompletionItemKind } {
+    return this.evaluateElementOrAttributeMatch(element, elementSelector, contextData, isElementSelector);
+  }
+
+  /**
+   * Common logic for evaluating element or attribute selector matches (components and directives).
+   */
+  private evaluateElementOrAttributeMatch(
+    element: AngularElementData,
+    elementSelector: string,
+    contextData: CompletionContextData,
+    isElementSelector: boolean
+  ): { relevance: number; insertText: string; itemKind: vscode.CompletionItemKind } {
+    if (isElementSelector && contextData.hasTagContext) {
+      if (elementSelector.toLowerCase().startsWith(contextData.filterText.toLowerCase())) {
+        return {
+          relevance: 2,
+          insertText: elementSelector,
+          itemKind: vscode.CompletionItemKind.Class,
+        };
+      }
+    } else if (!isElementSelector && contextData.hasAttributeContext) {
+      return this.evaluateAttributeMatch(element, elementSelector, contextData);
+    }
+
+    return { relevance: 0, insertText: elementSelector, itemKind: vscode.CompletionItemKind.Class };
+  }
+
+  /**
+   * Determines if a selector is an element selector (for tag context).
+   * Element selectors are used in tag context (e.g., <app-header>, <router-outlet>).
+   * Attribute selectors are used in attribute context (e.g., [ngModel], button[mat-button]).
+   *
+   * Examples:
+   * - "button[mat-button]" → false (attribute directive for button elements)
+   * - "custom-input:not([disabled])" → true (element directive, attributes inside :not() don't count)
+   * - "[ngModel]" → false (pure attribute directive)
+   * - "app-header" → true (pure element directive/component)
+   *
+   * @param selector The selector to check.
+   * @returns true if it's an element selector, false if it's an attribute selector.
+   */
+  private isElementSelector(selector: string): boolean {
+    // Pure attribute selectors start with "["
+    if (selector.startsWith("[")) {
+      return false;
+    }
+
+    // Remove :not() pseudo-classes to check the main selector
+    // e.g., "custom-input:not([disabled]):not([readonly])" → "custom-input"
+    const withoutNotPseudoClass = selector.replace(/:not\([^)]+\)/g, "");
+
+    // If there are still "[" outside :not(), it's an attribute selector
+    // e.g., "button[mat-button]" → "button[mat-button]" (still has [)
+    if (withoutNotPseudoClass.includes("[")) {
+      return false;
+    }
+
+    // Element selectors start with a tag name
+    return /^[a-zA-Z]/.test(selector);
   }
 
   /**
