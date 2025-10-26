@@ -419,9 +419,13 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     elementSelector: string,
     contextData: CompletionContextData
   ): { relevance: number; insertText: string; itemKind: vscode.CompletionItemKind } {
-    // Check originalSelector to determine the true type (element vs attribute)
-    // elementSelector can be a simplified version without brackets
-    const isElementSelector = this.isElementSelector(element.originalSelector);
+    // Determine if this is an element or attribute selector
+    const selectorIsElement = this.isElementSelector(elementSelector);
+
+    // Edge case: if elementSelector looks like element (e.g., 'ngModel' without brackets)
+    // but originalSelector is a pure attribute selector (e.g., '[ngModel]'), treat as attribute
+    const originalIsPureAttribute = element.originalSelector.startsWith("[") && !element.originalSelector.includes(",");
+    const isElementSelector = selectorIsElement && !originalIsPureAttribute;
 
     if (element.type === "pipe" && contextData.hasPipeContext) {
       return this.evaluatePipeMatch(elementSelector, contextData);
