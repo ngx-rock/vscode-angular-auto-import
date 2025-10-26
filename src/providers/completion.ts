@@ -294,8 +294,17 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
     contextData: CompletionContextData,
     seenElements: Set<string>
   ): Promise<vscode.CompletionItem[]> {
-    const searchResults = indexer.searchWithSelectors(contextData.filterText).slice(0, 10);
-    const elementsToProcess = this.groupSearchResultsByElement(searchResults);
+    let searchResults = indexer.searchWithSelectors(contextData.filterText);
+
+    // Filter by element type BEFORE applying limit to avoid mixing pipes with components/directives
+    if (contextData.hasPipeContext) {
+      searchResults = searchResults.filter((result) => result.element.type === "pipe");
+    }
+
+    // Apply limit after filtering to get top results of the correct type
+    const limitedResults = searchResults.slice(0, 10);
+
+    const elementsToProcess = this.groupSearchResultsByElement(limitedResults);
     const elementEntries = this.sortElementEntriesIfNeeded(elementsToProcess, contextData);
     const potentialSuggestions = this.createPotentialSuggestions(elementEntries, contextData);
     return this.convertPotentialSuggestionsToCompletionItems(potentialSuggestions, contextData, seenElements);
