@@ -100,6 +100,18 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
       return new vscode.CompletionList([], true);
     }
 
+    // Check if completion is enabled for the current context
+    const config = this.context.extensionConfig.completion;
+    if (contextData.hasPipeContext && !config.pipes) {
+      return new vscode.CompletionList([], true);
+    }
+    if (contextData.hasTagContext && !config.components) {
+      return new vscode.CompletionList([], true);
+    }
+    if (contextData.hasAttributeContext && !config.directives) {
+      return new vscode.CompletionList([], true);
+    }
+
     const suggestions = await this.generateCompletionSuggestions(projCtx, contextData);
     const finalSuggestions = this.deduplicateAndSortSuggestions(suggestions);
 

@@ -23,7 +23,11 @@ function createMockConfig(overrides: Partial<ExtensionConfig> = {}): ExtensionCo
   return {
     projectPath: null,
     indexRefreshInterval: 60,
-    completionEnabled: true,
+    completion: {
+      pipes: true,
+      components: true,
+      directives: true,
+    },
     diagnosticsMode: "full",
     diagnosticsSeverity: "warning",
     logging: {
@@ -111,7 +115,11 @@ describe("determineProjectRoots", function () {
       const mockConfig: ExtensionConfig = {
         projectPath: invalidPath,
         indexRefreshInterval: 60,
-        completionEnabled: true,
+        completion: {
+          pipes: true,
+          components: true,
+          directives: true,
+        },
         diagnosticsMode: "full",
         diagnosticsSeverity: "warning",
         logging: {
@@ -136,7 +144,11 @@ describe("determineProjectRoots", function () {
       const mockConfig: ExtensionConfig = {
         projectPath: relativePath,
         indexRefreshInterval: 60,
-        completionEnabled: true,
+        completion: {
+          pipes: true,
+          components: true,
+          directives: true,
+        },
         diagnosticsMode: "full",
         diagnosticsSeverity: "warning",
         logging: {
@@ -188,7 +200,11 @@ describe("determineProjectRoots", function () {
       const mockConfig: ExtensionConfig = {
         projectPath: null,
         indexRefreshInterval: 60,
-        completionEnabled: true,
+        completion: {
+          pipes: true,
+          components: true,
+          directives: true,
+        },
         diagnosticsMode: "full",
         diagnosticsSeverity: "warning",
         logging: {
@@ -241,7 +257,11 @@ describe("determineProjectRoots", function () {
       const mockConfig: ExtensionConfig = {
         projectPath: null,
         indexRefreshInterval: 60,
-        completionEnabled: true,
+        completion: {
+          pipes: true,
+          components: true,
+          directives: true,
+        },
         diagnosticsMode: "full",
         diagnosticsSeverity: "warning",
         logging: {

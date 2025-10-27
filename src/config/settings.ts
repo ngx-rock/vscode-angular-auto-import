@@ -39,10 +39,25 @@ export interface ExtensionConfig {
    */
   indexRefreshInterval: number;
   /**
-   * Whether to enable auto-completion suggestions for Angular elements.
-   * @default true
+   * Auto-completion configuration for Angular elements.
    */
-  completionEnabled: boolean;
+  completion: {
+    /**
+     * Whether to enable auto-completion suggestions for Angular pipes.
+     * @default true
+     */
+    pipes: boolean;
+    /**
+     * Whether to enable auto-completion suggestions for Angular components.
+     * @default true
+     */
+    components: boolean;
+    /**
+     * Whether to enable auto-completion suggestions for Angular directives.
+     * @default true
+     */
+    directives: boolean;
+  };
   /**
    * Diagnostic mode for missing imports.
    * - 'full': Show diagnostic underlines and provide quick fixes
@@ -121,7 +136,11 @@ export function getConfiguration(): ExtensionConfig {
   return {
     projectPath: config.get<string | null>("projectPath", null),
     indexRefreshInterval: config.get<number>("index.refreshInterval", 60),
-    completionEnabled: config.get<boolean>("completion.enabled", true),
+    completion: {
+      pipes: config.get<boolean>("completion.pipes.enabled", true),
+      components: config.get<boolean>("completion.components.enabled", true),
+      directives: config.get<boolean>("completion.directives.enabled", true),
+    },
     diagnosticsMode: config.get<string>("diagnostics.mode", "full"),
     diagnosticsSeverity: config.get<string>("diagnostics.severity", "warning"),
     logging: {
