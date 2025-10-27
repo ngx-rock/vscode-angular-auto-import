@@ -1,36 +1,51 @@
 {
   "name": "angular-auto-import",
-  "displayName": "Angular auto import",
-  "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
+  "displayName": "Angular Auto Import",
+  "description": "Intelligent auto-import for Angular standalone components, directives & pipes. Fix all missing imports with one command. Works with templates, external libraries & monorepos.",
   "publisher": "baryshevrs",
   "version": "1.17.0",
   "icon": "img/icon.png",
+  "galleryBanner": {
+    "color": "#DD0031",
+    "theme": "dark"
+  },
+  "qna": "marketplace",
   "engines": {
     "vscode": "^1.96.2"
   },
   "categories": [
     "Programming Languages",
     "Linters",
-    "Other"
+    "Snippets",
+    "Formatters"
   ],
   "keywords": [
-    "Angular",
+    "angular",
     "auto-import",
-    "missing imports",
-    "Angular component",
-    "Angular directive",
-    "Angular pipe",
-    "refactor",
-    "code fix",
-    "TypeScript",
-    "HTML",
-    "VS Code extension",
-    "template",
-    "NgModule",
-    "standalone components",
-    "Nx",
+    "standalone",
+    "component",
+    "directive",
+    "pipe",
+    "quick fix",
+    "fix all",
     "autocomplete",
-    "quick fix"
+    "intellisense",
+    "import",
+    "missing imports",
+    "template",
+    "html",
+    "typescript",
+    "nx",
+    "monorepo",
+    "refactor",
+    "productivity",
+    "code action",
+    "angular 14",
+    "angular 15",
+    "angular 16",
+    "angular 17",
+    "angular 18",
+    "angular 19"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -45,6 +60,24 @@
     "url": "https://github.com/ngx-rock/vscode-angular-auto-import/issues"
   },
   "homepage": "https://github.com/ngx-rock/vscode-angular-auto-import#readme",
+  "license": "MIT",
+  "badges": [
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/v/baryshevrs.angular-auto-import?style=flat-square&label=VS%20Marketplace",
+      "href": "https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import",
+      "description": "Visual Studio Marketplace Version"
+    },
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/i/baryshevrs.angular-auto-import?style=flat-square&label=Installs",
+      "href": "https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import",
+      "description": "Total Installs"
+    },
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/r/baryshevrs.angular-auto-import?style=flat-square&label=Rating",
+      "href": "https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import&ssr=false#review-details",
+      "description": "Marketplace Rating"
+    }
+  ],
   "contributes": {
     "commands": [
       {
