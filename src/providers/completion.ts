@@ -339,6 +339,7 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
 
   /**
    * Checks if a tag is closed between two positions.
+   * Ignores > characters inside string literals (e.g., *ngIf="value > 5").
    */
   private isTagClosedBetween(
     document: vscode.TextDocument,
@@ -351,7 +352,49 @@ export class CompletionProvider implements vscode.CompletionItemProvider, vscode
       const endChar = i === currentPosition.line ? currentPosition.character : line.length;
       const segment = line.substring(startChar, endChar);
 
-      if (segment.includes(">")) {
+      if (this.containsClosingTagBracket(segment)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Checks if a string contains a closing tag bracket (>) outside of string literals.
+   * Handles both single and double quotes.
+   *
+   * Examples:
+   * - '<div>' → true (has closing bracket)
+   * - '*ngIf="value > 5"' → false (> is inside quotes)
+   * - '[attr]="a > b" >' → true (has closing bracket outside quotes)
+   */
+  private containsClosingTagBracket(text: string): boolean {
+    let insideDoubleQuotes = false;
+    let insideSingleQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const prevChar = i > 0 ? text[i - 1] : "";
+
+      // Skip escaped quotes
+      if (prevChar === "\\") {
+        continue;
+      }
+
+      // Toggle quote state
+      if (char === '"' && !insideSingleQuotes) {
+        insideDoubleQuotes = !insideDoubleQuotes;
+        continue;
+      }
+
+      if (char === "'" && !insideDoubleQuotes) {
+        insideSingleQuotes = !insideSingleQuotes;
+        continue;
+      }
+
+      // Check for closing bracket outside quotes
+      if (char === ">" && !insideDoubleQuotes && !insideSingleQuotes) {
         return true;
       }
     }
