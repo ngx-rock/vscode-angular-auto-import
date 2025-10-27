@@ -4,6 +4,25 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.17.0] - 2025-10-27
+
+### Added
+- **Granular Completion Control**: Separate settings for each Angular element type:
+  - `angular-auto-import.completion.pipes.enabled` - Toggle pipe completions
+  - `angular-auto-import.completion.components.enabled` - Toggle component completions
+  - `angular-auto-import.completion.directives.enabled` - Toggle directive completions
+- **Multi-line Tag Support**: Completion now works across multi-line tags (searches up to 50 lines backwards)
+- **Smart Bracket Detection**: Ignores `>` inside string literals (e.g., `*ngIf="value > 5"`) to correctly detect tag boundaries
+
+### Improved
+- **Completion Accuracy**: Element type filtering now happens before result limiting for more relevant suggestions
+- **Selector Classification**: Enhanced logic to distinguish element selectors from attribute selectors
+- **Context Detection**: Better handling of complex selectors like `button[mat-button]` and `:not()` pseudo-classes
+
+### Changed
+- **Breaking**: `angular-auto-import.completion.enabled` replaced with three type-specific settings
+- **Provider Registration**: Completion provider always registers, filtering moved to internal logic
+
 ## [1.16.0] - 2025-10-26
 
 ### Improved

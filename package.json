@@ -3,7 +3,7 @@
   "displayName": "Angular auto import",
   "description": "Automatically suggests and inserts missing Angular component imports based on selectors used in templates.",
   "publisher": "baryshevrs",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "icon": "img/icon.png",
   "engines": {
     "vscode": "^1.96.2"
@@ -98,10 +98,20 @@
           "default": 60,
           "description": "Interval in minutes for automatically reindexing Angular elements. Set to 0 to disable periodic reindexing."
         },
-        "angular-auto-import.completion.enabled": {
+        "angular-auto-import.completion.pipes.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable auto-completion suggestions for Angular components, directives, and pipes in templates."
+          "description": "Enable auto-completion suggestions for Angular pipes in templates."
+        },
+        "angular-auto-import.completion.components.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable auto-completion suggestions for Angular components in templates."
+        },
+        "angular-auto-import.completion.directives.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable auto-completion suggestions for Angular directives in templates."
         },
         "angular-auto-import.diagnostics.mode": {
           "type": "string",
