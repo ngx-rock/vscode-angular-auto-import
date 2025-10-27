@@ -50,13 +50,15 @@ Start typing an Angular element selector (e.g., `<my-component`, `[myDirective]`
 
 You can customize the extension's behavior via VS Code settings (`settings.json`):
 
-| Setting                                     | Description                                                                                                   | Default   |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------- |
-| `angular-auto-import.projectPath`           | Optional. Absolute path to the Angular project root. If set, overrides workspace folders. If not set, uses open workspace folders. | `null`    |
-| `angular-auto-import.index.refreshInterval` | Interval in minutes for automatically reindexing Angular elements. Set to `0` to disable periodic reindexing. | `60`      |
-| `angular-auto-import.completion.enabled`    | Enable or disable auto-completion suggestions for Angular components, directives, and pipes in templates.     | `true`    |
-| `angular-auto-import.diagnostics.mode`      | Diagnostic mode: `full` (show diagnostics + quick fixes), `quickfix-only` (quick fixes without visible diagnostics), `disabled` (turn off all diagnostics). | `full`    |
-| `angular-auto-import.diagnostics.severity`  | The severity of diagnostics for missing imports (`error`, `warning`, `info`).                                 | `warning` |
+| Setting                                            | Description                                                                                                   | Default   |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------- |
+| `angular-auto-import.projectPath`                  | Optional. Absolute path to the Angular project root. If set, overrides workspace folders. If not set, uses open workspace folders. | `null`    |
+| `angular-auto-import.index.refreshInterval`        | Interval in minutes for automatically reindexing Angular elements. Set to `0` to disable periodic reindexing. | `60`      |
+| `angular-auto-import.completion.pipes.enabled`     | Enable or disable auto-completion suggestions for Angular pipes in templates.                                 | `true`    |
+| `angular-auto-import.completion.components.enabled`| Enable or disable auto-completion suggestions for Angular components in templates.                            | `true`    |
+| `angular-auto-import.completion.directives.enabled`| Enable or disable auto-completion suggestions for Angular directives in templates.                            | `true`    |
+| `angular-auto-import.diagnostics.mode`             | Diagnostic mode: `full` (show diagnostics + quick fixes), `quickfix-only` (quick fixes without visible diagnostics), `disabled` (turn off all diagnostics). | `full`    |
+| `angular-auto-import.diagnostics.severity`         | The severity of diagnostics for missing imports (`error`, `warning`, `info`).                                 | `warning` |
 
 ## Troubleshooting
 
