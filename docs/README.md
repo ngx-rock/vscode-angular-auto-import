@@ -6,82 +6,282 @@
 
 [![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/baryshevrs.angular-auto-import?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/baryshevrs.angular-auto-import?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/baryshevrs.angular-auto-import?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
 
-Streamline your Angular development with intelligent, automatic imports for components, directives, and pipes directly in your HTML templates and TypeScript files.
+**Stop manually importing Angular components, directives, and pipes.** Let Angular Auto-Import handle it for you with intelligent Quick Fixes and bulk import capabilities.
 
-![Angular Auto-Import in action](https://raw.githubusercontent.com/ngx-rock/vscode-angular-auto-import/refs/heads/main/img/demo.gif) 
+![Angular Auto-Import in action](https://raw.githubusercontent.com/ngx-rock/vscode-angular-auto-import/refs/heads/main/img/demo.gif)
+
+## Why Angular Auto-Import?
+
+Angular Auto-Import transforms how you work with Angular templates by eliminating the tedious task of manually importing components, directives, and pipes. Just use the element in your template, and let the extension handle the rest.
+
+### Key Highlights
+
+- **Fix All Missing Imports** - Import all missing Angular elements in your file with one command
+- **Go to Definition** - Navigate to any unimported element's source with a single click (Material Design, Angular CDK, any npm package)
+- **Intelligent Quick Fixes** - Get instant import suggestions with enhanced accuracy and performance
+- **Works with External Libraries** - Auto-import from any Angular library in your node_modules
+- **Monorepo Ready** - Seamless support for Nx and multi-project workspaces 
 
 ## Features
 
-- **⚡️ Automatic Imports**: Get quick fix suggestions to import Angular elements that are not yet included in your component's module.
-- **🚀 Fix All Command**: Automatically import all missing Angular elements in the current file with a single command.
-- **💡 Smart Completions**: Autocomplete for component tags, directives, and pipes in HTML templates (`.html`) and inline templates within TypeScript files.
-- **🔍 Diagnostics**: Identifies unknown Angular elements in your templates and provides quick fixes.
-- **📦 External Library Support**: Auto-import components, directives, and pipes from external packages (both standalone and module-based).
-- **Monorepo Support**: Works seamlessly with multi-project workspaces, like Nx.
-- **Path Alias Resolution**: Understands `tsconfig.json` path aliases (`@app/*`, `@shared/*`, etc.) for correct import path generation.
-- **Standalone Component Support**: Works with both module-based and standalone Angular components, directives, and pipes.
+### 🚀 Fix All Missing Imports
+
+The most powerful feature - fix **all** missing imports in your file with a single command. No more going through each element one by one.
+
+**How to use:**
+1. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Run `Angular Auto Import: Fix all missing imports in current file`
+3. All missing components, directives, and pipes are automatically imported
+
+Perfect for:
+- Cleaning up newly created templates
+- Fixing imports after moving components between files
+- Bulk importing elements from external libraries
+
+### ⚡ Enhanced Quick Fixes
+
+Get intelligent, context-aware import suggestions with improved accuracy and performance.
+
+**Key improvements:**
+- **Faster detection** - Instant diagnostics for missing imports
+- **Smarter suggestions** - Prioritizes local components over library imports
+- **Better accuracy** - Correctly resolves standalone vs module-based components
+- **Path alias support** - Uses your `tsconfig.json` path mappings (`@app/*`, `@shared/*`)
+
+**How to use:**
+1. Hover over any underlined Angular element
+2. Click the lightbulb or press `Ctrl+.` / `Cmd+.`
+3. Select the appropriate import from the suggestions
+
+### 🔍 Go to Definition for Unimported Elements
+
+Navigate directly to the source of any unimported Angular component, directive, or pipe with a single click. This is especially powerful for external libraries like Angular Material.
+
+**Key features:**
+- **Works for external libraries** - Click on Material Design components, Angular CDK, and any other npm package to jump to their source
+- **Accurate navigation** - Navigates to the actual component declaration, not just the entry point (e.g., `button.component.ts` instead of `public-api.ts`)
+- **Multi-project support** - Works seamlessly across monorepos and projects with re-exported components
+- **No import required** - Explore library source without importing first
+
+**How to use:**
+1. Hover over any unimported Angular element in your template
+2. `Ctrl+Click` (or `Cmd+Click` on Mac) or press `F12`
+3. Jump directly to the component's source file
+
+**Example:**
+```html
+<!-- No import needed - just Ctrl+Click to see the source -->
+<button mat-raised-button>Click Me</button>
+```
+
+### Additional Features
+
+- **💡 Smart Completions** - IntelliSense for Angular elements as you type in templates
+- **📦 External Library Support** - Auto-import from any Angular package in node_modules
+- **🏢 Monorepo Support** - Works seamlessly with Nx and multi-project workspaces
+- **🎯 Standalone Component Support** - Full support for both standalone and NgModule-based architecture
+- **🔧 Configurable Diagnostics** - Control severity levels and diagnostic modes
+
+## Quick Start
+
+1. **Install** the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
+2. **Open** any Angular project (standalone components required)
+3. **Use** any component, directive, or pipe in your template
+4. **Let the extension** handle the imports automatically
+
+That's it! The extension activates automatically when you open an Angular project.
 
 ## Installation
 
-Install "Angular Auto Import" from the Visual Studio Code Marketplace:
+### From VS Code
 
-[Install Extension](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
+1. Open VS Code
+2. Press `Ctrl+Shift+X` / `Cmd+Shift+X` to open Extensions view
+3. Search for `Angular Auto Import`
+4. Click **Install**
 
-Alternatively, search for `Angular Auto Import` in the VS Code Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X`).
+### From Marketplace
+
+Visit the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import) and click **Install**.
 
 ## Usage
 
-### Automatic Quick Fixes
+### Diagnostics for Unimported Elements
 
-When you use an Angular component, directive, or pipe in your template that hasn't been imported into the corresponding NgModule or component's `imports` array, the extension will display a squiggly line (based on your configured diagnostics severity).
+The extension highlights any unimported Angular elements in your templates with a diagnostic indicator (configurable severity - error, warning, or info):
 
-1.  **Hover over the unknown element** (tag, attribute, or pipe).
-2.  **Click the lightbulb icon** or press `Ctrl+.` (`Cmd+.` on macOS) to see available Quick Fixes.
-3.  **Select the import suggestion** (e.g., `Import MyComponent from './my.component'`).
+```html
+<!-- Diagnostic shown here -->
+<button mat-raised-button>Click Me</button>
+```
 
-The extension will automatically add the necessary import statement to your TypeScript file and include the component/directive/pipe in your `@NgModule`'s `imports` array or your standalone component's `imports` array.
+This diagnostic tells you:
+- **What's missing** - The exact component, directive, or pipe name
+- **Where it comes from** - The module or library providing it
+- **How to fix it** - Quick Fix suggestions or direct navigation
 
-### Smart Completions
+**Diagnostic modes:**
+- `full` (default) - Shows visible diagnostics with quick fix options
+- `quickfix-only` - Shows quick fixes without visible squiggly lines
+- `disabled` - Turn off all diagnostics
 
-Start typing an Angular element selector (e.g., `<my-component`, `[myDirective]`, `| myPipe`) in your HTML or inline TypeScript template. The extension will provide completion suggestions.
+### Quick Fix for Single Import
+
+When you see a diagnostic for an unimported element:
+
+1. **Hover** over the element or place your cursor on it
+2. **Press** `Ctrl+.` / `Cmd+.` or click the lightbulb icon
+3. **Select** the import suggestion (e.g., `Import ButtonComponent from '@angular/material/button'`)
+
+The extension automatically:
+- Adds the import statement to your TypeScript file
+- Updates the component's `imports` array (for standalone components)
+
+### Navigate to Definition
+
+Explore source code without importing:
+
+1. **Hover** over any unimported Angular element (you'll see the diagnostic)
+2. **Press** `F12` or `Ctrl+Click` / `Cmd+Click`
+3. Jump directly to the component's source file
+
+Works perfectly for:
+- Material Design components
+- Angular CDK utilities
+- Third-party Angular libraries
+- Your own local components
+
+### Fix All Missing Imports
+
+For files with multiple missing imports:
+
+1. **Open** the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. **Run** `Angular Auto Import: Fix all missing imports in current file`
+3. **Done** - All missing imports are added automatically
+
+### Auto-completion
+
+Start typing an Angular element in your template:
+
+- Type `<my-comp` → Get component suggestions
+- Type `[my-dir` → Get directive suggestions
+- Type `| myPipe` → Get pipe suggestions
+
+Press `Enter` to insert the element. The extension will automatically add the import if needed.
 
 ## Configuration
 
-You can customize the extension's behavior via VS Code settings (`settings.json`):
+Customize the extension's behavior in your VS Code settings (`File > Preferences > Settings` or `settings.json`):
 
-| Setting                                            | Description                                                                                                   | Default   |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------- |
-| `angular-auto-import.projectPath`                  | Optional. Absolute path to the Angular project root. If set, overrides workspace folders. If not set, uses open workspace folders. | `null`    |
-| `angular-auto-import.index.refreshInterval`        | Interval in minutes for automatically reindexing Angular elements. Set to `0` to disable periodic reindexing. | `60`      |
-| `angular-auto-import.completion.pipes.enabled`     | Enable or disable auto-completion suggestions for Angular pipes in templates.                                 | `true`    |
-| `angular-auto-import.completion.components.enabled`| Enable or disable auto-completion suggestions for Angular components in templates.                            | `true`    |
-| `angular-auto-import.completion.directives.enabled`| Enable or disable auto-completion suggestions for Angular directives in templates.                            | `true`    |
-| `angular-auto-import.diagnostics.mode`             | Diagnostic mode: `full` (show diagnostics + quick fixes), `quickfix-only` (quick fixes without visible diagnostics), `disabled` (turn off all diagnostics). | `full`    |
-| `angular-auto-import.diagnostics.severity`         | The severity of diagnostics for missing imports (`error`, `warning`, `info`).                                 | `warning` |
+### General Settings
 
-## Troubleshooting
+| Setting | Description | Default |
+| ------- | ----------- | ------- |
+| `angular-auto-import.projectPath` | Absolute path to Angular project root. Overrides workspace folder detection. Useful for monorepos. | `null` |
+| `angular-auto-import.index.refreshInterval` | Auto-reindex interval in minutes. Set to `0` to disable periodic reindexing. | `60` |
 
-- **Elements not found**: If elements are not being auto-imported, try running the `Angular Auto Import: Reindex Project(s)` command. If issues persist, use the `Angular Auto Import: Clear Cache` command to completely reset the cache.
-- **Performance issues**: For very large projects, consider increasing `angular-auto-import.index.refreshInterval` or setting `angular-auto-import.projectPath` to a specific sub-project root (e.g., `src/` folder to skip node_modules).
-- **Incorrect imports**: Ensure your `tsconfig.json` `baseUrl` and `paths` are correctly configured.
+### Completion Settings
+
+| Setting | Description | Default |
+| ------- | ----------- | ------- |
+| `angular-auto-import.completion.components.enabled` | Enable component auto-completion in templates | `true` |
+| `angular-auto-import.completion.directives.enabled` | Enable directive auto-completion in templates | `true` |
+| `angular-auto-import.completion.pipes.enabled` | Enable pipe auto-completion in templates | `true` |
+
+### Diagnostic Settings
+
+| Setting | Description | Default |
+| ------- | ----------- | ------- |
+| `angular-auto-import.diagnostics.mode` | Diagnostic mode:<br/>- `full`: Show diagnostics + quick fixes<br/>- `quickfix-only`: Quick fixes without visible diagnostics<br/>- `disabled`: Turn off all diagnostics | `full` |
+| `angular-auto-import.diagnostics.severity` | Severity level for missing imports: `error`, `warning`, or `info` | `warning` |
  
 ## Commands
 
-The following commands are available from the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
+Access these commands from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 
-- **Angular Auto Import: Fix all missing imports in current file**: Automatically imports all components, directives, and pipes that are used in the current file but not yet imported.
-- **Angular Auto Import: Reindex Project(s)**: Manually triggers a reindex of your project to discover all available Angular elements.
-- **Angular Auto Import: Clear Cache**: Clears the extension's cache. Use this if you encounter persistent issues.
-- **Angular Auto Import: Show Logs**: Opens the extension's output channel to view logs. 
+| Command | Description | When to Use |
+| ------- | ----------- | ----------- |
+| **Fix all missing imports in current file** | Automatically imports all missing Angular elements in the active file | After creating new templates or moving code between files |
+| **Reindex Project(s)** | Manually triggers a full project reindex | When new components aren't being detected |
+| **Clear Cache** | Clears all cached indexing data | When experiencing persistent issues or after major project changes |
+| **Show Logs** | Opens the extension's output channel | For debugging or reporting issues |
 
----
+## Troubleshooting
+
+### Elements Not Being Detected
+
+**Problem:** Components, directives, or pipes aren't showing in suggestions or quick fixes.
+
+**Solutions:**
+1. Run `Angular Auto Import: Reindex Project(s)` from the Command Palette
+2. Verify your `tsconfig.json` includes all source files
+3. Run `Angular Auto Import: Show Logs` to check for parsing errors
+
+## Requirements
+
+- **Angular**: 14.2+ (standalone component support required)
+- **TypeScript**: 4.8+
+- **VS Code**: 1.80+
+- **Node.js**: 16+ (for project indexing)
 
 ## Limitations
 
-> While Angular Auto Import aims to simplify your development experience, there are some limitations to be aware of:
+- **Standalone Components Only**: This extension works exclusively with Angular standalone components. Traditional NgModule-based projects are not supported.
+Report issues on [GitHub Issues](https://github.com/ngx-rock/vscode-angular-auto-import/issues).
 
-**Standalone Projects Only**: This extension is designed to work exclusively with standalone Angular projects. Traditional NgModule-based projects are not supported.
+## Frequently Asked Questions
+
+<details>
+<summary><strong>Does this work with NgModule-based projects?</strong></summary>
+
+No, Angular Auto-Import requires Angular standalone components (Angular 14+). NgModule-based projects are not supported.
+</details>
+
+<details>
+<summary><strong>Can I use this with external libraries?</strong></summary>
+
+Yes! The extension automatically indexes components, directives, and pipes from any Angular library in your `node_modules`.
+</details>
+
+<details>
+<summary><strong>Does it work with Nx monorepos?</strong></summary>
+
+Yes, Angular Auto-Import has full support for Nx and other monorepo setups. Each project is indexed separately.
+</details>
+
+<details>
+<summary><strong>How do I disable diagnostics but keep quick fixes?</strong></summary>
+
+Set `"angular-auto-import.diagnostics.mode": "quickfix-only"` in your settings.
+</details>
+
+<details>
+<summary><strong>Why are some components not being detected?</strong></summary>
+
+Ensure:
+1. Files are included in your `tsconfig.json`
+2. Run `Angular Auto Import: Reindex Project(s)` command
+</details>
+
+<details>
+<summary><strong>Can I navigate to external library source code?</strong></summary>
+
+Yes! The "Go to Definition" feature lets you explore any unimported component, directive, or pipe from external libraries (Material Design, Angular CDK, etc.) without importing it first. Just `Ctrl+Click` on the element in your template to jump to its source file.
+</details>
+
+## Support
+
+- **Report Bugs**: [GitHub Issues](https://github.com/ngx-rock/vscode-angular-auto-import/issues) 
+
+## License
+
+[MIT](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/LICENSE)
+ 
+---
+
+**Enjoying Angular Auto-Import?** Leave a [⭐ review](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import&ssr=false#review-details) on the VS Code Marketplace!
 
 ## Modules
 
@@ -105,6 +305,7 @@ The following commands are available from the Command Palette (`Ctrl+Shift+P` or
 | [Main extension entry point for Angular Auto-Import](Main-extension-entry-point-for-Angular-Auto-Import.md) | VSCode Extension: Angular Auto-Import |
 | [providers](providers.md) | VSCode Providers Registration |
 | [providers/completion](providers/completion.md) | Angular Auto-Import Completion Provider |
+| [providers/definition](providers/definition.md) | Angular Auto-Import Definition Provider |
 | [providers/diagnostics](providers/diagnostics.md) | Angular Auto-Import Diagnostic Provider |
 | [providers/quickfix](providers/quickfix.md) | Angular Auto-Import QuickFix Provider |
 | [services](services.md) | Central export for all services. |

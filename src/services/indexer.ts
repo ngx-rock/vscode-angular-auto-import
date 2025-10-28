@@ -882,11 +882,11 @@ export class AngularIndexer {
     this.fileCache.set(filePath, fileElementsInfo);
 
     for (const parsed of parsedElements) {
-      await this.indexSingleElement(parsed, isExternal);
+      await this.indexSingleElement(parsed, isExternal, filePath);
     }
   }
 
-  private async indexSingleElement(parsed: ComponentInfo, isExternal: boolean): Promise<void> {
+  private async indexSingleElement(parsed: ComponentInfo, isExternal: boolean, absolutePath?: string): Promise<void> {
     const individualSelectors = await parseAngularSelector(parsed.selector);
     const { importPath, importName, moduleToImport } = this.resolveElementImportInfo(parsed);
 
@@ -899,6 +899,7 @@ export class AngularIndexer {
       isStandalone: parsed.isStandalone,
       isExternal,
       exportingModuleName: moduleToImport,
+      absolutePath,
     });
 
     for (const selector of individualSelectors) {
@@ -1294,6 +1295,7 @@ export class AngularIndexer {
       isStandalone: value.isStandalone,
       isExternal: value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
       exportingModuleName: value.exportingModuleName,
+      absolutePath: value.absolutePath,
     });
 
     // Index under all its selectors
@@ -2455,6 +2457,7 @@ export class AngularIndexer {
    * @param isStandalone Whether the element is standalone.
    * @param importPath The original import path.
    * @param componentToModuleMap Map of components to modules.
+   * @param absoluteFilePath The absolute file path of the element.
    * @internal
    */
   private async _createAndIndexElementData(
@@ -2463,7 +2466,8 @@ export class AngularIndexer {
     selector: string,
     isStandalone: boolean,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
+    absoluteFilePath: string
   ): Promise<void> {
     const exportingModule = componentToModuleMap.get(className);
     const individualSelectors = await parseAngularSelector(selector);
@@ -2501,6 +2505,7 @@ export class AngularIndexer {
       isStandalone,
       isExternal,
       exportingModuleName: !isStandalone && exportingModule ? exportingModule.moduleName : undefined,
+      absolutePath: absoluteFilePath,
     });
 
     for (const sel of individualSelectors) {
@@ -2584,13 +2589,19 @@ export class AngularIndexer {
 
         const elementInfo = this._analyzeAngularElement(classDecl);
         if (elementInfo) {
+          // For re-exported classes, get the ACTUAL file where the class is declared
+          // Not the entry point (public-api.ts) but the file with the actual class declaration
+          const actualSourceFile = classDecl.getSourceFile();
+          const actualAbsoluteFilePath = actualSourceFile.getFilePath();
+
           await this._createAndIndexElementData(
             className,
             elementInfo.elementType,
             elementInfo.selector,
             elementInfo.isStandalone,
             importPath,
-            componentToModuleMap
+            componentToModuleMap,
+            actualAbsoluteFilePath
           );
         }
       }
