@@ -11,6 +11,7 @@ import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import type { ProcessedTsConfig } from "../types";
 import { CompletionProvider } from "./completion";
+import { DefinitionProvider } from "./definition";
 import { DiagnosticProvider } from "./diagnostics";
 import { QuickfixImportProvider } from "./quickfix";
 
@@ -81,6 +82,17 @@ export function registerProviders(
     }
   );
   context.subscriptions.push(quickfixDisposable);
+
+  // Definition Provider
+  const definitionProvider = new DefinitionProvider(providerContext);
+  const definitionDisposable = vscode.languages.registerDefinitionProvider(
+    [
+      { scheme: "file", language: "html" },
+      { scheme: "file", language: "typescript" },
+    ],
+    definitionProvider
+  );
+  context.subscriptions.push(definitionDisposable);
 
   let diagnosticProvider: DiagnosticProvider | undefined;
 
