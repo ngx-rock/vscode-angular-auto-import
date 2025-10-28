@@ -882,11 +882,11 @@ export class AngularIndexer {
     this.fileCache.set(filePath, fileElementsInfo);
 
     for (const parsed of parsedElements) {
-      await this.indexSingleElement(parsed, isExternal);
+      await this.indexSingleElement(parsed, isExternal, filePath);
     }
   }
 
-  private async indexSingleElement(parsed: ComponentInfo, isExternal: boolean): Promise<void> {
+  private async indexSingleElement(parsed: ComponentInfo, isExternal: boolean, absolutePath?: string): Promise<void> {
     const individualSelectors = await parseAngularSelector(parsed.selector);
     const { importPath, importName, moduleToImport } = this.resolveElementImportInfo(parsed);
 
@@ -899,6 +899,7 @@ export class AngularIndexer {
       isStandalone: parsed.isStandalone,
       isExternal,
       exportingModuleName: moduleToImport,
+      absolutePath,
     });
 
     for (const selector of individualSelectors) {
@@ -1294,6 +1295,7 @@ export class AngularIndexer {
       isStandalone: value.isStandalone,
       isExternal: value.isExternal ?? value.path.includes("node_modules"), // Use cached isExternal, fallback for old cache
       exportingModuleName: value.exportingModuleName,
+      absolutePath: value.absolutePath,
     });
 
     // Index under all its selectors
@@ -2576,7 +2578,6 @@ export class AngularIndexer {
   ) {
     try {
       const classDeclarations = this._collectClassDeclarations(sourceFile);
-      const absoluteFilePath = sourceFile.getFilePath();
 
       // Find all Components, Directives, and Pipes
       for (const classDecl of classDeclarations.values()) {
@@ -2588,6 +2589,11 @@ export class AngularIndexer {
 
         const elementInfo = this._analyzeAngularElement(classDecl);
         if (elementInfo) {
+          // For re-exported classes, get the ACTUAL file where the class is declared
+          // Not the entry point (public-api.ts) but the file with the actual class declaration
+          const actualSourceFile = classDecl.getSourceFile();
+          const actualAbsoluteFilePath = actualSourceFile.getFilePath();
+
           await this._createAndIndexElementData(
             className,
             elementInfo.elementType,
@@ -2595,7 +2601,7 @@ export class AngularIndexer {
             elementInfo.isStandalone,
             importPath,
             componentToModuleMap,
-            absoluteFilePath
+            actualAbsoluteFilePath
           );
         }
       }
