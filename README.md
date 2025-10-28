@@ -15,6 +15,7 @@ Angular Auto-Import transforms how you work with Angular templates by eliminatin
 ### Key Highlights
 
 - **Fix All Missing Imports** - Import all missing Angular elements in your file with one command
+- **Go to Definition** - Navigate to any unimported element's source with a single click (Material Design, Angular CDK, any npm package)
 - **Intelligent Quick Fixes** - Get instant import suggestions with enhanced accuracy and performance
 - **Works with External Libraries** - Auto-import from any Angular library in your node_modules
 - **Monorepo Ready** - Seamless support for Nx and multi-project workspaces 
@@ -50,6 +51,27 @@ Get intelligent, context-aware import suggestions with improved accuracy and per
 2. Click the lightbulb or press `Ctrl+.` / `Cmd+.`
 3. Select the appropriate import from the suggestions
 
+### 🔍 Go to Definition for Unimported Elements
+
+Navigate directly to the source of any unimported Angular component, directive, or pipe with a single click. This is especially powerful for external libraries like Angular Material.
+
+**Key features:**
+- **Works for external libraries** - Click on Material Design components, Angular CDK, and any other npm package to jump to their source
+- **Accurate navigation** - Navigates to the actual component declaration, not just the entry point (e.g., `button.component.ts` instead of `public-api.ts`)
+- **Multi-project support** - Works seamlessly across monorepos and projects with re-exported components
+- **No import required** - Explore library source without importing first
+
+**How to use:**
+1. Hover over any unimported Angular element in your template
+2. `Ctrl+Click` (or `Cmd+Click` on Mac) or press `F12`
+3. Jump directly to the component's source file
+
+**Example:**
+```html
+<!-- No import needed - just Ctrl+Click to see the source -->
+<button mat-raised-button>Click Me</button>
+```
+
 ### Additional Features
 
 - **💡 Smart Completions** - IntelliSense for Angular elements as you type in templates
@@ -82,17 +104,50 @@ Visit the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemN
 
 ## Usage
 
+### Diagnostics for Unimported Elements
+
+The extension highlights any unimported Angular elements in your templates with a diagnostic indicator (configurable severity - error, warning, or info):
+
+```html
+<!-- Diagnostic shown here -->
+<button mat-raised-button>Click Me</button>
+```
+
+This diagnostic tells you:
+- **What's missing** - The exact component, directive, or pipe name
+- **Where it comes from** - The module or library providing it
+- **How to fix it** - Quick Fix suggestions or direct navigation
+
+**Diagnostic modes:**
+- `full` (default) - Shows visible diagnostics with quick fix options
+- `quickfix-only` - Shows quick fixes without visible squiggly lines
+- `disabled` - Turn off all diagnostics
+
 ### Quick Fix for Single Import
 
-When you use an Angular element that isn't imported, you'll see a diagnostic (squiggly line):
+When you see a diagnostic for an unimported element:
 
 1. **Hover** over the element or place your cursor on it
 2. **Press** `Ctrl+.` / `Cmd+.` or click the lightbulb icon
-3. **Select** the import suggestion (e.g., `Import ButtonComponent from '@shared/button'`)
+3. **Select** the import suggestion (e.g., `Import ButtonComponent from '@angular/material/button'`)
 
 The extension automatically:
 - Adds the import statement to your TypeScript file
 - Updates the component's `imports` array (for standalone components)
+
+### Navigate to Definition
+
+Explore source code without importing:
+
+1. **Hover** over any unimported Angular element (you'll see the diagnostic)
+2. **Press** `F12` or `Ctrl+Click` / `Cmd+Click`
+3. Jump directly to the component's source file
+
+Works perfectly for:
+- Material Design components
+- Angular CDK utilities
+- Third-party Angular libraries
+- Your own local components
 
 ### Fix All Missing Imports
 
@@ -204,6 +259,12 @@ Set `"angular-auto-import.diagnostics.mode": "quickfix-only"` in your settings.
 Ensure:
 1. Files are included in your `tsconfig.json`
 2. Run `Angular Auto Import: Reindex Project(s)` command
+</details>
+
+<details>
+<summary><strong>Can I navigate to external library source code?</strong></summary>
+
+Yes! The "Go to Definition" feature lets you explore any unimported component, directive, or pipe from external libraries (Material Design, Angular CDK, etc.) without importing it first. Just `Ctrl+Click` on the element in your template to jump to its source file.
 </details>
 
 ## Support
