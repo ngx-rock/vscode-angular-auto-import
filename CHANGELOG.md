@@ -4,6 +4,12 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [2.0.0] - 2025-10-28
+
+### Added
+- **Go to Definition**: Added support for definition lookups for HTML and TypeScript files, allowing navigation to component/directive definitions even if they are not yet imported.
+- **Enhanced Documentation**: Updated `README.md` and added documentation for the new "Go to Definition" feature.
+
 ## [1.17.0] - 2025-10-27
 
 ### Added
