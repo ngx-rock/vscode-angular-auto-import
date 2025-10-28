@@ -78,6 +78,8 @@ interface AngularElementDataOptions {
   isExternal: boolean;
   /** The name of the module that exports this element, if applicable. */
   exportingModuleName?: string;
+  /** The absolute file path to the element (for external libraries). */
+  absolutePath?: string;
 }
 
 /**
@@ -92,6 +94,7 @@ export class AngularElementData {
   public readonly isStandalone: boolean;
   public readonly isExternal: boolean;
   public readonly exportingModuleName?: string;
+  public readonly absolutePath?: string;
 
   /**
    * Creates an instance of AngularElementData.
@@ -106,6 +109,7 @@ export class AngularElementData {
     this.isStandalone = options.isStandalone;
     this.isExternal = options.isExternal;
     this.exportingModuleName = options.exportingModuleName;
+    this.absolutePath = options.absolutePath;
   }
 }
 

@@ -2455,6 +2455,7 @@ export class AngularIndexer {
    * @param isStandalone Whether the element is standalone.
    * @param importPath The original import path.
    * @param componentToModuleMap Map of components to modules.
+   * @param absoluteFilePath The absolute file path of the element.
    * @internal
    */
   private async _createAndIndexElementData(
@@ -2463,7 +2464,8 @@ export class AngularIndexer {
     selector: string,
     isStandalone: boolean,
     importPath: string,
-    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>
+    componentToModuleMap: Map<string, { moduleName: string; importPath: string; exportCount: number }>,
+    absoluteFilePath: string
   ): Promise<void> {
     const exportingModule = componentToModuleMap.get(className);
     const individualSelectors = await parseAngularSelector(selector);
@@ -2501,6 +2503,7 @@ export class AngularIndexer {
       isStandalone,
       isExternal,
       exportingModuleName: !isStandalone && exportingModule ? exportingModule.moduleName : undefined,
+      absolutePath: absoluteFilePath,
     });
 
     for (const sel of individualSelectors) {
@@ -2573,6 +2576,7 @@ export class AngularIndexer {
   ) {
     try {
       const classDeclarations = this._collectClassDeclarations(sourceFile);
+      const absoluteFilePath = sourceFile.getFilePath();
 
       // Find all Components, Directives, and Pipes
       for (const classDecl of classDeclarations.values()) {
@@ -2590,7 +2594,8 @@ export class AngularIndexer {
             elementInfo.selector,
             elementInfo.isStandalone,
             importPath,
-            componentToModuleMap
+            componentToModuleMap,
+            absoluteFilePath
           );
         }
       }

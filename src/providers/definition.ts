@@ -7,6 +7,7 @@
  * @module
  */
 
+import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { logger } from "../logger";
@@ -192,13 +193,26 @@ export class DefinitionProvider implements vscode.DefinitionProvider {
    */
   private getElementLocation(element: AngularElementData, projectRootPath: string): vscode.Location | undefined {
     try {
-      // Build absolute path
-      const absolutePath = element.isExternal
-        ? this.resolveExternalPath(element.path, projectRootPath)
-        : path.join(projectRootPath, element.path);
+      // For external elements, use the absolutePath stored during indexing
+      let absolutePath: string | undefined;
+
+      if (element.isExternal && element.absolutePath) {
+        absolutePath = element.absolutePath;
+      } else if (!element.isExternal) {
+        absolutePath = path.join(projectRootPath, element.path);
+      } else {
+        // Fallback: try to resolve external path
+        absolutePath = this.resolveExternalPath(element.path, projectRootPath);
+      }
 
       if (!absolutePath) {
         logger.debug(`[DefinitionProvider] Could not resolve path for element: ${element.name}`);
+        return undefined;
+      }
+
+      // Check if the file exists
+      if (!fs.existsSync(absolutePath)) {
+        logger.debug(`[DefinitionProvider] File does not exist: ${absolutePath}`);
         return undefined;
       }
 
@@ -207,10 +221,23 @@ export class DefinitionProvider implements vscode.DefinitionProvider {
       // Get the project and source file
       const indexer = this.context.projectIndexers.get(projectRootPath);
       if (!indexer) {
-        return undefined;
+        return new vscode.Location(uri, new vscode.Position(0, 0));
       }
 
-      const sourceFile = indexer.project.getSourceFile(absolutePath);
+      let sourceFile = indexer.project.getSourceFile(absolutePath);
+
+      // For external files not in the project, try to add them temporarily
+      if (!sourceFile && element.isExternal) {
+        try {
+          const fileContent = fs.readFileSync(absolutePath, "utf-8");
+          sourceFile = indexer.project.createSourceFile(absolutePath, fileContent, { overwrite: true });
+        } catch {
+          logger.debug(`[DefinitionProvider] Could not read external file ${absolutePath}`);
+          // Return file location at start of file
+          return new vscode.Location(uri, new vscode.Position(0, 0));
+        }
+      }
+
       if (!sourceFile) {
         logger.debug(`[DefinitionProvider] Source file not found in project: ${absolutePath}`);
         // Fallback: return file location without specific range
