@@ -233,7 +233,7 @@ export class DiagnosticProvider {
       const htmlUri = vscode.Uri.file(htmlFilePath);
       try {
         const htmlDocument = await vscode.workspace.openTextDocument(htmlUri);
-        this.updateDiagnostics(htmlDocument);
+        await this.updateDiagnostics(htmlDocument);
         // Updated diagnostics for related HTML file
       } catch (error) {
         logger.error(`Error opening HTML document ${htmlFilePath}:`, error as Error);
@@ -997,44 +997,88 @@ export class DiagnosticProvider {
    * Checks if element is imported via external modules.
    */
   private checkExternalModuleImports(sourceFile: SourceFile, element: AngularElementData): boolean {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(sourceFile.getFilePath()));
-    if (!workspaceFolder) {
-      return false;
-    }
-
-    const projectRootPath = workspaceFolder.uri.fsPath;
-    const indexer = this.context.projectIndexers.get(projectRootPath);
+    const indexer = this.getIndexerForSourceFile(sourceFile);
     if (!indexer) {
       return false;
     }
 
     for (const classDeclaration of sourceFile.getClasses()) {
-      const importsArray = this.getComponentImportsArray(classDeclaration);
-      if (!importsArray) {
-        continue;
+      if (this.checkClassImportsForElement(classDeclaration, element, indexer)) {
+        return true;
       }
+    }
+    logger.debug(`[DiagnosticProvider] Element '${element.name}' not found in any imported modules`);
+    return false;
+  }
 
-      const importedModules = importsArray.getElements().map((el: Expression) => el.getText().trim());
+  /**
+   * Gets the indexer for a source file's workspace.
+   */
+  private getIndexerForSourceFile(sourceFile: SourceFile) {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(sourceFile.getFilePath()));
+    if (!workspaceFolder) {
+      return undefined;
+    }
 
-      for (const moduleName of importedModules) {
-        // First check if it's a standard Angular module (CommonModule, FormsModule, etc.)
-        const standardModuleExports = getStandardModuleExports(moduleName);
-        if (standardModuleExports?.has(element.name)) {
-          logger.debug(
-            `[DiagnosticProvider] Element '${element.name}' found in standard Angular module '${moduleName}'`
-          );
-          return true;
-        }
+    const projectRootPath = workspaceFolder.uri.fsPath;
+    return this.context.projectIndexers.get(projectRootPath);
+  }
 
-        // Then check indexer for custom modules
-        const moduleExports = indexer.getExternalModuleExports(moduleName);
-        if (moduleExports?.has(element.name)) {
-          logger.debug(
-            `[DiagnosticProvider] Element '${element.name}' found in external module '${moduleName}' exports`
-          );
-          return true;
-        }
+  /**
+   * Checks if a class declaration imports an element via its module imports.
+   */
+  private checkClassImportsForElement(
+    classDeclaration: ClassDeclaration,
+    element: AngularElementData,
+    indexer: AngularIndexer
+  ): boolean {
+    const importsArray = this.getComponentImportsArray(classDeclaration);
+    if (!importsArray) {
+      return false;
+    }
+
+    const importedModules = importsArray.getElements().map((el: Expression) => el.getText().trim());
+    logger.debug(
+      `[DiagnosticProvider] Checking element '${element.name}' against ${importedModules.length} imported modules: [${importedModules.join(", ")}]`
+    );
+
+    for (const moduleName of importedModules) {
+      if (this.checkModuleExportsForElement(moduleName, element, indexer)) {
+        return true;
       }
+    }
+    return false;
+  }
+
+  /**
+   * Checks if a module exports a specific element.
+   */
+  private checkModuleExportsForElement(
+    moduleName: string,
+    element: AngularElementData,
+    indexer: AngularIndexer
+  ): boolean {
+    // First check if it's a standard Angular module (CommonModule, FormsModule, etc.)
+    const standardModuleExports = getStandardModuleExports(moduleName);
+    if (standardModuleExports?.has(element.name)) {
+      logger.debug(`[DiagnosticProvider] Element '${element.name}' found in standard Angular module '${moduleName}'`);
+      return true;
+    }
+
+    // Then check indexer for custom modules
+    const moduleExports = indexer.getExternalModuleExports(moduleName);
+    if (moduleExports) {
+      logger.debug(
+        `[DiagnosticProvider] Module '${moduleName}' exports ${moduleExports.size} items: [${Array.from(moduleExports).slice(0, 10).join(", ")}${moduleExports.size > 10 ? ", ..." : ""}]`
+      );
+      if (moduleExports.has(element.name)) {
+        logger.debug(`[DiagnosticProvider] Element '${element.name}' found in external module '${moduleName}' exports`);
+        return true;
+      }
+    } else {
+      logger.debug(
+        `[DiagnosticProvider] Module '${moduleName}' not found in indexer. This module may not be indexed yet.`
+      );
     }
     return false;
   }

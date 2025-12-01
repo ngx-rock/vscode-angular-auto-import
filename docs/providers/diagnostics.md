@@ -83,7 +83,7 @@ Activates the diagnostic provider.
 
 > `private` **addAngularElementsToList**(`node`, `nodeName`, `foundElements`, `elements`, `document`, `offset`, `attributes`): `void`
 
-Defined in: [providers/diagnostics.ts:1295](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1295)
+Defined in: [providers/diagnostics.ts:1339](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1339)
 
 ###### Parameters
 
@@ -100,6 +100,26 @@ Defined in: [providers/diagnostics.ts:1295](https://github.com/ngx-rock/vscode-a
 ###### Returns
 
 `void`
+
+##### checkClassImportsForElement()
+
+> `private` **checkClassImportsForElement**(`classDeclaration`, `element`, `indexer`): `boolean`
+
+Defined in: [providers/diagnostics.ts:1030](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1030)
+
+Checks if a class declaration imports an element via its module imports.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `classDeclaration` | `ClassDeclaration` |
+| `element` | [`AngularElementData`](../types/angular.md#angularelementdata) |
+| `indexer` | [`AngularIndexer`](../services/indexer.md#angularindexer) |
+
+###### Returns
+
+`boolean`
 
 ##### checkDirectElementImport()
 
@@ -164,7 +184,7 @@ Checks if element is imported via external modules.
 
 > `private` **checkKnownHtmlTagWithAttributes**(`_node`, `nodeName`, `regularAttrs`, `attributes`, `processingCtx`, `docCtx`): `void`
 
-Defined in: [providers/diagnostics.ts:1238](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1238)
+Defined in: [providers/diagnostics.ts:1282](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1282)
 
 Checks if a known HTML tag (like button, input, a) has Angular directives
 by searching for compound selectors like "button[mat-button]", "input[matInput]".
@@ -187,6 +207,26 @@ processAttributes() which already creates diagnostics with correct attribute pos
 ###### Returns
 
 `void`
+
+##### checkModuleExportsForElement()
+
+> `private` **checkModuleExportsForElement**(`moduleName`, `element`, `indexer`): `boolean`
+
+Defined in: [providers/diagnostics.ts:1056](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1056)
+
+Checks if a module exports a specific element.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `moduleName` | `string` |
+| `element` | [`AngularElementData`](../types/angular.md#angularelementdata) |
+| `indexer` | [`AngularIndexer`](../services/indexer.md#angularindexer) |
+
+###### Returns
+
+`boolean`
 
 ##### clearDiagnostics()
 
@@ -402,6 +442,24 @@ Gets import status from cache.
 
 `undefined` \| `boolean`
 
+##### getIndexerForSourceFile()
+
+> `private` **getIndexerForSourceFile**(`sourceFile`): `undefined` \| [`AngularIndexer`](../services/indexer.md#angularindexer)
+
+Defined in: [providers/diagnostics.ts:1017](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1017)
+
+Gets the indexer for a source file's workspace.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `sourceFile` | `SourceFile` |
+
+###### Returns
+
+`undefined` \| [`AngularIndexer`](../services/indexer.md#angularindexer)
+
 ##### getMatchedSelectors()
 
 > `private` **getMatchedSelectors**(`element`, `candidate`, `CssSelector`, `SelectorMatcher`): `string`[]
@@ -443,7 +501,7 @@ Defined in: [providers/diagnostics.ts:896](https://github.com/ngx-rock/vscode-an
 
 > `private` **getSeverityFromConfig**(`severityLevel`): `DiagnosticSeverity`
 
-Defined in: [providers/diagnostics.ts:1457](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1457)
+Defined in: [providers/diagnostics.ts:1501](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1501)
 
 ###### Parameters
 
@@ -493,7 +551,7 @@ Gets source file and logs if not found.
 
 > `private` **hasChildren**(`node`): `boolean`
 
-Defined in: [providers/diagnostics.ts:1452](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1452)
+Defined in: [providers/diagnostics.ts:1496](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1496)
 
 ###### Parameters
 
@@ -509,7 +567,7 @@ Defined in: [providers/diagnostics.ts:1452](https://github.com/ngx-rock/vscode-a
 
 > `private` **isControlFlowNode**(`nodeName`): `boolean`
 
-Defined in: [providers/diagnostics.ts:1078](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1078)
+Defined in: [providers/diagnostics.ts:1122](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1122)
 
 ###### Parameters
 
@@ -560,7 +618,7 @@ initializer is StringLiteral \| NoSubstitutionTemplateLiteral
 
 > `private` **loadCompiler**(): `void`
 
-Defined in: [providers/diagnostics.ts:1492](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1492)
+Defined in: [providers/diagnostics.ts:1536](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1536)
 
 ###### Returns
 
@@ -609,7 +667,7 @@ Defined in: [providers/diagnostics.ts:475](https://github.com/ngx-rock/vscode-an
 
 > `private` **processAttributes**(`regularAttrs`, `templateAttrs`, `nodeName`, `attributes`, `processingCtx`, `docCtx`, `astCtors`): `void`
 
-Defined in: [providers/diagnostics.ts:1336](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1336)
+Defined in: [providers/diagnostics.ts:1380](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1380)
 
 Processes attributes from element or template nodes
 
@@ -633,7 +691,7 @@ Processes attributes from element or template nodes
 
 > `private` **processBoundTextNode**(`node`, `elements`, `document`, `offset`, `text`): `void`
 
-Defined in: [providers/diagnostics.ts:1431](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1431)
+Defined in: [providers/diagnostics.ts:1475](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1475)
 
 ###### Parameters
 
@@ -653,7 +711,7 @@ Defined in: [providers/diagnostics.ts:1431](https://github.com/ngx-rock/vscode-a
 
 > `private` **processBranchesArray**(`branches`, `visit`, `extractPipesFromExpression`): `void`
 
-Defined in: [providers/diagnostics.ts:1118](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1118)
+Defined in: [providers/diagnostics.ts:1162](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1162)
 
 ###### Parameters
 
@@ -671,7 +729,7 @@ Defined in: [providers/diagnostics.ts:1118](https://github.com/ngx-rock/vscode-a
 
 > `private` **processBranchOrCase**(`item`, `visit`, `extractPipesFromExpression`): `void`
 
-Defined in: [providers/diagnostics.ts:1146](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1146)
+Defined in: [providers/diagnostics.ts:1190](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1190)
 
 ###### Parameters
 
@@ -715,7 +773,7 @@ Processes a single candidate element.
 
 > `private` **processCasesArray**(`cases`, `visit`, `extractPipesFromExpression`): `void`
 
-Defined in: [providers/diagnostics.ts:1132](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1132)
+Defined in: [providers/diagnostics.ts:1176](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1176)
 
 ###### Parameters
 
@@ -733,7 +791,7 @@ Defined in: [providers/diagnostics.ts:1132](https://github.com/ngx-rock/vscode-a
 
 > `private` **processControlFlowBranchesAndCases**(`controlFlowNode`, `visit`, `extractPipesFromExpression`): `void`
 
-Defined in: [providers/diagnostics.ts:1106](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1106)
+Defined in: [providers/diagnostics.ts:1150](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1150)
 
 ###### Parameters
 
@@ -751,7 +809,7 @@ Defined in: [providers/diagnostics.ts:1106](https://github.com/ngx-rock/vscode-a
 
 > `private` **processControlFlowNode**(`controlFlowNode`, `visit`, `extractPipesFromExpression`): `void`
 
-Defined in: [providers/diagnostics.ts:1084](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1084)
+Defined in: [providers/diagnostics.ts:1128](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1128)
 
 ###### Parameters
 
@@ -769,7 +827,7 @@ Defined in: [providers/diagnostics.ts:1084](https://github.com/ngx-rock/vscode-a
 
 > `private` **processControlFlowSpecialBlocks**(`controlFlowNode`, `visit`): `void`
 
-Defined in: [providers/diagnostics.ts:1159](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1159)
+Defined in: [providers/diagnostics.ts:1203](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1203)
 
 ###### Parameters
 
@@ -786,7 +844,7 @@ Defined in: [providers/diagnostics.ts:1159](https://github.com/ngx-rock/vscode-a
 
 > `private` **processElementOrTemplateNode**(`node`, `processingCtx`, `docCtx`, `astCtors`): `void`
 
-Defined in: [providers/diagnostics.ts:1185](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1185)
+Defined in: [providers/diagnostics.ts:1229](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1229)
 
 Processes element or template nodes
 
@@ -871,7 +929,7 @@ Processes a pipe candidate.
 
 > `private` **processSingleAttribute**(`attr`, `isTemplateAttr`, `nodeName`, `attributes`, `processingCtx`, `docCtx`, `astCtors`): `void`
 
-Defined in: [providers/diagnostics.ts:1367](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1367)
+Defined in: [providers/diagnostics.ts:1411](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1411)
 
 Processes a single attribute
 
@@ -895,7 +953,7 @@ Processes a single attribute
 
 > `private` **processTemplateNode**(`node`, `processingCtx`, `docCtx`, `astCtors`): `void`
 
-Defined in: [providers/diagnostics.ts:1049](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1049)
+Defined in: [providers/diagnostics.ts:1093](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1093)
 
 Processes a template AST node
 
@@ -934,7 +992,7 @@ Processes TypeScript document diagnostics.
 
 > `private` **publishFilteredDiagnostics**(`uri`): `void`
 
-Defined in: [providers/diagnostics.ts:1470](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1470)
+Defined in: [providers/diagnostics.ts:1514](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/diagnostics.ts#L1514)
 
 ###### Parameters
 
