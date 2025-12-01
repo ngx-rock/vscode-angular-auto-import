@@ -4,6 +4,11 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [2.1.0] - 2025-01-12
+
+### Fixed
+- **Diagnostics Update**: Fixed race condition where diagnostics for HTML files were not always updated when related TypeScript component files changed. Added proper `await` to ensure diagnostics update completes before continuing.
+ 
 ## [2.0.0] - 2025-10-28
 
 ### Added
