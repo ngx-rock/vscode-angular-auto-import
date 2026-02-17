@@ -5,7 +5,6 @@
  * @module
  */
 
-import * as fs from "node:fs";
 import {
   type ArrayLiteralExpression,
   type ClassDeclaration,
@@ -112,6 +111,7 @@ export class DiagnosticProvider {
    * Value: Map where key is the Angular element name (e.g., 'MyComponent') and value is a boolean indicating if it's imported.
    */
   private readonly importedElementsCache = new Map<string, Map<string, boolean>>();
+  private isPublishing = false;
 
   constructor(private readonly context: ProviderContext) {
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection("angular-auto-import");
@@ -122,59 +122,58 @@ export class DiagnosticProvider {
    * Activates the diagnostic provider.
    */
   activate(): void {
-    // Update diagnostics when HTML documents change
-    const htmlUpdateHandler = vscode.workspace.onDidChangeTextDocument(
+    // Update diagnostics when HTML or TypeScript documents change
+    const documentChangeHandler = vscode.workspace.onDidChangeTextDocument(
       debounce(async (event: vscode.TextDocumentChangeEvent) => {
-        if (event.document.languageId === "html") {
-          await this.updateDiagnostics(event.document);
+        try {
+          if (event.document.languageId === "html") {
+            await this.updateDiagnostics(event.document);
+          } else if (event.document.languageId === "typescript") {
+            await this.updateDiagnostics(event.document);
+            await this.updateRelatedHtmlDiagnostics(event.document);
+          }
+        } catch (error) {
+          logger.error("[DiagnosticProvider] Error handling document change:", error as Error);
         }
       }, 300)
     );
-    this.disposables.push(htmlUpdateHandler);
+    this.disposables.push(documentChangeHandler);
 
-    // Update diagnostics when TypeScript documents change
-    const tsUpdateHandler = vscode.workspace.onDidChangeTextDocument(
-      debounce(async (event: vscode.TextDocumentChangeEvent) => {
-        if (event.document.languageId === "typescript") {
-          await this.updateDiagnostics(event.document);
-          await this.updateRelatedHtmlDiagnostics(event.document);
+    // Update diagnostics when documents are saved
+    const saveHandler = vscode.workspace.onDidSaveTextDocument(async (document) => {
+      try {
+        if (document.languageId === "html") {
+          await this.updateDiagnostics(document);
+        } else if (document.languageId === "typescript") {
+          await this.updateDiagnostics(document);
+          await this.updateRelatedHtmlDiagnostics(document);
         }
-      }, 300)
-    );
-    this.disposables.push(tsUpdateHandler);
-
-    // Update diagnostics when TypeScript documents are saved
-    const tsSaveHandler = vscode.workspace.onDidSaveTextDocument(async (document) => {
-      if (document.languageId === "typescript") {
-        await this.updateDiagnostics(document);
-        await this.updateRelatedHtmlDiagnostics(document);
+      } catch (error) {
+        logger.error("[DiagnosticProvider] Error handling document save:", error as Error);
       }
     });
-    this.disposables.push(tsSaveHandler);
+    this.disposables.push(saveHandler);
 
     // Update diagnostics when a document is opened
     const diagnosticOpenHandler = vscode.workspace.onDidOpenTextDocument(async (document) => {
-      if (document.languageId === "html") {
-        await this.updateDiagnostics(document);
-      } else if (document.languageId === "typescript") {
-        await this.updateDiagnostics(document);
+      try {
+        if (document.languageId === "html" || document.languageId === "typescript") {
+          await this.updateDiagnostics(document);
+        }
+      } catch (error) {
+        logger.error("[DiagnosticProvider] Error handling document open:", error as Error);
       }
     });
     this.disposables.push(diagnosticOpenHandler);
 
-    // Update diagnostics when HTML documents are saved
-    const htmlSaveHandler = vscode.workspace.onDidSaveTextDocument(async (document) => {
-      if (document.languageId === "html") {
-        await this.updateDiagnostics(document);
-      }
-    });
-    this.disposables.push(htmlSaveHandler);
-
     // Listen for changes in any diagnostic collection to handle deduplication
     const onDidChangeDiagnosticsHandler = vscode.languages.onDidChangeDiagnostics((e) => {
-      e.uris.forEach((uri) => {
+      if (this.isPublishing) {
+        return;
+      }
+      for (const uri of e.uris) {
         this.publishFilteredDiagnostics(uri);
-      });
+      }
     });
     this.disposables.push(onDidChangeDiagnosticsHandler);
 
@@ -222,7 +221,9 @@ export class DiagnosticProvider {
 
       // Find the related HTML file
       const htmlFilePath = switchFileType(tsDocument.fileName, ".html");
-      if (!fs.existsSync(htmlFilePath)) {
+      try {
+        await vscode.workspace.fs.stat(vscode.Uri.file(htmlFilePath));
+      } catch {
         return;
       }
 
@@ -319,7 +320,7 @@ export class DiagnosticProvider {
    * Clears diagnostics for a document.
    */
   private clearDiagnostics(document: vscode.TextDocument): void {
-    this.diagnosticCollection.clear();
+    this.diagnosticCollection.delete(document.uri);
     this.candidateDiagnostics.delete(document.uri.toString());
   }
 
@@ -339,7 +340,9 @@ export class DiagnosticProvider {
    */
   private async processHtmlDocument(document: vscode.TextDocument): Promise<void> {
     const componentPath = switchFileType(document.fileName, ".ts");
-    if (!fs.existsSync(componentPath)) {
+    try {
+      await vscode.workspace.fs.stat(vscode.Uri.file(componentPath));
+    } catch {
       logger.debug(
         `[DiagnosticProvider] Skipping diagnostics for HTML file without a corresponding TS component: ${document.fileName}`
       );
@@ -360,7 +363,7 @@ export class DiagnosticProvider {
       return;
     }
 
-    await this.runDiagnostics(document.getText(), document, 0, componentPath, tsDocument, sourceFile);
+    await this.runDiagnostics(document.getText(), document, 0, sourceFile);
   }
 
   /**
@@ -383,8 +386,6 @@ export class DiagnosticProvider {
         componentInfo.template,
         document,
         componentInfo.templateOffset,
-        document.fileName,
-        document,
         sourceFile
       );
     } else {
@@ -430,8 +431,6 @@ export class DiagnosticProvider {
     templateText: string,
     document: vscode.TextDocument,
     offset: number,
-    _componentPath: string,
-    _tsDocument: vscode.TextDocument,
     sourceFile: SourceFile
   ): Promise<void> {
     const projCtx = this.getProjectContextForDocument(document);
@@ -1525,11 +1524,16 @@ export class DiagnosticProvider {
     // Only publish to collection in 'full' mode
     // In 'quickfix-only' mode, diagnostics are stored internally but not shown
     const diagnosticsMode = this.context.extensionConfig.diagnosticsMode;
-    if (diagnosticsMode === "full") {
-      this.diagnosticCollection.set(uri, candidateDiags);
-    } else if (diagnosticsMode === "quickfix-only") {
-      // Clear visible diagnostics but keep internal storage
-      this.diagnosticCollection.set(uri, []);
+    this.isPublishing = true;
+    try {
+      if (diagnosticsMode === "full") {
+        this.diagnosticCollection.set(uri, candidateDiags);
+      } else if (diagnosticsMode === "quickfix-only") {
+        // Clear visible diagnostics but keep internal storage
+        this.diagnosticCollection.set(uri, []);
+      }
+    } finally {
+      this.isPublishing = false;
     }
   }
 
