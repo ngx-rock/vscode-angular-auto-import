@@ -11,7 +11,7 @@
   },
   "qna": "marketplace",
   "engines": {
-    "vscode": "^1.96.2"
+    "vscode": "^1.109.0"
   },
   "categories": [
     "Programming Languages",
