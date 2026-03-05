@@ -3,7 +3,7 @@
   "displayName": "Angular Auto Import",
   "description": "Intelligent auto-import for Angular standalone components, directives & pipes. Fix all missing imports with one command. Works with templates, external libraries & monorepos.",
   "publisher": "baryshevrs",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "icon": "img/icon.png",
   "galleryBanner": {
     "color": "#DD0031",
@@ -42,7 +42,8 @@
     "code action",
     "angular 18",
     "angular 19",
-    "angular 20"
+    "angular 20",
+    "angular 21"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -247,28 +248,28 @@
     "pmd:cpd:md": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format markdown --exclude 'src/test' --exclude 'src/test/fixtures' > duplicates-report.md"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.4",
+    "@biomejs/biome": "^2.4.2",
     "@types/mocha": "^10.0.10",
-    "@types/node": "~20.19.18",
-    "@types/vscode": "^1.96.2",
+    "@types/node": "~20.19.33",
+    "@types/vscode": "^1.109.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
-    "@vscode/vsce": "^3.6.2",
+    "@vscode/vsce": "^3.7.1",
     "c8": "^10.1.3",
-    "esbuild": "^0.25.10",
-    "glob": "^11.0.3",
-    "knip": "^5.64.1",
+    "esbuild": "^0.25.12",
+    "glob": "^11.1.0",
+    "knip": "^5.83.1",
     "mocha": "^10.8.2",
     "monocart-coverage-reports": "^2.12.9",
     "npm-run-all": "^4.1.5",
-    "pmd-bin": "^2.16.0",
-    "typedoc": "^0.28.13",
-    "typedoc-plugin-markdown": "^4.9.0",
-    "typescript": "^5.9.2"
+    "pmd-bin": "^2.20.0",
+    "typedoc": "^0.28.17",
+    "typedoc-plugin-markdown": "^4.10.0",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@angular/compiler": "^20.3.2",
-    "get-tsconfig": "^4.10.1",
+    "@angular/compiler": "^20.3.16",
+    "get-tsconfig": "^4.13.6",
     "ts-morph": "^26.0.0"
   },
   "pnpm": {

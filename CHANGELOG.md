@@ -4,7 +4,19 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [2.1.0] - 2025-01-12
+## [2.1.2] - 2026-03-05
+
+### Fixed
+- **Diagnostics randomly disappearing**: Fixing a file no longer clears error highlights across all open files
+- **Editor freezes on save**: Eliminated an infinite loop that could freeze the editor when saving files with diagnostics
+- **Improved stability**: Async error handling prevents the extension from silently crashing on edge cases
+
+## [2.1.1] - 2026-02-12
+
+### Changed
+- Updated dependencies
+
+## [2.1.0] - 2025-12-01
 
 ### Fixed
 - **Diagnostics Update**: Fixed race condition where diagnostics for HTML files were not always updated when related TypeScript component files changed. Added proper `await` to ensure diagnostics update completes before continuing.

@@ -382,12 +382,7 @@ export class DiagnosticProvider {
     const componentInfo = this.extractInlineTemplate(document, sourceFile);
     if (componentInfo) {
       this.importedElementsCache.delete(document.fileName);
-      await this.runDiagnostics(
-        componentInfo.template,
-        document,
-        componentInfo.templateOffset,
-        sourceFile
-      );
+      await this.runDiagnostics(componentInfo.template, document, componentInfo.templateOffset, sourceFile);
     } else {
       this.clearDiagnosticsForNoTemplate(document);
     }
