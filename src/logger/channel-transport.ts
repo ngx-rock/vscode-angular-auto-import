@@ -45,6 +45,10 @@ export class ChannelTransport implements Transport {
     return formattedMessage;
   }
 
+  public show(): void {
+    this.outputChannel.show(false);
+  }
+
   public dispose(): void {
     this.outputChannel.dispose();
   }

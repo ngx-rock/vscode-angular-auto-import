@@ -1090,10 +1090,8 @@ export class DiagnosticProvider {
     docCtx: TemplateDocumentContext,
     astCtors: AstConstructors
   ): void {
-    const nodeName = node.constructor.name;
-
     // Handle all types of control flow expressions
-    if (this.isControlFlowNode(nodeName)) {
+    if (this.isControlFlowNode(node)) {
       this.processControlFlowNode(node, processingCtx.visit, processingCtx.extractPipesFromExpression);
       return;
     }
@@ -1107,16 +1105,33 @@ export class DiagnosticProvider {
     }
 
     // Handle regular children for non-control-flow nodes
-    if (this.hasChildren(node) && !this.isControlFlowNode(nodeName)) {
+    if (this.hasChildren(node) && !this.isControlFlowNode(node)) {
       // @ts-expect-error: Complex Angular template AST node types from ts-morph
       processingCtx.visit(node.children);
     }
   }
 
-  private isControlFlowNode(nodeName: string): boolean {
-    return (
-      nodeName.includes("Block") || nodeName.includes("Loop") || nodeName.includes("If") || nodeName.includes("Switch")
-    );
+  /**
+   * Detects control flow nodes using duck typing instead of constructor name matching.
+   * This is more robust than `node.constructor.name` which can break when bundled with esbuild.
+   */
+  private isControlFlowNode(node: TemplateAstNode): boolean {
+    const n = node as Record<string, unknown>;
+    // IfBlock/SwitchBlock: has `branches` array
+    if (Array.isArray(n.branches)) {
+      return true;
+    }
+    // ForLoopBlock: has `trackBy` and `contextVariables`
+    if (n.trackBy !== undefined && n.contextVariables !== undefined) {
+      return true;
+    }
+    // SwitchBlock: has `cases` array
+    if (Array.isArray(n.cases)) {
+      return true;
+    }
+    // ForLoopBlockEmpty / DeferredBlock variants: has `children` but no `name`/`attributes`/`tagName`
+    // (these are block nodes, not element nodes)
+    return false;
   }
 
   private processControlFlowNode(
@@ -1536,7 +1551,12 @@ export class DiagnosticProvider {
     void import("@angular/compiler")
       .then((compiler) => {
         this.compiler = compiler;
-        logger.info("[DiagnosticProvider] @angular/compiler pre-loaded.");
+        logger.info("[DiagnosticProvider] @angular/compiler loaded, retrying open documents...");
+        for (const document of vscode.workspace.textDocuments) {
+          if (document.languageId === "html" || document.languageId === "typescript") {
+            void this.updateDiagnostics(document);
+          }
+        }
       })
       .catch((error) => {
         logger.error("[DiagnosticProvider] Failed to pre-load @angular/compiler:", error as Error);

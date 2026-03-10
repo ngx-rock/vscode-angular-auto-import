@@ -123,42 +123,8 @@ export function registerCommands(context: vscode.ExtensionContext, commandContex
   context.subscriptions.push(clearCacheCommand);
 
   // Show logs command
-  const showLogsCommand = vscode.commands.registerCommand("angular-auto-import.showLogs", async () => {
-    logger.info("Show logs command invoked by user");
-
-    try {
-      // Show the Angular Auto Import output channel
-      const choice = await vscode.window.showInformationMessage(
-        "View Angular Auto Import logs:",
-        { modal: false },
-        "📋 Output Channel",
-        "📁 Log Files"
-      );
-
-      if (choice === "📋 Output Channel") {
-        // Show VS Code Output panel with Angular Auto Import channel
-        await vscode.commands.executeCommand("workbench.action.output.toggleOutput");
-        // The logger's ChannelTransport will ensure the channel is visible
-      } else if (choice === "📁 Log Files") {
-        // Open log directory if file logging is enabled
-        const config = commandContext.extensionConfig;
-        if (config.logging?.fileLoggingEnabled) {
-          const logDir = config.logging.logDirectory || path.join(context.globalStorageUri.fsPath, "logs");
-          if (fs.existsSync(logDir)) {
-            await vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(logDir), true);
-          } else {
-            vscode.window.showWarningMessage(
-              "Log directory not found. File logging might be disabled or not initialized yet."
-            );
-          }
-        } else {
-          vscode.window.showInformationMessage("File logging is disabled. Enable it in settings to create log files.");
-        }
-      }
-    } catch (error) {
-      logger.error("Error in showLogs command:", error as Error);
-      vscode.window.showErrorMessage("Failed to show logs. Check the extension output for details.");
-    }
+  const showLogsCommand = vscode.commands.registerCommand("angular-auto-import.showLogs", () => {
+    logger.showChannel();
   });
   context.subscriptions.push(showLogsCommand);
 

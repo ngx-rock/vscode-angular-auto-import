@@ -3,7 +3,7 @@
   "displayName": "Angular Auto Import",
   "description": "Intelligent auto-import for Angular standalone components, directives & pipes. Fix all missing imports with one command. Works with templates, external libraries & monorepos.",
   "publisher": "baryshevrs",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "icon": "img/icon.png",
   "galleryBanner": {
     "color": "#DD0031",
@@ -11,7 +11,7 @@
   },
   "qna": "marketplace",
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.105.0"
   },
   "categories": [
     "Programming Languages",
@@ -251,7 +251,7 @@
     "@biomejs/biome": "^2.4.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "~20.19.33",
-    "@types/vscode": "^1.109.0",
+    "@types/vscode": "^1.105.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",

@@ -232,6 +232,12 @@ export class Logger {
     this.fatal("An unhandled exception occurred", error, context);
   }
 
+  /** Shows the Output Channel panel and selects the Angular Auto Import channel. */
+  public showChannel(): void {
+    const channelTransport = this.transports.find((t): t is ChannelTransport => t instanceof ChannelTransport);
+    channelTransport?.show();
+  }
+
   public dispose() {
     this.transports.forEach((transport) => {
       transport.dispose();
