@@ -4,6 +4,12 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [2.3.0] - 2026-06-17
+
+### Fixed
+- **Stale indexes after dependency updates**: the extension now watches `package.json` and lockfiles, then automatically re-indexes `node_modules` when dependencies change
+- **Outdated missing-import diagnostics**: open documents refresh after the reindex completes, so stale warnings clear without a manual reindex
+
 ## [2.2.0] - 2026-03-11
 
 ### Fixed
@@ -261,4 +267,3 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [1.0.0] - 2025-06-17
  
 - Initial release
-

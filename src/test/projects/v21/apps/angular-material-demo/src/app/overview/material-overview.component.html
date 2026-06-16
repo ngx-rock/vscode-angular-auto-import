@@ -1,0 +1,327 @@
+<section class="playground-page" data-testid="material-playground-page">
+  <div class="page-actions">
+    <div>
+      <h1>Angular Material e2e playground</h1>
+      <p>Dense selector coverage for the VSCode plugin e2e suite.</p>
+    </div>
+
+    <div class="top-buttons">
+      <button mat-flat-button color="primary" data-testid="open-dialog" (click)="openDialog()">
+        <mat-icon>open_in_new</mat-icon>
+        Dialog
+      </button>
+
+      <button mat-stroked-button data-testid="open-snackbar" (click)="openSnackBar()">
+        <mat-icon>notification_important</mat-icon>
+        Snack-bar
+      </button>
+
+      <a mat-button routerLink="/table" data-testid="go-table">
+        <mat-icon>table_chart</mat-icon>
+        Table route
+      </a>
+    </div>
+  </div>
+
+  <mat-drawer-container class="playground-layout">
+    <mat-drawer mode="side" [opened]="drawerOpened" class="playground-drawer" data-testid="side-drawer">
+      <div class="drawer-header">
+        <button
+          mat-icon-button
+          matTooltip="Toggle drawer"
+          data-testid="toggle-drawer"
+          (click)="drawerOpened = !drawerOpened">
+          <mat-icon>menu_open</mat-icon>
+        </button>
+
+        <button mat-mini-fab color="primary" matBadge="7" matBadgeColor="warn" data-testid="mini-fab">
+          <mat-icon>bolt</mat-icon>
+        </button>
+      </div>
+
+      <mat-selection-list data-testid="selection-list">
+        @for (item of selectionItems; track item) {
+          <mat-list-option [selected]="item === 'Forms'">
+            {{ item }}
+          </mat-list-option>
+        }
+      </mat-selection-list>
+
+      <mat-divider></mat-divider>
+
+      <mat-nav-list>
+        <a mat-list-item routerLink="/">
+          <mat-icon matListItemIcon>home</mat-icon>
+          <span matListItemTitle>Playground</span>
+        </a>
+        <a mat-list-item routerLink="/table">
+          <mat-icon matListItemIcon>dataset</mat-icon>
+          <span matListItemTitle>Table</span>
+        </a>
+      </mat-nav-list>
+    </mat-drawer>
+
+    <mat-drawer-content>
+      <div class="playground-grid">
+        <mat-card class="dense-card" data-testid="button-card">
+          <mat-card-header>
+            <mat-card-title>Buttons and directives</mat-card-title>
+            <mat-card-subtitle>Dense `mat-*` surface in one block</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="stack">
+            <div class="button-row">
+              <button mat-button>Basic</button>
+              <button mat-raised-button color="primary">Raised</button>
+              <button mat-flat-button color="accent">Flat</button>
+              <button mat-stroked-button>Stroked</button>
+              <button mat-icon-button aria-label="Favorite" matTooltip="Icon button">
+                <mat-icon>favorite</mat-icon>
+              </button>
+              <button mat-fab color="primary" aria-label="Add">
+                <mat-icon>add</mat-icon>
+              </button>
+            </div>
+
+            <div class="button-row">
+              <mat-button-toggle-group [(ngModel)]="selectedMode" aria-label="Execution mode">
+                <mat-button-toggle value="smoke">Smoke</mat-button-toggle>
+                <mat-button-toggle value="full">Full</mat-button-toggle>
+              </mat-button-toggle-group>
+
+              <button mat-stroked-button [matMenuTriggerFor]="actionMenu" data-testid="menu-trigger">
+                <mat-icon>arrow_drop_down</mat-icon>
+                Menu
+              </button>
+
+              <mat-menu #actionMenu="matMenu">
+                @for (action of quickActions; track action) {
+                  <button mat-menu-item>{{ action }}</button>
+                }
+              </mat-menu>
+            </div>
+
+            <mat-chip-set>
+              @for (highlight of highlights; track highlight) {
+                <mat-chip>{{ highlight }}</mat-chip>
+              }
+              @for (tag of selectedTags; track tag) {
+                <mat-chip color="primary" highlighted>{{ tag }}</mat-chip>
+              }
+            </mat-chip-set>
+          </mat-card-content>
+
+          <mat-card-actions align="end">
+            <button mat-button>Idle</button>
+            <button mat-flat-button color="primary">Apply</button>
+          </mat-card-actions>
+        </mat-card>
+
+        <mat-card class="dense-card" data-testid="form-card">
+          <mat-card-header>
+            <mat-card-title>Forms</mat-card-title>
+            <mat-card-subtitle>Inputs, options and state directives</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Release name</mat-label>
+              <input matInput [(ngModel)]="releaseName" data-testid="release-name" />
+              <span matTextPrefix>#</span>
+              <mat-icon matSuffix>edit</mat-icon>
+              <mat-hint>Used by test fixtures</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Assignee</mat-label>
+              <input
+                matInput
+                [formControl]="assigneeControl"
+                [matAutocomplete]="assigneeAuto"
+                data-testid="assignee-input" />
+              <mat-hint>Autocomplete host</mat-hint>
+              <mat-autocomplete #assigneeAuto="matAutocomplete">
+                @for (item of filteredAssignees | async; track item) {
+                  <mat-option [value]="item">{{ item }}</mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Track</mat-label>
+              <mat-select [(ngModel)]="selectedTrack" data-testid="track-select">
+                <mat-option value="material">Material</mat-option>
+                <mat-option value="cross-lib">Cross-lib</mat-option>
+                <mat-option value="overlays">Overlays</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Ship date</mat-label>
+              <input matInput [matDatepicker]="picker" [(ngModel)]="shipDate" data-testid="ship-date" />
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Notes</mat-label>
+              <textarea matInput rows="3" [(ngModel)]="notes" data-testid="notes-area"></textarea>
+              <mat-hint align="end">{{ notes.length }}/120</mat-hint>
+            </mat-form-field>
+
+            <div class="control-cluster">
+              <span class="group-label">Priority</span>
+              <mat-radio-group [(ngModel)]="priority" data-testid="priority-group">
+                <mat-radio-button value="low">Low</mat-radio-button>
+                <mat-radio-button value="normal">Normal</mat-radio-button>
+                <mat-radio-button value="high">High</mat-radio-button>
+              </mat-radio-group>
+            </div>
+
+            <div class="control-cluster">
+              <span class="group-label">Section toggle</span>
+              <mat-button-toggle-group [(ngModel)]="selectedSection">
+                <mat-button-toggle value="forms">Forms</mat-button-toggle>
+                <mat-button-toggle value="overlay">Overlay</mat-button-toggle>
+                <mat-button-toggle value="nav">Nav</mat-button-toggle>
+              </mat-button-toggle-group>
+            </div>
+
+            <div class="control-cluster">
+              <mat-checkbox [(ngModel)]="notificationsEnabled" data-testid="notifications-checkbox">
+                Enable notifications
+              </mat-checkbox>
+              <mat-slide-toggle [(ngModel)]="compactDensity" data-testid="density-toggle">
+                Compact density
+              </mat-slide-toggle>
+            </div>
+
+            <div class="control-cluster">
+              <span class="group-label">Synthetic latency</span>
+              <mat-slider min="0" max="100" step="10" discrete>
+                <input matSliderThumb [(ngModel)]="latency" data-testid="latency-slider" />
+              </mat-slider>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="dense-card" data-testid="feedback-card">
+          <mat-card-header>
+            <mat-card-title>Progress and status</mat-card-title>
+            <mat-card-subtitle>Feedback widgets and compact state</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="stack">
+            <div class="status-row">
+              <mat-progress-spinner mode="determinate" [value]="progress" diameter="48"></mat-progress-spinner>
+              <div>
+                <strong>{{ progress }}%</strong>
+                <p>Current smoke coverage</p>
+              </div>
+            </div>
+
+            <mat-progress-bar mode="determinate" [value]="progress" data-testid="progress-bar"></mat-progress-bar>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Status</mat-label>
+              <mat-select [(ngModel)]="status" data-testid="status-select">
+                <mat-option value="ready">Ready</mat-option>
+                <mat-option value="review">Review</mat-option>
+                <mat-option value="blocked">Blocked</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <div class="button-row">
+              <button mat-flat-button color="primary" (click)="advanceProgress()">Advance</button>
+              <button mat-stroked-button (click)="resetState()">Reset</button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="dense-card" data-testid="selector-grid-card">
+          <mat-card-header>
+            <mat-card-title>Selector grid</mat-card-title>
+            <mat-card-subtitle>Extra Material tags for parser coverage</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="stack">
+            <mat-grid-list cols="2" rowHeight="5.5rem" gutterSize="0.75rem">
+              <mat-grid-tile>
+                <button mat-raised-button color="primary">Primary</button>
+              </mat-grid-tile>
+              <mat-grid-tile>
+                <button mat-stroked-button>Secondary</button>
+              </mat-grid-tile>
+              <mat-grid-tile>
+                <mat-chip-set>
+                  <mat-chip-option selected>selected</mat-chip-option>
+                  <mat-chip-option>idle</mat-chip-option>
+                </mat-chip-set>
+              </mat-grid-tile>
+              <mat-grid-tile>
+                <button mat-icon-button>
+                  <mat-icon>settings</mat-icon>
+                </button>
+              </mat-grid-tile>
+            </mat-grid-list>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="dense-card wide-card" data-testid="tab-card">
+          <mat-card-content>
+            <mat-tab-group>
+              <mat-tab label="Accordion">
+                <div class="tab-panel">
+                  <mat-accordion>
+                    <mat-expansion-panel expanded>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>Dense coverage</mat-panel-title>
+                        <mat-panel-description>Old demo moved here</mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <p>
+                        Buttons, menus, drawer, table route, form controls, progress widgets and overlays are now in one
+                        compact lab.
+                      </p>
+                    </mat-expansion-panel>
+
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>Why this shape</mat-panel-title>
+                      </mat-expansion-panel-header>
+                      <p>
+                        For e2e, fewer routes and more selectors per page are usually better than a visually separated
+                        showcase.
+                      </p>
+                    </mat-expansion-panel>
+                  </mat-accordion>
+                </div>
+              </mat-tab>
+
+              <mat-tab label="Stepper">
+                <div class="tab-panel">
+                  <mat-stepper orientation="horizontal">
+                    <mat-step label="Init">
+                      <p>Open the page and verify base layout.</p>
+                      <button mat-button matStepperNext>Next</button>
+                    </mat-step>
+                    <mat-step label="Interact">
+                      <p>Toggle controls, menus, dialog and snackbar.</p>
+                      <div class="button-row">
+                        <button mat-button matStepperPrevious>Back</button>
+                        <button mat-button matStepperNext>Next</button>
+                      </div>
+                    </mat-step>
+                    <mat-step label="Verify">
+                      <p>Assert overlay, selected values and progress state.</p>
+                      <button mat-button matStepperPrevious>Back</button>
+                    </mat-step>
+                  </mat-stepper>
+                </div>
+              </mat-tab>
+            </mat-tab-group>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-drawer-content>
+  </mat-drawer-container>
+</section>

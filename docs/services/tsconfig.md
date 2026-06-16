@@ -33,7 +33,7 @@ Clears the tsconfig and trie caches.
 
 ### findAndParseTsConfig()
 
-> **findAndParseTsConfig**(`projectRoot`): `Promise`\<`null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig)\>
+> **findAndParseTsConfig**(`projectRoot`): `Promise`\<[`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) \| `null`\>
 
 Defined in: [services/tsconfig.ts:296](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/services/tsconfig.ts#L296)
 
@@ -47,7 +47,7 @@ Finds and parses the `tsconfig.json` or `tsconfig.base.json` file for a given pr
 
 #### Returns
 
-`Promise`\<`null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig)\>
+`Promise`\<[`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) \| `null`\>
 
 A processed tsconfig object or `null` if not found.
 

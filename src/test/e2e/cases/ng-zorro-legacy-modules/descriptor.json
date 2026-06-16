@@ -1,0 +1,8 @@
+{
+  "case": "ng-zorro-legacy-modules",
+  "componentPath": "apps/ng-zorro-demo/src/app/modules/nz-playground-modules.component.ts",
+  "templatePath": "apps/ng-zorro-demo/src/app/modules/nz-playground-modules.component.html",
+  "preserveImports": true,
+  "diagnostics": [],
+  "quickfixes": []
+}

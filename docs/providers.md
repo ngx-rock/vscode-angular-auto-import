@@ -24,13 +24,13 @@ Context for the providers.
 | <a id="extensionconfig"></a> `extensionConfig` | [`ExtensionConfig`](config/settings.md#extensionconfig) | The current extension configuration. | [providers/index.ts:33](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L33) |
 | <a id="extensioncontext"></a> `extensionContext` | `ExtensionContext` | The extension context. | [providers/index.ts:37](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L37) |
 | <a id="projectindexers"></a> `projectIndexers` | `Map`\<`string`, [`AngularIndexer`](services/indexer.md#angularindexer)\> | A map of project root paths to their corresponding `AngularIndexer` instances. | [providers/index.ts:25](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L25) |
-| <a id="projecttsconfigs"></a> `projectTsConfigs` | `Map`\<`string`, `null` \| [`ProcessedTsConfig`](types/tsconfig.md#processedtsconfig)\> | A map of project root paths to their corresponding processed `tsconfig.json` files. | [providers/index.ts:29](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L29) |
+| <a id="projecttsconfigs"></a> `projectTsConfigs` | `Map`\<`string`, [`ProcessedTsConfig`](types/tsconfig.md#processedtsconfig) \| `null`\> | A map of project root paths to their corresponding processed `tsconfig.json` files. | [providers/index.ts:29](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L29) |
 
 ## Functions
 
 ### registerProviders()
 
-> **registerProviders**(`context`, `providerContext`): `undefined` \| [`DiagnosticProvider`](providers/diagnostics.md#diagnosticprovider)
+> **registerProviders**(`context`, `providerContext`): [`DiagnosticProvider`](providers/diagnostics.md#diagnosticprovider) \| `undefined`
 
 Defined in: [providers/index.ts:49](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/index.ts#L49)
 
@@ -45,4 +45,4 @@ Registers all VSCode providers for the extension.
 
 #### Returns
 
-`undefined` \| [`DiagnosticProvider`](providers/diagnostics.md#diagnosticprovider)
+[`DiagnosticProvider`](providers/diagnostics.md#diagnosticprovider) \| `undefined`

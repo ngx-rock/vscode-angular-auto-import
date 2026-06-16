@@ -80,6 +80,7 @@ export interface ControlFlowNode extends TemplateAstNode {
   children?: TemplateAstNode[];
   branches?: ControlFlowBranch[];
   cases?: ControlFlowCase[];
+  groups?: ControlFlowGroup[];
   empty?: { children?: TemplateAstNode[] };
 }
 
@@ -96,5 +97,13 @@ interface ControlFlowBranch extends TemplateAstNode {
  */
 interface ControlFlowCase extends TemplateAstNode {
   expression?: unknown;
+  children?: TemplateAstNode[];
+}
+
+/**
+ * Angular template control flow switch group.
+ */
+interface ControlFlowGroup extends TemplateAstNode {
+  cases?: ControlFlowCase[];
   children?: TemplateAstNode[];
 }

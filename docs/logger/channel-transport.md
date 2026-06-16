@@ -47,7 +47,7 @@ Defined in: [logger/channel-transport.ts:8](https://github.com/ngx-rock/vscode-a
 
 > **dispose**(): `void`
 
-Defined in: [logger/channel-transport.ts:48](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/channel-transport.ts#L48)
+Defined in: [logger/channel-transport.ts:52](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/channel-transport.ts#L52)
 
 ###### Returns
 
@@ -92,3 +92,13 @@ Defined in: [logger/channel-transport.ts:13](https://github.com/ngx-rock/vscode-
 ###### Implementation of
 
 [`Transport`](types.md#transport).[`log`](types.md#log)
+
+##### show()
+
+> **show**(): `void`
+
+Defined in: [logger/channel-transport.ts:48](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/channel-transport.ts#L48)
+
+###### Returns
+
+`void`

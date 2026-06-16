@@ -118,7 +118,7 @@ The project context to be passed to providers.
 | ------ | ------ | ------ | ------ |
 | <a id="indexer"></a> `indexer` | [`AngularIndexer`](../services/indexer.md#angularindexer) | An instance of the Angular indexer. | [types/angular.ts:149](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L149) |
 | <a id="projectrootpath"></a> `projectRootPath` | `string` | The root path of the Angular project. | [types/angular.ts:145](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L145) |
-| <a id="tsconfig"></a> `tsConfig` | `null` \| [`ProcessedTsConfig`](tsconfig.md#processedtsconfig) | The processed tsconfig for the project. | [types/angular.ts:153](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L153) |
+| <a id="tsconfig"></a> `tsConfig` | [`ProcessedTsConfig`](tsconfig.md#processedtsconfig) \| `null` | The processed tsconfig for the project. | [types/angular.ts:153](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/types/angular.ts#L153) |
 
 ## Type Aliases
 

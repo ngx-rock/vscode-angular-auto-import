@@ -80,7 +80,7 @@ Array of LocationLink objects
 
 ##### extractSelectorFromDiagnostic()
 
-> `private` **extractSelectorFromDiagnostic**(`diagnostic`): `undefined` \| `string`
+> `private` **extractSelectorFromDiagnostic**(`diagnostic`): `string` \| `undefined`
 
 Defined in: [providers/definition.ts:124](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/definition.ts#L124)
 
@@ -96,7 +96,7 @@ Diagnostic code format: "missing-{type}-import:{selector}"
 
 ###### Returns
 
-`undefined` \| `string`
+`string` \| `undefined`
 
 The selector string or undefined
 
@@ -123,7 +123,7 @@ Array of matching Angular elements
 
 ##### getDiagnosticAtPosition()
 
-> `private` **getDiagnosticAtPosition**(`document`, `position`): `undefined` \| `Diagnostic`
+> `private` **getDiagnosticAtPosition**(`document`, `position`): `Diagnostic` \| `undefined`
 
 Defined in: [providers/definition.ts:93](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/definition.ts#L93)
 
@@ -141,13 +141,13 @@ Checks both VS Code's diagnostic collection and internal diagnostics
 
 ###### Returns
 
-`undefined` \| `Diagnostic`
+`Diagnostic` \| `undefined`
 
 The diagnostic if found, undefined otherwise
 
 ##### getElementLocation()
 
-> `private` **getElementLocation**(`element`, `projectRootPath`): `undefined` \| `Location`
+> `private` **getElementLocation**(`element`, `projectRootPath`): `Location` \| `undefined`
 
 Defined in: [providers/definition.ts:194](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/definition.ts#L194)
 
@@ -162,13 +162,13 @@ Gets the location of an Angular element in its source file.
 
 ###### Returns
 
-`undefined` \| `Location`
+`Location` \| `undefined`
 
 Location object or undefined if not found
 
 ##### getProjectContextForDocument()
 
-> `private` **getProjectContextForDocument**(`document`): `null` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `undefined` \| `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
+> `private` **getProjectContextForDocument**(`document`): \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) \| `null` \| `undefined`; \} \| `null`
 
 Defined in: [providers/definition.ts:335](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/definition.ts#L335)
 
@@ -182,7 +182,7 @@ Gets the project context for a document.
 
 ###### Returns
 
-`null` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `undefined` \| `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
+\{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) \| `null` \| `undefined`; \} \| `null`
 
 Project context or null
 
@@ -214,7 +214,7 @@ Definition locations or undefined if not applicable
 
 ##### resolveExternalPath()
 
-> `private` **resolveExternalPath**(`importPath`, `projectRootPath`): `undefined` \| `string`
+> `private` **resolveExternalPath**(`importPath`, `projectRootPath`): `string` \| `undefined`
 
 Defined in: [providers/definition.ts:292](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/definition.ts#L292)
 
@@ -229,6 +229,6 @@ Resolves the path for an external library element.
 
 ###### Returns
 
-`undefined` \| `string`
+`string` \| `undefined`
 
 Absolute file path or undefined

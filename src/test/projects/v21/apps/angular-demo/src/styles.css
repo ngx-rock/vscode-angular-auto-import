@@ -1,0 +1,14 @@
+/* You can add global styles to this file, and also import other style files */
+html {
+  min-height: 100%;
+  padding: 24px;
+  background: #f8fafc;
+}
+
+body {
+  margin: 0;
+  color: #1f2937;
+  font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

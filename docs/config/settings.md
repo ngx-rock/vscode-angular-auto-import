@@ -50,11 +50,11 @@ const config: ExtensionConfig = {
 | `logging.enabled` | `boolean` | Whether logging is enabled. **Default** `true` | [config/settings.ts:83](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L83) |
 | `logging.fileLoggingEnabled` | `boolean` | Whether file logging is enabled. **Default** `false` | [config/settings.ts:93](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L93) |
 | `logging.level` | `string` | Logging level threshold. **Default** `'INFO'` | [config/settings.ts:88](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L88) |
-| `logging.logDirectory` | `null` \| `string` | Directory for log files. **Default** `null` | [config/settings.ts:98](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L98) |
+| `logging.logDirectory` | `string` \| `null` | Directory for log files. **Default** `null` | [config/settings.ts:98](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L98) |
 | `logging.outputFormat` | `string` | Log output format. **Default** `'plain'` | [config/settings.ts:113](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L113) |
 | `logging.rotationMaxFiles` | `number` | Maximum number of log files to keep. **Default** `5` | [config/settings.ts:108](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L108) |
 | `logging.rotationMaxSize` | `number` | Maximum log file size in MB before rotation. **Default** `5` | [config/settings.ts:103](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L103) |
-| <a id="projectpath"></a> `projectPath` | `null` \| `string` | Optional path to a specific Angular project. When null, the extension will auto-detect projects in the workspace. | [config/settings.ts:34](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L34) |
+| <a id="projectpath"></a> `projectPath` | `string` \| `null` | Optional path to a specific Angular project. When null, the extension will auto-detect projects in the workspace. | [config/settings.ts:34](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/settings.ts#L34) |
 
 ## Functions
 

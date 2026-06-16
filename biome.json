@@ -16,7 +16,8 @@
       "!!**/out/**",
       "!!**/*.min.js",
       "!!**/*.d.ts",
-      "!!**/coverage/**"
+      "!!**/coverage/**",
+      "!!src/test/projects/**"
     ]
   },
   "formatter": {

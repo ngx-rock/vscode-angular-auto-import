@@ -255,6 +255,61 @@ describe("AngularIndexer", function () {
       assert.strictEqual(indexer.fileWatcher, null, "File watcher should be null after dispose");
     });
 
+    it("should initialize dependency watcher", () => {
+      indexer.initializeWatcher(mockContext);
+      const depWatcher = (indexer as unknown as { dependencyWatcher: unknown }).dependencyWatcher;
+      assert.ok(depWatcher, "Should have a dependency watcher");
+      assert.strictEqual(typeof indexer.onDidIndexNodeModules, "function", "Should expose onDidIndexNodeModules event");
+    });
+
+    it("should dispose dependency watcher on dispose", () => {
+      indexer.initializeWatcher(mockContext);
+      indexer.dispose();
+      const depWatcher = (indexer as unknown as { dependencyWatcher: unknown }).dependencyWatcher;
+      assert.strictEqual(depWatcher, null, "Dependency watcher should be null after dispose");
+    });
+
+    it("should re-index node_modules and emit event on dependency change", async () => {
+      indexer.initializeWatcher(mockContext);
+
+      let fired = 0;
+      const subscription = indexer.onDidIndexNodeModules(() => {
+        fired++;
+      });
+
+      try {
+        const indexerInternal = indexer as unknown as {
+          reindexNodeModulesAfterDependencyChange: (ctx: vscode.ExtensionContext) => Promise<void>;
+        };
+        await indexerInternal.reindexNodeModulesAfterDependencyChange(mockContext);
+        assert.strictEqual(fired, 1, "onDidIndexNodeModules should fire once after a dependency change");
+      } finally {
+        subscription.dispose();
+      }
+    });
+
+    it("should skip dependency reindex while a full index is running", async () => {
+      indexer.initializeWatcher(mockContext);
+
+      let fired = 0;
+      const subscription = indexer.onDidIndexNodeModules(() => {
+        fired++;
+      });
+
+      const indexerInternal = indexer as unknown as {
+        isIndexing: boolean;
+        reindexNodeModulesAfterDependencyChange: (ctx: vscode.ExtensionContext) => Promise<void>;
+      };
+      try {
+        indexerInternal.isIndexing = true;
+        await indexerInternal.reindexNodeModulesAfterDependencyChange(mockContext);
+        assert.strictEqual(fired, 0, "Should not re-index or emit while a full index is in progress");
+      } finally {
+        indexerInternal.isIndexing = false;
+        subscription.dispose();
+      }
+    });
+
     it("should handle file creation", async () => {
       indexer.initializeWatcher(mockContext);
 
@@ -401,6 +456,30 @@ export class TempComponent {}
       // Even if no actual Angular libraries are found, it shouldn't error
       const selectors = indexer.getAllSelectors();
       assert.ok(Array.isArray(selectors), "Should return selectors array even with node_modules present");
+    });
+
+    it("should ignore entry points that only re-export private ɵ aliases", async () => {
+      await indexer.generateFullIndex(mockContext);
+
+      const iconElements = indexer.getElements("mock-icon");
+      const submenuElements = indexer.getElements("mock-submenu");
+
+      assert.ok(
+        iconElements.some((element) => element.name === "MockIconDirective"),
+        "Should index public directive"
+      );
+      assert.ok(
+        submenuElements.some((element) => element.name === "MockSubMenuDirective"),
+        "Should index public submenu directive"
+      );
+      assert.ok(
+        !iconElements.some((element) => element.name === "MockTransitionPatchDirective"),
+        "Should not index a directive re-exported only as a private ɵ alias for mock-icon"
+      );
+      assert.ok(
+        !submenuElements.some((element) => element.name === "MockTransitionPatchDirective"),
+        "Should not index a directive re-exported only as a private ɵ alias for mock-submenu"
+      );
     });
   });
 
@@ -607,6 +686,7 @@ export class ComplexDirective {}
       dependencies: {
         "@angular/core": "^17.0.0",
         "@angular/common": "^17.0.0",
+        "mock-private-lib": "^1.0.0",
       },
     };
     fs.writeFileSync(path.join(testProjectPath, "package.json"), JSON.stringify(packageJsonContent, null, 2));
@@ -640,6 +720,73 @@ export class ComplexDirective {}
       },
     };
     fs.writeFileSync(path.join(mockLibPath, "package.json"), JSON.stringify(mockPackageJson, null, 2));
+
+    const mockPrivateLibPath = path.join(mockNodeModulesPath, "mock-private-lib");
+    const mockTransitionPatchPath = path.join(mockPrivateLibPath, "core", "transition-patch");
+    fs.mkdirSync(mockTransitionPatchPath, { recursive: true });
+
+    const mockPrivateLibPackageJson = {
+      name: "mock-private-lib",
+      version: "1.0.0",
+      peerDependencies: {
+        "@angular/core": "^17.0.0",
+      },
+      exports: {
+        ".": {
+          types: "./index.d.ts",
+        },
+        "./core/transition-patch": {
+          types: "./core/transition-patch/public-api.d.ts",
+        },
+      },
+    };
+    fs.writeFileSync(path.join(mockPrivateLibPath, "package.json"), JSON.stringify(mockPrivateLibPackageJson, null, 2));
+
+    fs.writeFileSync(
+      path.join(mockPrivateLibPath, "index.d.ts"),
+      `export { MockIconDirective } from './icon.directive';
+export { MockSubMenuDirective } from './submenu.directive';
+`
+    );
+
+    fs.writeFileSync(
+      path.join(mockPrivateLibPath, "icon.directive.d.ts"),
+      `import * as i0 from '@angular/core';
+
+export declare class MockIconDirective {
+  static ɵfac: i0.ɵɵFactoryDeclaration<MockIconDirective, never>;
+  static ɵdir: i0.ɵɵDirectiveDeclaration<MockIconDirective, "mock-icon,[mock-icon]", never, {}, {}, never, never, true, never>;
+}
+`
+    );
+
+    fs.writeFileSync(
+      path.join(mockPrivateLibPath, "submenu.directive.d.ts"),
+      `import * as i0 from '@angular/core';
+
+export declare class MockSubMenuDirective {
+  static ɵfac: i0.ɵɵFactoryDeclaration<MockSubMenuDirective, never>;
+  static ɵdir: i0.ɵɵDirectiveDeclaration<MockSubMenuDirective, "[mock-submenu]", never, {}, {}, never, never, true, never>;
+}
+`
+    );
+
+    fs.writeFileSync(
+      path.join(mockTransitionPatchPath, "public-api.d.ts"),
+      `export { MockTransitionPatchDirective as ɵMockTransitionPatchDirective } from './transition-patch.directive';
+`
+    );
+
+    fs.writeFileSync(
+      path.join(mockTransitionPatchPath, "transition-patch.directive.d.ts"),
+      `import * as i0 from '@angular/core';
+
+export declare class MockTransitionPatchDirective {
+  static ɵfac: i0.ɵɵFactoryDeclaration<MockTransitionPatchDirective, never>;
+  static ɵdir: i0.ɵɵDirectiveDeclaration<MockTransitionPatchDirective, "[mock-icon], mock-icon, [mock-submenu]", never, {}, {}, never, never, true, never>;
+}
+`
+    );
   }
 
   async function cleanupMockNodeModules(): Promise<void> {

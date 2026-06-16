@@ -47,7 +47,7 @@ and updating the `@Component` decorator's `imports` array for all elements in on
 | `componentFilePathAbs` | `string` | The absolute path to the component file. |
 | `projectRootPath` | `string` | The root path of the project. |
 | `indexerProject` | `Project` | The ts-morph project instance. |
-| `_tsConfig` | `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) | The processed tsconfig.json. |
+| `_tsConfig` | [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) \| `null` | The processed tsconfig.json. |
 
 #### Returns
 

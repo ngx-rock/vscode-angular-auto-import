@@ -37,14 +37,4 @@ Debounces a function, ensuring it's only called after a specified delay since th
 
 The debounced function.
 
-> (...`args`): `void`
-
-##### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| ...`args` | `Args` |
-
-##### Returns
-
-`void`
+(...`args`) => `void`

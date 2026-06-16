@@ -1,0 +1,84 @@
+{
+  "name": "angular-material-demo",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "app",
+  "sourceRoot": "apps/angular-material-demo/src",
+  "cli": {
+    "cache": {
+      "enabled": false
+    }
+  },
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/angular-material-demo",
+        "browser": "apps/angular-material-demo/src/main.ts",
+        "tsConfig": "apps/angular-material-demo/tsconfig.app.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/angular-material-demo/public"
+          }
+        ],
+        "styles": ["apps/angular-material-demo/src/styles.css"]
+      },
+      "configurations": {
+        "production": {
+          "optimization": {
+            "fonts": {
+              "inline": false
+            }
+          },
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "1500kb",
+              "maximumError": "2mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "development"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular/build:dev-server",
+      "configurations": {
+        "production": {
+          "buildTarget": "angular-material-demo:build:production"
+        },
+        "development": {
+          "buildTarget": "angular-material-demo:build:development"
+        }
+      },
+      "defaultConfiguration": "development"
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "serve-static": {
+      "continuous": true,
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "angular-material-demo:build",
+        "staticFilePath": "dist/apps/angular-material-demo/browser",
+        "spa": true
+      }
+    }
+  }
+}

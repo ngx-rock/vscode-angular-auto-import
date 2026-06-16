@@ -1,0 +1,223 @@
+.page-shell {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  align-items: start;
+}
+
+.page-shell > .page-header[tuinavigationheader] {
+  --tui-theme-color: rgba(255, 255, 255, 0.92);
+  --tui-text-primary: #0f172a;
+  --tui-text-secondary: #475569;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  box-sizing: border-box;
+  color: #0f172a;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.page-shell > .page-aside {
+  --tui-theme-color: rgba(255, 255, 255, 0.92);
+  --tui-text-primary: #0f172a;
+  --tui-text-secondary: #475569;
+  --tui-text-tertiary: #64748b;
+  --tui-border-normal: rgba(15, 23, 42, 0.08);
+  --tui-background-neutral-1-hover: rgba(15, 23, 42, 0.06);
+  --tui-background-elevation-3: rgba(255, 255, 255, 0.98);
+  padding: 1rem 0.75rem;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.56);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  color: #0f172a;
+}
+
+.page-shell > .page-aside::before,
+.page-shell > .page-aside::after {
+  content: none;
+}
+
+.aside-nav {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.aside-nav > a,
+.aside-nav > button,
+.aside-nav > tui-aside-group {
+  width: 100%;
+}
+
+.page-shell > .page-main {
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  justify-self: stretch;
+}
+
+.page-subheader {
+  margin-bottom: 1rem;
+}
+
+.hero.card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.hero h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.75rem, 3vw, 2.4rem);
+}
+
+.hero p {
+  margin: 0;
+  max-width: 48rem;
+  color: #4b5563;
+}
+
+.hero-copy {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.hero-card {
+  margin-bottom: 1rem;
+  background:
+    radial-gradient(circle at top right, rgba(20, 184, 166, 0.2), transparent 24%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(244, 255, 253, 0.92));
+}
+
+.hero-actions,
+.button-row,
+.progress-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.card {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.card h2,
+.card h3,
+.card p {
+  margin: 0;
+}
+
+.content-grid > .card,
+.pipe-grid > div {
+  min-width: 0;
+}
+
+.card tui-textfield,
+.card tui-textfield[multi],
+.card label[tuiLabel] {
+  width: 100%;
+}
+
+.progress-row > progress[tuiProgressBar] {
+  flex: 1 1 14rem;
+}
+
+.progress-row > tui-progress-circle {
+  flex: 0 0 auto;
+}
+
+.wide-card {
+  grid-column: 1 / -1;
+}
+
+.pipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 1rem;
+}
+
+.pipe-grid > div {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  padding: 0.75rem;
+  border-radius: 0.875rem;
+  background: rgba(248, 250, 252, 0.9);
+}
+
+@media (max-width: 960px) {
+  .page-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+  }
+
+  .page-shell > .page-aside {
+    border-right: 0;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    position: static;
+  }
+
+  .page-shell > .page-main {
+    width: 100%;
+    max-width: none;
+    padding: 1rem;
+  }
+
+  .content-grid,
+  .pipe-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page-shell > .page-header {
+    align-items: flex-start;
+    padding: 0.875rem 1rem;
+  }
+
+  .page-main {
+    padding: 1rem;
+  }
+
+  .hero-card {
+    padding: 1rem;
+  }
+
+  .header-actions {
+    justify-content: flex-start;
+  }
+}

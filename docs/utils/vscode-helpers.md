@@ -12,7 +12,7 @@ VS Code Helper Utilities
 
 ### getTsDocument()
 
-> **getTsDocument**(`currentDocument`, `componentPath`): `Promise`\<`null` \| `TextDocument`\>
+> **getTsDocument**(`currentDocument`, `componentPath`): `Promise`\<`TextDocument` \| `null`\>
 
 Defined in: [utils/vscode-helpers.ts:15](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/vscode-helpers.ts#L15)
 
@@ -27,6 +27,6 @@ Opens a TypeScript document by path, or returns the current document if paths ma
 
 #### Returns
 
-`Promise`\<`null` \| `TextDocument`\>
+`Promise`\<`TextDocument` \| `null`\>
 
 The opened TextDocument or null if it couldn't be opened

@@ -496,6 +496,19 @@ async function registerProvidersAndCommands(context: vscode.ExtensionContext): P
   // Register providers first
   const diagnosticProvider = registerProviders(context, providerContext);
 
+  // Refresh diagnostics when a project's external library index is rebuilt after
+  // a dependency manifest change, so stale "missing import" warnings clear on
+  // their own (e.g. right after installing a library like @ngx-translate/core).
+  if (diagnosticProvider) {
+    for (const indexer of projectIndexers.values()) {
+      context.subscriptions.push(
+        indexer.onDidIndexNodeModules(() => {
+          void diagnosticProvider.refreshOpenDocuments();
+        })
+      );
+    }
+  }
+
   // Create command context
   const commandContext: CommandContext = {
     projectIndexers,

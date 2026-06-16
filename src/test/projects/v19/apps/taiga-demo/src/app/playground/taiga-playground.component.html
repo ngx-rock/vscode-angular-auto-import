@@ -1,0 +1,208 @@
+<div class="page-shell" data-testid="taiga-playground">
+  <header tuiNavigationHeader class="page-header">
+    <div tuiNavigationLogo>Taiga UI E2E</div>
+
+    <div class="header-actions">
+      <tui-notification appearance="info" size="s">Dense coverage</tui-notification>
+
+      <button tuiButton appearance="primary" size="s" [tuiHint]="'Hint directive target'">Hint target</button>
+    </div>
+  </header>
+
+  <aside class="page-aside" [tuiNavigationAside]="true">
+    <div class="aside-nav">
+      <a tuiAsideItem href="#">Playground</a>
+      <a tuiAsideItem href="#">Forms</a>
+      <tui-aside-group [open]="true">
+        Coverage
+        <ng-template>
+          <button tuiAsideItem type="button">Pipes</button>
+          <button tuiAsideItem type="button">Directives</button>
+        </ng-template>
+      </tui-aside-group>
+    </div>
+  </aside>
+
+  <main tuiNavigationMain class="page-main">
+    <div tuiNavigationSubheader class="page-subheader">
+      <tui-breadcrumbs [itemsLimit]="4">
+        <ng-template>Workspace</ng-template>
+        <ng-template>Taiga UI</ng-template>
+        <ng-template>VSCode plugin</ng-template>
+        <ng-template>Playground</ng-template>
+      </tui-breadcrumbs>
+    </div>
+
+    <section class="hero card hero-card">
+      <div class="hero-copy">
+        <h1>Taiga UI selector playground</h1>
+        <p>Single-page dense demo covering Taiga UI components, pipes and directives for plugin e2e scenarios.</p>
+      </div>
+
+      <div class="hero-actions">
+        <tui-avatar size="l">AI</tui-avatar>
+        <tui-badge size="s">v4</tui-badge>
+        <span tuiChip appearance="positive">chip</span>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <div class="card">
+        <h2>Buttons, tabs and feedback</h2>
+
+        <div class="button-row">
+          <button tuiButton appearance="primary" size="s">Primary</button>
+          <button tuiButton appearance="secondary" size="s">Secondary</button>
+          <button tuiButton appearance="outline" size="s">Outline</button>
+          <button tuiIconButton appearance="flat">
+            <tui-icon icon="@tui.search"></tui-icon>
+          </button>
+        </div>
+
+        <tui-tabs [(activeItemIndex)]="activeTabIndex">
+          @for (tab of tabs; track tab) {
+            <button tuiTab type="button">{{ tab }}</button>
+          }
+        </tui-tabs>
+
+        <div class="progress-row">
+          <progress tuiProgressBar [value]="progress" max="100"></progress>
+          <tui-progress-circle [value]="progress" [max]="100"></tui-progress-circle>
+        </div>
+
+        <div tuiMessage appearance="warning">Message directive target</div>
+        <span tuiStatus="positive">status directive</span>
+      </div>
+
+      <div class="card">
+        <h2>Form controls</h2>
+
+        <label tuiLabel>
+          Checkbox
+          <input tuiCheckbox type="checkbox" [(ngModel)]="checkboxValue" />
+        </label>
+
+        <label tuiLabel>
+          Switch
+          <input tuiSwitch type="checkbox" [(ngModel)]="switchValue" />
+        </label>
+
+        <label tuiLabel>
+          Slider
+          <input tuiSlider type="range" min="0" max="100" [(ngModel)]="sliderValue" />
+        </label>
+
+        <label tuiLabel>
+          Rating
+          <tui-rating [(ngModel)]="ratingValue" [max]="5"></tui-rating>
+        </label>
+
+        <tui-textfield>
+          <label tuiLabel>Combo-box</label>
+          <input tuiComboBox [(ngModel)]="comboValue" />
+          <tui-data-list-wrapper *tuiTextfieldDropdown new [items]="frameworks" />
+        </tui-textfield>
+
+        <tui-textfield tuiChevron>
+          <label tuiLabel>Select</label>
+          <input tuiSelect [(ngModel)]="selectValue" />
+          <tui-data-list-wrapper *tuiTextfieldDropdown new [items]="statuses" />
+        </tui-textfield>
+
+        <tui-textfield>
+          <label tuiLabel>Date</label>
+          <input tuiInputDate [(ngModel)]="dateValue" />
+        </tui-textfield>
+
+        <tui-textfield>
+          <label tuiLabel>Number</label>
+          <input tuiInputNumber [(ngModel)]="numberValue" postfix="px" />
+        </tui-textfield>
+
+        <tui-textfield multi>
+          <label tuiLabel>Input chip</label>
+          <input tuiInputChip [(ngModel)]="chipValues" />
+        </tui-textfield>
+
+        <tui-textfield>
+          <label tuiLabel>Textarea</label>
+          <textarea tuiTextarea [(ngModel)]="notes" [max]="160"></textarea>
+        </tui-textfield>
+      </div>
+
+      <div class="card wide-card">
+        <h2>Layout and block status</h2>
+
+        <tui-block-status [card]="true" size="l">
+          <span tuiSlot="top">top slot</span>
+          <h3>Coverage checkpoint</h3>
+          <p>Block status component plus slot directive are used here.</p>
+          <button tuiButton tuiSlot="action" appearance="primary" size="s">Action</button>
+        </tui-block-status>
+
+        <tui-accordion [closeOthers]="false">
+          <tui-accordion-item [open]="true">
+            Accordion item
+            <ng-template tuiAccordionItemContent>Content inside accordion item.</ng-template>
+          </tui-accordion-item>
+
+          <tui-accordion-item>
+            More content
+            <ng-template tuiAccordionItemContent>Another branch for e2e checks.</ng-template>
+          </tui-accordion-item>
+        </tui-accordion>
+
+        <button tuiButton appearance="outline" size="s" (click)="toggleExpanded()">Toggle expand</button>
+
+        <tui-expand [expanded]="expanded">Expanded content with extra selectors for stable testing.</tui-expand>
+      </div>
+
+      <div class="card wide-card">
+        <h2>Pipes</h2>
+
+        <div class="pipe-grid">
+          <div>
+            <strong>Initials</strong>
+            <div *ngFor="let user of users">{{ user | tuiInitials }}</div>
+          </div>
+
+          <div>
+            <strong>Is present</strong>
+            <div *ngIf="maybeValue | tuiIsPresent">Value: {{ maybeValue }}</div>
+            <button tuiButton size="s" (click)="togglePresence()">Toggle</button>
+          </div>
+
+          <div>
+            <strong>Obfuscate</strong>
+            <div>{{ creditCard | tuiObfuscate }}</div>
+          </div>
+
+          <div>
+            <strong>Replace</strong>
+            <div>{{ 'taiga-ui playground' | tuiReplace: '-' : ' ' }}</div>
+          </div>
+
+          <div>
+            <strong>Keys</strong>
+            <div *ngFor="let key of sections | tuiKeys">{{ key }}</div>
+          </div>
+
+          <div>
+            <strong>ToArray</strong>
+            <div *ngFor="let tag of tagSet | tuiToArray">{{ tag }}</div>
+          </div>
+
+          <div>
+            <strong>RepeatTimes</strong>
+            <span *ngFor="let _ of 4 | tuiRepeatTimes">•</span>
+          </div>
+
+          <div>
+            <strong>Format number</strong>
+            <div>{{ numberValue | tuiFormatNumber | async }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>

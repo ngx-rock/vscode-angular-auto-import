@@ -1,0 +1,117 @@
+{
+  "case": "tsconfig-aliases",
+  "componentPath": "apps/angular-demo/src/app/tsconfig-aliases/ui-demo-one-alias.component.ts",
+  "templatePath": "apps/angular-demo/src/app/tsconfig-aliases/ui-demo-one-alias.component.html",
+  "diagnostics": [
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 2,
+      "startCharacter": 0,
+      "endLine": 2,
+      "endCharacter": 17
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one-sibling",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 3,
+      "startCharacter": 0,
+      "endLine": 3,
+      "endCharacter": 38
+    },
+    {
+      "code": "missing-component-import:lib-ui-moon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 7,
+      "startCharacter": 0,
+      "endLine": 7,
+      "endCharacter": 13
+    },
+    {
+      "code": "missing-component-import:lib-ui-mars",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 11,
+      "startCharacter": 0,
+      "endLine": 11,
+      "endCharacter": 13
+    },
+    {
+      "code": "missing-component-import:app-alias",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 15,
+      "startCharacter": 0,
+      "endLine": 15,
+      "endCharacter": 11
+    },
+    {
+      "code": "missing-component-import:app-deep-alias",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 16,
+      "startCharacter": 0,
+      "endLine": 16,
+      "endCharacter": 16
+    }
+  ],
+  "quickfixes": [
+    {
+      "diagnosticCode": "missing-component-import:lib-ui-demo-one",
+      "title": "⟐ Import UiDemoOneComponent from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoOneComponent",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:lib-ui-demo-one-sibling",
+      "title": "⟐ Import UiDemoOneSiblingComponent from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoOneSiblingComponent",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:lib-ui-moon",
+      "title": "⟐ Import UiMoonComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiMoonComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:lib-ui-mars",
+      "title": "⟐ Import UiMarsComponent from '@angular-demo/ui-mars'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiMarsComponent",
+        "moduleSpecifier": "@angular-demo/ui-mars"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:app-alias",
+      "title": "⟐ Import AliasComponent from '@alias/alias.component'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "AliasComponent",
+        "moduleSpecifier": "@alias/alias.component"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:app-deep-alias",
+      "title": "⟐ Import DeepAliasComponent from '@deep-alias'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "DeepAliasComponent",
+        "moduleSpecifier": "@deep-alias"
+      }
+    }
+  ]
+}

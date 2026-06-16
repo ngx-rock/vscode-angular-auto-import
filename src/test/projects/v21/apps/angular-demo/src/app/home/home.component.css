@@ -1,0 +1,116 @@
+:host {
+  display: block;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 32px 56px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+:host > * {
+  line-height: 1.55;
+}
+
+:host > * + * {
+  margin-top: 14px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  margin-top: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  color: #0f172a;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+h1:not(:first-child) {
+  margin-top: 40px;
+}
+
+h2 {
+  margin-top: 26px;
+  color: #9a3412;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+h3 {
+  margin-top: 18px;
+  color: #334155;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+lib-ui-demo-one,
+lib-ui-demo-one-sibling,
+app-nx-welcome,
+lib-ui-moon,
+moon,
+lib-ui-moon-double,
+smart-captcha,
+invisible-smart-captcha,
+lib-ui-mars,
+app-alias,
+app-deep-alias,
+app-button,
+app-card,
+mars,
+green-font-color,
+jupiter-table,
+lib-prefix-less,
+lib-mod-simple,
+custom-input,
+table,
+button,
+a,
+input,
+ng-template,
+div {
+  border-radius: 12px;
+}
+
+button,
+a,
+input {
+  font: inherit;
+}
+
+button,
+a[jupiter-icon-button],
+a[jupiterIconButton] {
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+input {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+@media (max-width: 720px) {
+  :host {
+    padding: 20px 18px 40px;
+    border-radius: 20px;
+  }
+
+  h1 {
+    font-size: 1.7rem;
+  }
+}

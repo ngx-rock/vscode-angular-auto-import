@@ -100,7 +100,7 @@ Removes an item from the cache.
 
 ##### get()
 
-> **get**(`key`): `undefined` \| `V`
+> **get**(`key`): `V` \| `undefined`
 
 Defined in: [utils/cache.ts:30](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/cache.ts#L30)
 
@@ -114,7 +114,7 @@ Retrieves an item from the cache.
 
 ###### Returns
 
-`undefined` \| `V`
+`V` \| `undefined`
 
 The value associated with the key, or undefined if the key is not in the cache.
 

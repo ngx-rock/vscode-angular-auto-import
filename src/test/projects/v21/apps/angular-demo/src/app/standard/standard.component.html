@@ -1,0 +1,164 @@
+<div *ngIf="show" [ngClass]="{ active: isActive }" [ngStyle]="{ color: color }">*ngIf, ngClass и ngStyle работают!</div>
+
+<ng-template [ngIf]="true">
+  <div>Content to render when condition is true.</div>
+</ng-template>
+
+<ul>
+  <li *ngFor="let item of items; index as i">{{ i }} – {{ item }}</li>
+</ul>
+
+<div [ngSwitch]="mode">
+  <p *ngSwitchCase="'A'">Mode A</p>
+  <p *ngSwitchCase="'B'">Mode B</p>
+  <p *ngSwitchDefault>Other mode</p>
+</div>
+
+<div [ngPlural]="itemCount">
+  <ng-template ngPluralCase="=0">No items</ng-template>
+  <ng-template ngPluralCase="=1">One item</ng-template>
+  <ng-template ngPluralCase="other"># items</ng-template>
+</div>
+
+<h2>Pipes</h2>
+
+<p>async: {{ promise | async }}</p>
+<p>currency: {{ 1234.56 | currency: 'USD' }}</p>
+<p>date: {{ today | date: 'fullDate' }}</p>
+<p>decimal: {{ 3.14159 | number: '1.2-4' }}</p>
+<p>percent: {{ 0.256 | percent }}</p>
+<p>
+  keyvalue:
+  <span *ngFor="let kv of obj | keyvalue">{{ kv.key }}→{{ kv.value }};</span>
+</p>
+<p>json: {{ obj | json }}</p>
+<p>lowercase: {{ 'ABC' | lowercase }}</p>
+<p>uppercase: {{ 'abc' | uppercase }}</p>
+<p>titlecase: {{ 'hello world' | titlecase }}</p>
+<p>slice: {{ items | slice: 1 : 3 | json }}</p>
+<p>i18nPlural: {{ 1 | i18nPlural: pluralMap }}</p>
+<p>i18nSelect: {{ gender | i18nSelect: genderMap }}</p>
+
+<h2>Templates</h2>
+
+<ng-container *ngTemplateOutlet="myTemplate; context: context"></ng-container>
+
+<ng-template #myTemplate let-name="name">
+  <p>Привет, {{ name }}!</p>
+</ng-template>
+
+<ng-container *ngComponentOutlet="dynamicComponent"></ng-container>
+
+<h2>Router</h2>
+<nav>
+  <a [routerLink]="['/home']" routerLinkActive="active-link">Home</a>
+</nav>
+<router-outlet></router-outlet>
+
+<h2>Form template</h2>
+
+<form #userForm="ngForm" (ngSubmit)="(null)">
+  <input name="name" ngModel placeholder="Имя" required />
+
+  <div ngModelGroup="address" #addressCtrl="ngModelGroup">
+    <input name="street" ngModel placeholder="Улица" required />
+    <input name="city" ngModel placeholder="Город" required />
+  </div>
+
+  <button type="submit">Отправить</button>
+</form>
+
+<input [(ngModel)]="inputText" />
+
+<h2>Reactive template</h2>
+<form [formGroup]="form">
+  <!-- formControlName -->
+  <input formControlName="name" placeholder="Name" />
+
+  <!-- formGroupName -->
+  <div formGroupName="address">
+    <input formControlName="city" placeholder="City" />
+  </div>
+
+  <!-- formArrayName -->
+  <div formArrayName="items">
+    <input *ngFor="let item of []; let i = index" [formControlName]="i" />
+  </div>
+
+  <!-- formControl -->
+  <input [formControl]="email" placeholder="Email" />
+</form>
+<h2>Новый синтаксис Angular (v17+)</h2>
+
+@if (itemCount === 0) {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @else if (itemCount === 1) {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @else {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+}
+
+<hr />
+
+@for (item of []; track $index) {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @empty {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+}
+
+<hr />
+
+@switch (mode) {
+  @case ('A') {
+    <div *ngIf="show"></div>
+    <lib-ui-demo-one></lib-ui-demo-one>
+    <div libDirectivePrefixLess></div>
+    {{ '123' | bytes }}
+  }
+  @default {
+    <div *ngIf="show"></div>
+    <lib-ui-demo-one></lib-ui-demo-one>
+    <div libDirectivePrefixLess></div>
+    {{ '123' | bytes }}
+  }
+}
+
+<hr />
+
+@defer (when 1) {
+  <div *ngIf="show"></div>
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @loading {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @error {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @placeholder {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+}

@@ -13,7 +13,7 @@ Maps standard Angular modules (like CommonModule, FormsModule) to the elements t
 
 ### getStandardModuleExports()
 
-> **getStandardModuleExports**(`moduleName`): `undefined` \| `Set`\<`string`\>
+> **getStandardModuleExports**(`moduleName`): `Set`\<`string`\> \| `undefined`
 
 Defined in: [config/standard-modules.ts:77](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/config/standard-modules.ts#L77)
 
@@ -27,6 +27,6 @@ Gets the exports of a standard Angular module.
 
 #### Returns
 
-`undefined` \| `Set`\<`string`\>
+`Set`\<`string`\> \| `undefined`
 
 A Set of exported element names, or undefined if not a standard module.

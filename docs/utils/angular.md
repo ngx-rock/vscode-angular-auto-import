@@ -28,18 +28,7 @@ Comparator function for sorting Angular elements by priority
 
 A comparator function for use with Array.sort
 
-> (`a`, `b`): `number`
-
-##### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `a` | [`AngularElementData`](../types/angular.md#angularelementdata) |
-| `b` | [`AngularElementData`](../types/angular.md#angularelementdata) |
-
-##### Returns
-
-`number`
+(`a`, `b`) => `number`
 
 ***
 
@@ -68,7 +57,7 @@ The generated import statement.
 
 ### getAngularElementAsync()
 
-> **getAngularElementAsync**(`selector`, `indexer`): `Promise`\<`undefined` \| [`AngularElementData`](../types/angular.md#angularelementdata)\>
+> **getAngularElementAsync**(`selector`, `indexer`): `Promise`\<[`AngularElementData`](../types/angular.md#angularelementdata) \| `undefined`\>
 
 Defined in: [utils/angular.ts:369](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/angular.ts#L369)
 
@@ -84,7 +73,7 @@ This function uses the Angular `SelectorMatcher` for precise matching.
 
 #### Returns
 
-`Promise`\<`undefined` \| [`AngularElementData`](../types/angular.md#angularelementdata)\>
+`Promise`\<[`AngularElementData`](../types/angular.md#angularelementdata) \| `undefined`\>
 
 A promise that resolves to the best matching `AngularElementData` or `undefined` if no match is found.
 

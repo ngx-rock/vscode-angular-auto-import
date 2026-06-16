@@ -1,0 +1,846 @@
+{
+  "case": "base",
+  "componentPath": "apps/angular-demo/src/app/home/home.component.ts",
+  "templatePath": "apps/angular-demo/src/app/home/home.component.html",
+  "diagnostics": [
+    {
+      "code": "missing-component-import:lib-prefix-less",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 9,
+      "startCharacter": 2,
+      "endLine": 9,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-pipe-import:pipePrefixLess",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 9,
+      "startCharacter": 28,
+      "endLine": 9,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 10,
+      "startCharacter": 7,
+      "endLine": 10,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:app-ui-demo-one-alias",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 17,
+      "startCharacter": 2,
+      "endLine": 17,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-component-import:app-nx-welcome",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 24,
+      "startCharacter": 2,
+      "endLine": 24,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-component-import:moon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 31,
+      "startCharacter": 2,
+      "endLine": 31,
+      "endCharacter": 10
+    },
+    {
+      "code": "missing-component-import:lib-ui-moon-double",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 38,
+      "startCharacter": 2,
+      "endLine": 38,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-directive-import:[libDoubleWay]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 38,
+      "startCharacter": 22,
+      "endLine": 38,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-component-import:smart-captcha",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 45,
+      "startCharacter": 2,
+      "endLine": 45,
+      "endCharacter": 36
+    },
+    {
+      "code": "missing-directive-import:[invisible]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 45,
+      "startCharacter": 18,
+      "endLine": 45,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-component-import:invisible-smart-captcha",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 46,
+      "startCharacter": 2,
+      "endLine": 46,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 55,
+      "startCharacter": 13,
+      "endLine": 55,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-pipe-import:uiDemoPhoneFormat",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 56,
+      "startCharacter": 13,
+      "endLine": 56,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-component-import:app-button",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 63,
+      "startCharacter": 2,
+      "endLine": 63,
+      "endCharacter": 14
+    },
+    {
+      "code": "missing-component-import:app-card",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 64,
+      "startCharacter": 2,
+      "endLine": 64,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:[appHighlight]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 64,
+      "startCharacter": 12,
+      "endLine": 64,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-pipe-import:capitalize",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 65,
+      "startCharacter": 13,
+      "endLine": 65,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:[appHighlight]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 66,
+      "startCharacter": 7,
+      "endLine": 66,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[libUiDemoBgColor]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 75,
+      "startCharacter": 7,
+      "endLine": 75,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:[invisible]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 76,
+      "startCharacter": 7,
+      "endLine": 76,
+      "endCharacter": 16
+    },
+    {
+      "code": "missing-directive-import:[libUiDemoBgColorWithParams]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 83,
+      "startCharacter": 8,
+      "endLine": 83,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-directive-import:[libUiDemoBgColorWithSignalParams]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 90,
+      "startCharacter": 7,
+      "endLine": 90,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-directive-import:[libUiDemoShowIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 102,
+      "startCharacter": 8,
+      "endLine": 102,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:[libUiDemoShowIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 107,
+      "startCharacter": 15,
+      "endLine": 107,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-directive-import:[libUiDisplay]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 116,
+      "startCharacter": 16,
+      "endLine": 116,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:[libUiDisplaySignal]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 123,
+      "startCharacter": 15,
+      "endLine": 123,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:[libUiDisplayNoParams]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 130,
+      "startCharacter": 15,
+      "endLine": 130,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-directive-import:[libUiDisplayNoParams]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 131,
+      "startCharacter": 16,
+      "endLine": 131,
+      "endCharacter": 36
+    },
+    {
+      "code": "missing-directive-import:[libUiDemoShowIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 138,
+      "startCharacter": 7,
+      "endLine": 138,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:mars",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 147,
+      "startCharacter": 2,
+      "endLine": 147,
+      "endCharacter": 10
+    },
+    {
+      "code": "missing-directive-import:[role=button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 156,
+      "startCharacter": 10,
+      "endLine": 156,
+      "endCharacter": 14
+    },
+    {
+      "code": "missing-directive-import:custom-input:not([disabled]):not([readonly])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 188,
+      "startCharacter": 4,
+      "endLine": 188,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-directive-import:[green-font-color]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 197,
+      "startCharacter": 7,
+      "endLine": 197,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:green-font-color",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 198,
+      "startCharacter": 2,
+      "endLine": 198,
+      "endCharacter": 20
+    },
+    {
+      "code": "missing-directive-import:[fontColor]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 199,
+      "startCharacter": 7,
+      "endLine": 199,
+      "endCharacter": 16
+    },
+    {
+      "code": "missing-directive-import:button[jupiter-icon-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 207,
+      "startCharacter": 10,
+      "endLine": 207,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-directive-import:a[jupiter-icon-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 208,
+      "startCharacter": 5,
+      "endLine": 208,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-directive-import:button[jupiterIconButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 209,
+      "startCharacter": 10,
+      "endLine": 209,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:a[jupiterIconButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 210,
+      "startCharacter": 5,
+      "endLine": 210,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:table[jupiter-table]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 223,
+      "startCharacter": 9,
+      "endLine": 223,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:jupiter-table",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 224,
+      "startCharacter": 2,
+      "endLine": 224,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:table[jupiter-table][bigRows]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 228,
+      "startCharacter": 9,
+      "endLine": 228,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:table[jupiter-table][bigRows]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 228,
+      "startCharacter": 23,
+      "endLine": 228,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-directive-import:jupiter-table[bigRows]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 229,
+      "startCharacter": 2,
+      "endLine": 229,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:jupiter-table[bigRows]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 229,
+      "startCharacter": 17,
+      "endLine": 229,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-directive-import:ng-template[jupiterTemplateRow]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 239,
+      "startCharacter": 15,
+      "endLine": 239,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:lib-mod-simple",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 248,
+      "startCharacter": 2,
+      "endLine": 248,
+      "endCharacter": 20
+    }
+  ],
+  "quickfixes": [
+    {
+      "diagnosticCode": "missing-component-import:lib-prefix-less",
+      "title": "⟐ Import PrefixLess from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "PrefixLess",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:pipePrefixLess",
+      "title": "⟐ Import PipePrefixLess from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "PipePrefixLess",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libDirectivePrefixLess]",
+      "title": "⟐ Import DirectivePrefixLess from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "DirectivePrefixLess",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:app-ui-demo-one-alias",
+      "title": "⟐ Import UiDemoOneAliasComponent from '../tsconfig-aliases/ui-demo-one-alias.component'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoOneAliasComponent",
+        "moduleSpecifier": "../tsconfig-aliases/ui-demo-one-alias.component"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:app-nx-welcome",
+      "title": "⟐ Import NxWelcomeComponent from '../nx-welcome.component'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NxWelcomeComponent",
+        "moduleSpecifier": "../nx-welcome.component"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:moon",
+      "title": "⟐ Import MoonComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MoonComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:lib-ui-moon-double",
+      "title": "⟐ Import DoubleWayDirective from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "DoubleWayDirective",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:lib-ui-moon-double",
+      "title": "⟐ Import UiMoonDoubleComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiMoonDoubleComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libDoubleWay]",
+      "title": "⟐ Import DoubleWayDirective from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "DoubleWayDirective",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libDoubleWay]",
+      "title": "⟐ Import UiMoonDoubleComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiMoonDoubleComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:smart-captcha",
+      "title": "⟐ Import InvisibleDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "InvisibleDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:smart-captcha",
+      "title": "⟐ Import SmartCaptchaComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "SmartCaptchaComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[invisible]",
+      "title": "⟐ Import InvisibleDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "InvisibleDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[invisible]",
+      "title": "⟐ Import SmartCaptchaComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "SmartCaptchaComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:invisible-smart-captcha",
+      "title": "⟐ Import InvisibleSmartCaptchaComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "InvisibleSmartCaptchaComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:bytes",
+      "title": "⟐ Import UiDemoBytesPipe from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoBytesPipe",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:uiDemoPhoneFormat",
+      "title": "⟐ Import UiDemoPhoneFormatPipe from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoPhoneFormatPipe",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:app-button",
+      "title": "⟐ Import ButtonComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "ButtonComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:app-card",
+      "title": "⟐ Import CardComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "CardComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:app-card",
+      "title": "⟐ Import HighlightDirective from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "HighlightDirective",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[appHighlight]",
+      "title": "⟐ Import CardComponent from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "CardComponent",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[appHighlight]",
+      "title": "⟐ Import HighlightDirective from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "HighlightDirective",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:capitalize",
+      "title": "⟐ Import CapitalizePipe from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "CapitalizePipe",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libUiDemoBgColor]",
+      "title": "⟐ Import UiDemoBgColorDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoBgColorDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libUiDemoBgColorWithParams]",
+      "title": "⟐ Import UiDemoBgColorWithParamsDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoBgColorWithParamsDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libUiDemoBgColorWithSignalParams]",
+      "title": "⟐ Import UiDemoBgColorWithSignalParamsDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoBgColorWithSignalParamsDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libUiDemoShowIf]",
+      "title": "⟐ Import UiDemoShowIfDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoShowIfDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libUiDisplay]",
+      "title": "⟐ Import UiDisplayDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDisplayDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libUiDisplaySignal]",
+      "title": "⟐ Import UiDisplaySignalDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDisplaySignalDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libUiDisplayNoParams]",
+      "title": "⟐ Import UiDisplayNoParamsDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDisplayNoParamsDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mars",
+      "title": "⟐ Import UiMarsComponentDirectiveDirective from '@angular-demo/ui-mars'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiMarsComponentDirectiveDirective",
+        "moduleSpecifier": "@angular-demo/ui-mars"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[role=button]",
+      "title": "⟐ Import AttributeValueDirective from '@angular-demo/ui-mars'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "AttributeValueDirective",
+        "moduleSpecifier": "@angular-demo/ui-mars"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:custom-input:not([disabled]):not([readonly])",
+      "title": "⟐ Import CustomInputNotSelectorDirective from '@angular-demo/feature-mercury'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "CustomInputNotSelectorDirective",
+        "moduleSpecifier": "@angular-demo/feature-mercury"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[green-font-color]",
+      "title": "⟐ Import UiDemoFontColorDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoFontColorDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:green-font-color",
+      "title": "⟐ Import UiDemoFontColorDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoFontColorDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[fontColor]",
+      "title": "⟐ Import UiDemoFontColorDirective from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoFontColorDirective",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:button[jupiter-icon-button]",
+      "title": "⟐ Import JupiterButtonDirective from '@angular-demo/jupiter-feature'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "JupiterButtonDirective",
+        "moduleSpecifier": "@angular-demo/jupiter-feature"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:a[jupiter-icon-button]",
+      "title": "⟐ Import JupiterButtonDirective from '@angular-demo/jupiter-feature'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "JupiterButtonDirective",
+        "moduleSpecifier": "@angular-demo/jupiter-feature"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:button[jupiterIconButton]",
+      "title": "⟐ Import JupiterButtonDirective from '@angular-demo/jupiter-feature'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "JupiterButtonDirective",
+        "moduleSpecifier": "@angular-demo/jupiter-feature"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:a[jupiterIconButton]",
+      "title": "⟐ Import JupiterButtonDirective from '@angular-demo/jupiter-feature'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "JupiterButtonDirective",
+        "moduleSpecifier": "@angular-demo/jupiter-feature"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:table[jupiter-table]",
+      "title": "⟐ Import JupiterTableDirective from '@angular-demo/jupiter-feature'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "JupiterTableDirective",
+        "moduleSpecifier": "@angular-demo/jupiter-feature"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:jupiter-table",
+      "title": "⟐ Import JupiterTableDirective from '@angular-demo/jupiter-feature'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "JupiterTableDirective",
+        "moduleSpecifier": "@angular-demo/jupiter-feature"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:table[jupiter-table][bigRows]",
+      "title": "⟐ Import JupiterBigRowsDirective from '@angular-demo/jupiter-feature'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "JupiterBigRowsDirective",
+        "moduleSpecifier": "@angular-demo/jupiter-feature"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:jupiter-table[bigRows]",
+      "title": "⟐ Import JupiterBigRowsDirective from '@angular-demo/jupiter-feature'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "JupiterBigRowsDirective",
+        "moduleSpecifier": "@angular-demo/jupiter-feature"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:ng-template[jupiterTemplateRow]",
+      "title": "⟐ Import JupiterTemplateDirective from '@angular-demo/jupiter-feature'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "JupiterTemplateDirective",
+        "moduleSpecifier": "@angular-demo/jupiter-feature"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:lib-mod-simple",
+      "title": "⟐ Import ModModule from '@angular-demo/ui-mars'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "ModModule",
+        "moduleSpecifier": "@angular-demo/ui-mars"
+      }
+    }
+  ]
+}

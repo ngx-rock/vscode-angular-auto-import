@@ -1,0 +1,48 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": [
+      "es2020",
+      "dom"
+    ],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@alias/*": [
+        "apps/angular-demo/src/app/tsconfig-aliases/alias/*"
+      ],
+      "@angular-demo/feature-mercury": [
+        "libs/mercury/feature-mercury/src/index.ts"
+      ],
+      "@angular-demo/jupiter-feature": [
+        "libs/jupiter/jupiter-feature/src/index.ts"
+      ],
+      "@angular-demo/ui-demo-one": [
+        "libs/core/ui-demo-one/src/index.ts"
+      ],
+      "@angular-demo/ui-mars": [
+        "libs/mars/ui-mars/src/index.ts"
+      ],
+      "@angular-demo/ui-moon": [
+        "libs/moon/src/index.ts"
+      ],
+      "@deep-alias": [
+        "apps/angular-demo/src/app/tsconfig-aliases/deep-alias/deep-alias.component.ts"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
+}

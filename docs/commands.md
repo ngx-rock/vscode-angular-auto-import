@@ -35,7 +35,7 @@ const commandContext: CommandContext = {
 | <a id="diagnosticprovider"></a> `diagnosticProvider?` | [`DiagnosticProvider`](providers/diagnostics.md#diagnosticprovider) | - | [commands/index.ts:42](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L42) |
 | <a id="extensionconfig"></a> `extensionConfig` | [`ExtensionConfig`](config/settings.md#extensionconfig) | Current extension configuration settings | [commands/index.ts:41](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L41) |
 | <a id="projectindexers"></a> `projectIndexers` | `Map`\<`string`, [`AngularIndexer`](services/indexer.md#angularindexer)\> | Map of project root paths to their corresponding Angular indexers | [commands/index.ts:37](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L37) |
-| <a id="projecttsconfigs"></a> `projectTsConfigs` | `Map`\<`string`, `null` \| [`ProcessedTsConfig`](types/tsconfig.md#processedtsconfig)\> | Map of project root paths to their parsed TypeScript configurations | [commands/index.ts:39](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L39) |
+| <a id="projecttsconfigs"></a> `projectTsConfigs` | `Map`\<`string`, [`ProcessedTsConfig`](types/tsconfig.md#processedtsconfig) \| `null`\> | Map of project root paths to their parsed TypeScript configurations | [commands/index.ts:39](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/commands/index.ts#L39) |
 
 ## Functions
 

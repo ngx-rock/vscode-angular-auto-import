@@ -1,0 +1,8 @@
+{
+  "case": "legacy-modules",
+  "componentPath": "apps/angular-demo/src/app/module/lib-module-full.component.ts",
+  "templatePath": "apps/angular-demo/src/app/module/lib-module-full.component.ts",
+  "modulePath": "apps/angular-demo/src/app/module/lib-module-full.module.ts",
+  "diagnostics": [],
+  "quickfixes": []
+}

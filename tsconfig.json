@@ -11,5 +11,5 @@
     // "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
     // "noUnusedParameters": true,  /* Report errors on unused parameters. */
   },
-  "exclude": ["out/**/*", "node_modules/**/*"]
+  "exclude": ["out/**/*", "node_modules/**/*", "src/test/projects/**/*", "scripts/**/*"]
 }

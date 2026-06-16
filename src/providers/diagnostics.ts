@@ -255,6 +255,23 @@ export class DiagnosticProvider {
   }
 
   /**
+   * Re-runs diagnostics for all open HTML/TypeScript documents.
+   *
+   * Intended to be called after the external library index changes (e.g. when a
+   * dependency is installed or upgraded). The cached import-resolution results
+   * are dropped first so the refreshed index is taken into account, clearing any
+   * stale "missing import" diagnostics without requiring the user to edit files.
+   */
+  public async refreshOpenDocuments(): Promise<void> {
+    this.importedElementsCache.clear();
+    for (const document of vscode.workspace.textDocuments) {
+      if (document.languageId === "html" || document.languageId === "typescript") {
+        await this.updateDiagnostics(document);
+      }
+    }
+  }
+
+  /**
    * Public method to force-update diagnostics for a file.
    */
   public async forceUpdateDiagnosticsForFile(filePath: string): Promise<void> {
@@ -614,6 +631,15 @@ export class DiagnosticProvider {
         SelectorMatcher
       );
 
+      if (
+        diagnostic &&
+        candidate.type !== "pipe" &&
+        !this.candidateNameMatchesSelector(element.name, candidate.name) &&
+        this.hasImportedAlternativeMatch(element, candidate, indexer, sourceFile, CssSelector, SelectorMatcher)
+      ) {
+        continue;
+      }
+
       if (diagnostic) {
         diagnostics.push(diagnostic);
       }
@@ -713,6 +739,66 @@ export class DiagnosticProvider {
       return this.createMissingImportDiagnostic(element, candidate, specificSelector, severity);
     }
     return null;
+  }
+
+  /**
+   * Suppresses false positives when one template token matches multiple Angular elements
+   * but at least one of those matches is already imported.
+   */
+  private hasImportedAlternativeMatch(
+    element: ParsedHtmlFullElement,
+    candidate: AngularElementData,
+    indexer: AngularIndexer,
+    sourceFile: SourceFile,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    CssSelector: any,
+    // biome-ignore lint/suspicious/noExplicitAny: The Angular compiler is dynamically imported and has a complex, undocumented type surface.
+    SelectorMatcher: any
+  ): boolean {
+    const alternatives = getAngularElements(element.name, indexer);
+
+    for (const alternative of alternatives) {
+      if (alternative.type === "pipe" || (alternative.name === candidate.name && alternative.path === candidate.path)) {
+        continue;
+      }
+
+      if (!this.candidateNameMatchesSelector(element.name, alternative.name)) {
+        continue;
+      }
+
+      const matchedSelectors = this.getMatchedSelectors(element, alternative, CssSelector, SelectorMatcher);
+      if (matchedSelectors.length === 0) {
+        continue;
+      }
+
+      if (this.isElementImported(sourceFile, alternative)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private candidateNameMatchesSelector(selectorName: string, candidateName: string): boolean {
+    const normalizedSelector = this.normalizeSelectorForNameMatch(selectorName);
+    const normalizedCandidate = this.normalizeCandidateName(candidateName);
+
+    if (!normalizedSelector || !normalizedCandidate) {
+      return false;
+    }
+
+    return normalizedCandidate.startsWith(normalizedSelector);
+  }
+
+  private normalizeSelectorForNameMatch(selectorName: string): string {
+    return selectorName.replace(/[^a-zA-Z0-9]+/g, "").toLowerCase();
+  }
+
+  private normalizeCandidateName(candidateName: string): string {
+    return candidateName
+      .replace(/(Component|Directive|Pipe|Module)$/u, "")
+      .replace(/[^a-zA-Z0-9]+/g, "")
+      .toLowerCase();
   }
 
   /**
@@ -1125,12 +1211,17 @@ export class DiagnosticProvider {
     if (n.trackBy !== undefined && n.contextVariables !== undefined) {
       return true;
     }
-    // SwitchBlock: has `cases` array
+    // SwitchBlock in Angular 20/21 used `cases`; Angular 22 exposes `groups`.
     if (Array.isArray(n.cases)) {
       return true;
     }
-    // ForLoopBlockEmpty / DeferredBlock variants: has `children` but no `name`/`attributes`/`tagName`
-    // (these are block nodes, not element nodes)
+    if (Array.isArray(n.groups)) {
+      return true;
+    }
+    // DeferredBlock: has `placeholder`, `loading`, or `error` sub-blocks
+    if (n.placeholder !== undefined || n.loading !== undefined || n.error !== undefined) {
+      return true;
+    }
     return false;
   }
 
@@ -1166,6 +1257,9 @@ export class DiagnosticProvider {
 
     // Handle cases (@switch)
     this.processCasesArray(controlFlowNode.cases, visit, extractPipesFromExpression);
+
+    // Handle grouped switch cases (@switch in Angular 22+)
+    this.processGroupsArray(controlFlowNode.groups, visit, extractPipesFromExpression);
   }
 
   private processBranchesArray(
@@ -1193,6 +1287,30 @@ export class DiagnosticProvider {
 
     for (const caseBlock of cases) {
       this.processBranchOrCase(caseBlock, visit, extractPipesFromExpression);
+    }
+  }
+
+  private processGroupsArray(
+    groups: unknown,
+    visit: (nodesList: TemplateAstNode[]) => void,
+    extractPipesFromExpression: (expression: unknown, nodeOffset?: number) => void
+  ): void {
+    if (!groups || !Array.isArray(groups)) {
+      return;
+    }
+
+    for (const group of groups) {
+      const switchGroup = group as { cases?: Array<{ expression?: unknown }>; children?: TemplateAstNode[] };
+      if (Array.isArray(switchGroup.cases)) {
+        for (const caseBlock of switchGroup.cases) {
+          if (caseBlock.expression) {
+            extractPipesFromExpression(caseBlock.expression);
+          }
+        }
+      }
+      if (Array.isArray(switchGroup.children)) {
+        visit(switchGroup.children);
+      }
     }
   }
 

@@ -29,7 +29,7 @@ Defined in: [logger/logger.ts:36](https://github.com/ngx-rock/vscode-angular-aut
 | Property | Modifier | Type | Default value | Defined in |
 | ------ | ------ | ------ | ------ | ------ |
 | <a id="config"></a> `config` | `private` | [`LoggerConfig`](types.md#loggerconfig) | `undefined` | [logger/logger.ts:12](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L12) |
-| <a id="context"></a> `context` | `private` | `null` \| `ExtensionContext` | `null` | [logger/logger.ts:16](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L16) |
+| <a id="context"></a> `context` | `private` | `ExtensionContext` \| `null` | `null` | [logger/logger.ts:16](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L16) |
 | <a id="extensionversion"></a> `extensionVersion` | `private` | `string` | `undefined` | [logger/logger.ts:15](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L15) |
 | <a id="logpoints"></a> `logPoints` | `private` | `Map`\<`string`, [`LogPoint`](types.md#logpoint)\> | `undefined` | [logger/logger.ts:17](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L17) |
 | <a id="sessionid"></a> `sessionId` | `private` | `string` | `undefined` | [logger/logger.ts:14](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L14) |
@@ -64,7 +64,7 @@ Defined in: [logger/logger.ts:105](https://github.com/ngx-rock/vscode-angular-au
 
 | Parameter | Type |
 | ------ | ------ |
-| `error` | `undefined` \| `Error` |
+| `error` | `Error` \| `undefined` |
 | `context?` | `Record`\<`string`, `unknown`\> |
 
 ###### Returns
@@ -92,7 +92,7 @@ Defined in: [logger/logger.ts:93](https://github.com/ngx-rock/vscode-angular-aut
 
 > **dispose**(): `void`
 
-Defined in: [logger/logger.ts:235](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L235)
+Defined in: [logger/logger.ts:241](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L241)
 
 ###### Returns
 
@@ -274,6 +274,18 @@ Defined in: [logger/logger.ts:231](https://github.com/ngx-rock/vscode-angular-au
 > `private` **setupTransports**(): `void`
 
 Defined in: [logger/logger.ts:76](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L76)
+
+###### Returns
+
+`void`
+
+##### showChannel()
+
+> **showChannel**(): `void`
+
+Defined in: [logger/logger.ts:236](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/logger.ts#L236)
+
+Shows the Output Channel panel and selects the Angular Auto Import channel.
 
 ###### Returns
 

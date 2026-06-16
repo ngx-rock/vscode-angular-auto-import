@@ -1,0 +1,238 @@
+<section class="prime-page" data-testid="primeng-playground">
+  <p-toast></p-toast>
+
+  <p-menubar [model]="menuItems" data-testid="menubar"></p-menubar>
+  <p-breadcrumb [model]="breadcrumbItems" [home]="breadcrumbHome" data-testid="breadcrumb"></p-breadcrumb>
+
+  <div class="intro-row">
+    <div>
+      <h1>PrimeNG selector playground</h1>
+      <p>
+        Dense single-page demo for VSCode plugin e2e: components, directives, template slots and data widgets in one
+        place.
+      </p>
+    </div>
+
+    <div class="action-row">
+      <p-button label="Toast" icon="pi pi-bell" severity="contrast" (onClick)="showToast()"></p-button>
+      <p-button
+        label="Dialog"
+        icon="pi pi-window-maximize"
+        [outlined]="true"
+        (onClick)="dialogVisible = true"></p-button>
+    </div>
+  </div>
+
+  <div class="dense-grid">
+    <p-panel header="Directives and inline widgets" data-testid="directive-panel">
+      <div class="stack">
+        <div class="action-row">
+          <p-button
+            label="Ripple target"
+            icon="pi pi-bolt"
+            pRipple
+            pTooltip="PrimeNG button with ripple and tooltip"
+            tooltipPosition="top"></p-button>
+          <p-badge value="7"></p-badge>
+          <p-avatar label="QA" shape="circle"></p-avatar>
+          <p-chip label="chip"></p-chip>
+          <p-tag severity="success" value="tag"></p-tag>
+        </div>
+
+        <button
+          pButton
+          type="button"
+          label="Toggle hidden block"
+          icon="pi pi-eye"
+          pStyleClass=".styleclass-target"
+          toggleClass="hidden"></button>
+
+        <div class="styleclass-target">
+          <p-message severity="info" text="StyleClass target"></p-message>
+        </div>
+      </div>
+    </p-panel>
+
+    <p-panel header="Forms and value accessors" data-testid="forms-panel">
+      <div class="form-grid">
+        <p-floatlabel>
+          <input pInputText id="prime-name" value="PrimeNG v19" data-testid="input-text" />
+          <label for="prime-name">InputText</label>
+        </p-floatlabel>
+
+        <p-floatlabel>
+          <p-autocomplete
+            inputId="prime-overlay"
+            [(ngModel)]="selectedOverlays"
+            [suggestions]="overlaySuggestions"
+            (completeMethod)="searchOverlay($event)"
+            [multiple]="true"
+            data-testid="autocomplete"></p-autocomplete>
+          <label for="prime-overlay">AutoComplete multiple</label>
+        </p-floatlabel>
+
+        <p-floatlabel>
+          <p-select
+            inputId="prime-city"
+            [options]="cities"
+            [(ngModel)]="selectedCity"
+            optionLabel="name"
+            data-testid="select"></p-select>
+          <label for="prime-city">Select</label>
+        </p-floatlabel>
+
+        <p-floatlabel>
+          <p-datepicker
+            inputId="prime-date"
+            [(ngModel)]="selectedDate"
+            [showIcon]="true"
+            data-testid="datepicker"></p-datepicker>
+          <label for="prime-date">DatePicker</label>
+        </p-floatlabel>
+
+        <p-floatlabel>
+          <p-inputnumber inputId="prime-number" [(ngModel)]="quantity" data-testid="input-number"></p-inputnumber>
+          <label for="prime-number">InputNumber</label>
+        </p-floatlabel>
+
+        <div class="toggle-grid">
+          <p-checkbox
+            [(ngModel)]="notificationsEnabled"
+            [binary]="true"
+            inputId="prime-checkbox"
+            data-testid="checkbox"></p-checkbox>
+          <label for="prime-checkbox">Checkbox</label>
+
+          <p-toggleswitch [(ngModel)]="notificationsEnabled" data-testid="toggle-switch"></p-toggleswitch>
+        </div>
+
+        <p-selectbutton
+          [options]="modeOptions"
+          [(ngModel)]="selectedMode"
+          optionLabel="label"
+          optionValue="value"
+          (onChange)="handleModeChange($event)"
+          data-testid="select-button"></p-selectbutton>
+
+        <p-colorPicker [(ngModel)]="themeColor" format="hex" data-testid="color-picker"></p-colorPicker>
+      </div>
+    </p-panel>
+
+    <p-panel header="Overlay and state" data-testid="overlay-panel">
+      <p-blockUI [blocked]="panelBlocked" [target]="blockTarget"></p-blockUI>
+      <p-panel #blockTarget header="BlockUI target">
+        <p>BlockUI, toast and dialog targets live here.</p>
+      </p-panel>
+
+      <div class="action-row">
+        <p-button label="Toggle BlockUI" icon="pi pi-lock" [text]="true" (onClick)="toggleBlock()"></p-button>
+        <p-button
+          label="Open dialog"
+          icon="pi pi-external-link"
+          [outlined]="true"
+          (onClick)="dialogVisible = true"></p-button>
+      </div>
+
+      <p-dialog
+        header="PrimeNG overlay"
+        [(visible)]="dialogVisible"
+        [modal]="true"
+        [style]="{ width: '24rem' }"
+        data-testid="dialog">
+        <p>Dialog, button and icon selectors are ready for e2e coverage.</p>
+      </p-dialog>
+    </p-panel>
+
+    <p-panel header="Tabs, accordion and metrics" class="wide-panel">
+      <p-tabs value="overview">
+        <p-tablist>
+          <p-tab value="overview">Overview</p-tab>
+          <p-tab value="details">Details</p-tab>
+        </p-tablist>
+
+        <p-tabpanels>
+          <p-tabpanel value="overview">
+            <div class="stack">
+              <p-progressBar [value]="coverage"></p-progressBar>
+              <div class="action-row">
+                @for (team of teams; track team) {
+                  <p-chip [label]="team"></p-chip>
+                }
+              </div>
+              <p-accordion value="0">
+                <p-accordion-panel value="0">
+                  <p-accordion-header>Selectors</p-accordion-header>
+                  <p-accordion-content>
+                    Inputs, overlays, templates, sortable table headers and utility directives are all co-located.
+                  </p-accordion-content>
+                </p-accordion-panel>
+                <p-accordion-panel value="1">
+                  <p-accordion-header>Reason</p-accordion-header>
+                  <p-accordion-content>This shape is optimized for plugin e2e, not for UX.</p-accordion-content>
+                </p-accordion-panel>
+              </p-accordion>
+            </div>
+          </p-tabpanel>
+
+          <p-tabpanel value="details">
+            <div class="skeleton-grid">
+              <p-skeleton width="100%" height="2rem"></p-skeleton>
+              <p-skeleton width="70%" height="2rem"></p-skeleton>
+              <p-divider></p-divider>
+              <p-message severity="warn" text="Secondary tab active"></p-message>
+            </div>
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
+    </p-panel>
+
+    <div #menuTarget class="context-target wide-panel" data-testid="context-target">
+      Right click here for ContextMenu target
+    </div>
+    <p-contextMenu [model]="contextItems" [target]="menuTarget"></p-contextMenu>
+
+    <p-panel header="Data table and sortable directives" class="wide-panel">
+      <p-table [value]="products" sortMode="multiple" [tableStyle]="{ 'min-width': '40rem' }" data-testid="prime-table">
+        <ng-template pTemplate="header">
+          <tr>
+            <th pSortableColumn="code">
+              Code
+              <p-sortIcon field="code"></p-sortIcon>
+            </th>
+            <th pSortableColumn="name">
+              Name
+              <p-sortIcon field="name"></p-sortIcon>
+            </th>
+            <th pSortableColumn="category">
+              Category
+              <p-sortIcon field="category"></p-sortIcon>
+            </th>
+            <th pSortableColumn="price">
+              Price
+              <p-sortIcon field="price"></p-sortIcon>
+            </th>
+            <th>Status</th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-product>
+          <tr>
+            <td>{{ product.code }}</td>
+            <td>{{ product.name }}</td>
+            <td>{{ product.category }}</td>
+            <td>{{ product.price }}</td>
+            <td>
+              <p-tag
+                [severity]="
+                  product.status === 'INSTOCK' ? 'success' : product.status === 'LOWSTOCK' ? 'warn' : 'danger'
+                "
+                [value]="product.status"></p-tag>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-panel>
+  </div>
+
+  <p-scrollTop></p-scrollTop>
+</section>

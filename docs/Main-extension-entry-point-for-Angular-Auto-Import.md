@@ -138,7 +138,7 @@ logger.info('Found project roots:', roots);
 
 ### getProjectContextForDocument()
 
-> **getProjectContextForDocument**(`document`): `undefined` \| [`ProjectContext`](types/angular.md#projectcontext)
+> **getProjectContextForDocument**(`document`): [`ProjectContext`](types/angular.md#projectcontext) \| `undefined`
 
 Defined in: [extension.ts:464](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/extension.ts#L464)
 
@@ -157,7 +157,7 @@ the associated indexer and TypeScript configuration. The lookup follows:
 
 #### Returns
 
-`undefined` \| [`ProjectContext`](types/angular.md#projectcontext)
+[`ProjectContext`](types/angular.md#projectcontext) \| `undefined`
 
 Project context containing indexer and tsconfig, or undefined if not found
 

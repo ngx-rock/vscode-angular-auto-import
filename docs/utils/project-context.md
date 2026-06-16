@@ -12,7 +12,7 @@ Utility functions for managing project context and document-to-project mapping.
 
 ### getProjectContextForDocument()
 
-> **getProjectContextForDocument**(`document`, `projectIndexers`, `projectTsConfigs`): `undefined` \| [`ProjectContext`](../types/angular.md#projectcontext)
+> **getProjectContextForDocument**(`document`, `projectIndexers`, `projectTsConfigs`): [`ProjectContext`](../types/angular.md#projectcontext) \| `undefined`
 
 Defined in: [utils/project-context.ts:23](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/project-context.ts#L23)
 
@@ -25,11 +25,11 @@ First tries to find by workspace folder, then falls back to checking all known p
 | ------ | ------ | ------ |
 | `document` | `TextDocument` | The document to find the project context for. |
 | `projectIndexers` | `Map`\<`string`, [`AngularIndexer`](../services/indexer.md#angularindexer)\> | Map of project root paths to their indexers. |
-| `projectTsConfigs` | `Map`\<`string`, `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig)\> | Map of project root paths to their tsConfigs. |
+| `projectTsConfigs` | `Map`\<`string`, [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) \| `null`\> | Map of project root paths to their tsConfigs. |
 
 #### Returns
 
-`undefined` \| [`ProjectContext`](../types/angular.md#projectcontext)
+[`ProjectContext`](../types/angular.md#projectcontext) \| `undefined`
 
 The project context or undefined if not found.
 
@@ -37,7 +37,7 @@ The project context or undefined if not found.
 
 ### getProjectContextForDocumentWithLogging()
 
-> **getProjectContextForDocumentWithLogging**(`document`, `projectIndexers`, `projectTsConfigs`): `undefined` \| [`ProjectContext`](../types/angular.md#projectcontext)
+> **getProjectContextForDocumentWithLogging**(`document`, `projectIndexers`, `projectTsConfigs`): [`ProjectContext`](../types/angular.md#projectcontext) \| `undefined`
 
 Defined in: [utils/project-context.ts:58](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/utils/project-context.ts#L58)
 
@@ -49,10 +49,10 @@ Gets project context for a document and logs a warning if not found.
 | ------ | ------ | ------ |
 | `document` | `TextDocument` | The document to find the project context for. |
 | `projectIndexers` | `Map`\<`string`, [`AngularIndexer`](../services/indexer.md#angularindexer)\> | Map of project root paths to their indexers. |
-| `projectTsConfigs` | `Map`\<`string`, `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig)\> | Map of project root paths to their tsConfigs. |
+| `projectTsConfigs` | `Map`\<`string`, [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) \| `null`\> | Map of project root paths to their tsConfigs. |
 
 #### Returns
 
-`undefined` \| [`ProjectContext`](../types/angular.md#projectcontext)
+[`ProjectContext`](../types/angular.md#projectcontext) \| `undefined`
 
 The project context or undefined if not found.

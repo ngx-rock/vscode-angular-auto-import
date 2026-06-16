@@ -42,7 +42,7 @@ Defined in: [logger/types.ts:5](https://github.com/ngx-rock/vscode-angular-auto-
 | <a id="enabled"></a> `enabled` | `boolean` | [logger/types.ts:6](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L6) |
 | <a id="fileloggingenabled"></a> `fileLoggingEnabled` | `boolean` | [logger/types.ts:8](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L8) |
 | <a id="level-1"></a> `level` | [`LogLevel`](#loglevel) | [logger/types.ts:7](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L7) |
-| <a id="logdirectory"></a> `logDirectory` | `null` \| `string` | [logger/types.ts:9](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L9) |
+| <a id="logdirectory"></a> `logDirectory` | `string` \| `null` | [logger/types.ts:9](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L9) |
 | <a id="outputformat"></a> `outputFormat` | [`LogOutputFormat`](#logoutputformat) | [logger/types.ts:12](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L12) |
 | <a id="rotationmaxfiles"></a> `rotationMaxFiles` | `number` | [logger/types.ts:11](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L11) |
 | <a id="rotationmaxsize"></a> `rotationMaxSize` | `number` | [logger/types.ts:10](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/logger/types.ts#L10) |

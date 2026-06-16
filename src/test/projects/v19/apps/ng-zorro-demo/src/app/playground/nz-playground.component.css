@@ -1,0 +1,73 @@
+.page-layout {
+  min-height: 100vh;
+}
+
+.sider-logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  color: white;
+  font-weight: 700;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0 1rem;
+}
+
+.header-actions,
+.intro-actions,
+.action-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.page-content {
+  padding: 1rem;
+}
+
+.intro {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.intro h1 {
+  margin: 0 0 0.35rem;
+}
+
+.intro p {
+  margin: 0;
+  color: #475569;
+  max-width: 52rem;
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.spin-target {
+  padding: 1rem;
+  border: 1px dashed #94a3b8;
+  border-radius: 0.75rem;
+  background: white;
+}
+
+@media (max-width: 1100px) {
+  [nz-col] {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+}

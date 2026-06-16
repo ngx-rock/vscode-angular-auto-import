@@ -49,7 +49,7 @@ Defined in: [providers/quickfix.ts:25](https://github.com/ngx-rock/vscode-angula
 
 ##### createCodeAction()
 
-> `private` **createCodeAction**(`element`, `diagnostic`, `document`): `Promise`\<`null` \| `CodeAction`\>
+> `private` **createCodeAction**(`element`, `diagnostic`, `document`): `Promise`\<`CodeAction` \| `null`\>
 
 Defined in: [providers/quickfix.ts:190](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L190)
 
@@ -63,7 +63,7 @@ Defined in: [providers/quickfix.ts:190](https://github.com/ngx-rock/vscode-angul
 
 ###### Returns
 
-`Promise`\<`null` \| `CodeAction`\>
+`Promise`\<`CodeAction` \| `null`\>
 
 ##### createQuickFixesForDiagnostic()
 
@@ -179,7 +179,7 @@ Defined in: [providers/quickfix.ts:217](https://github.com/ngx-rock/vscode-angul
 
 ##### getProjectContextForDocument()
 
-> `private` **getProjectContextForDocument**(`document`): `null` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `undefined` \| `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
+> `private` **getProjectContextForDocument**(`document`): \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) \| `null` \| `undefined`; \} \| `null`
 
 Defined in: [providers/quickfix.ts:240](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/quickfix.ts#L240)
 
@@ -191,7 +191,7 @@ Defined in: [providers/quickfix.ts:240](https://github.com/ngx-rock/vscode-angul
 
 ###### Returns
 
-`null` \| \{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: `undefined` \| `null` \| [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig); \}
+\{ `indexer`: [`AngularIndexer`](../services/indexer.md#angularindexer); `projectRootPath`: `string`; `tsConfig`: [`ProcessedTsConfig`](../types/tsconfig.md#processedtsconfig) \| `null` \| `undefined`; \} \| `null`
 
 ##### isFixableDiagnostic()
 

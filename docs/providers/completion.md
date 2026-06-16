@@ -114,7 +114,7 @@ Calculates relevance based on tag match.
 
 ##### checkCurrentLineForTag()
 
-> `private` **checkCurrentLineForTag**(`linePrefix`): `null` \| \{ `isNewTag`: `boolean`; `tagContent`: `string`; \}
+> `private` **checkCurrentLineForTag**(`linePrefix`): \{ `isNewTag`: `boolean`; `tagContent`: `string`; \} \| `null`
 
 Defined in: [providers/completion.ts:275](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L275)
 
@@ -128,7 +128,7 @@ Checks if the current line contains an unclosed tag.
 
 ###### Returns
 
-`null` \| \{ `isNewTag`: `boolean`; `tagContent`: `string`; \}
+\{ `isNewTag`: `boolean`; `tagContent`: `string`; \} \| `null`
 
 ##### containsClosingTagBracket()
 
@@ -543,7 +543,7 @@ Finds the best selector match for an element.
 
 ##### findMultiLineTagContext()
 
-> `private` **findMultiLineTagContext**(`document`, `position`, `currentLinePrefix`): `null` \| \{ `isNewTag`: `boolean`; `tagContent`: `string`; \}
+> `private` **findMultiLineTagContext**(`document`, `position`, `currentLinePrefix`): \{ `isNewTag`: `boolean`; `tagContent`: `string`; \} \| `null`
 
 Defined in: [providers/completion.ts:307](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L307)
 
@@ -559,11 +559,11 @@ Finds multi-line tag context by searching backwards.
 
 ###### Returns
 
-`null` \| \{ `isNewTag`: `boolean`; `tagContent`: `string`; \}
+\{ `isNewTag`: `boolean`; `tagContent`: `string`; \} \| `null`
 
 ##### findTagContext()
 
-> `private` **findTagContext**(`document`, `position`): `null` \| \{ `isNewTag`: `boolean`; `tagContent`: `string`; \}
+> `private` **findTagContext**(`document`, `position`): \{ `isNewTag`: `boolean`; `tagContent`: `string`; \} \| `null`
 
 Defined in: [providers/completion.ts:256](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L256)
 
@@ -579,7 +579,7 @@ Handles multi-line tags.
 
 ###### Returns
 
-`null` \| \{ `isNewTag`: `boolean`; `tagContent`: `string`; \}
+\{ `isNewTag`: `boolean`; `tagContent`: `string`; \} \| `null`
 
 ##### formatAttributeInsertText()
 
@@ -662,7 +662,7 @@ Generates suggestions from standard Angular elements.
 
 ##### getComponentSourceFile()
 
-> `private` **getComponentSourceFile**(`document`): `Promise`\<`undefined` \| `SourceFile`\>
+> `private` **getComponentSourceFile**(`document`): `Promise`\<`SourceFile` \| `undefined`\>
 
 Defined in: [providers/completion.ts:150](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L150)
 
@@ -674,11 +674,11 @@ Defined in: [providers/completion.ts:150](https://github.com/ngx-rock/vscode-ang
 
 ###### Returns
 
-`Promise`\<`undefined` \| `SourceFile`\>
+`Promise`\<`SourceFile` \| `undefined`\>
 
 ##### getProjectContextForDocument()
 
-> `private` **getProjectContextForDocument**(`document`): `undefined` \| [`ProjectContext`](../types/angular.md#projectcontext)
+> `private` **getProjectContextForDocument**(`document`): [`ProjectContext`](../types/angular.md#projectcontext) \| `undefined`
 
 Defined in: [providers/completion.ts:1080](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L1080)
 
@@ -690,11 +690,11 @@ Defined in: [providers/completion.ts:1080](https://github.com/ngx-rock/vscode-an
 
 ###### Returns
 
-`undefined` \| [`ProjectContext`](../types/angular.md#projectcontext)
+[`ProjectContext`](../types/angular.md#projectcontext) \| `undefined`
 
 ##### getSourceFile()
 
-> `private` **getSourceFile**(`document`): `undefined` \| `SourceFile`
+> `private` **getSourceFile**(`document`): `SourceFile` \| `undefined`
 
 Defined in: [providers/completion.ts:169](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L169)
 
@@ -706,7 +706,7 @@ Defined in: [providers/completion.ts:169](https://github.com/ngx-rock/vscode-ang
 
 ###### Returns
 
-`undefined` \| `SourceFile`
+`SourceFile` \| `undefined`
 
 ##### groupSearchResultsByElement()
 
@@ -833,7 +833,7 @@ Parses attribute context from tag content.
 | ------ | ------ | ------ |
 | `context` | `"attribute"` \| `"structural-directive"` | [providers/completion.ts:446](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L446) |
 | `filterText` | `string` | [providers/completion.ts:447](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L447) |
-| `triggerChar` | `undefined` \| `"*"` \| `"["` | [providers/completion.ts:448](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L448) |
+| `triggerChar` | `"*"` \| `"["` \| `undefined` | [providers/completion.ts:448](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L448) |
 
 ##### provideCompletionItems()
 
@@ -864,7 +864,7 @@ A list of completion items.
 
 ##### searchBackwardsForOpenTag()
 
-> `private` **searchBackwardsForOpenTag**(`document`, `position`): `null` \| \{ `char`: `number`; `line`: `number`; \}
+> `private` **searchBackwardsForOpenTag**(`document`, `position`): \{ `char`: `number`; `line`: `number`; \} \| `null`
 
 Defined in: [providers/completion.ts:330](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L330)
 
@@ -879,7 +879,7 @@ Searches backwards for an unclosed opening tag.
 
 ###### Returns
 
-`null` \| \{ `char`: `number`; `line`: `number`; \}
+\{ `char`: `number`; `line`: `number`; \} \| `null`
 
 ##### setCompletionItemDetails()
 
@@ -922,7 +922,7 @@ Sorts element entries based on context if needed.
 
 ##### validateAndReturnTagContext()
 
-> `private` **validateAndReturnTagContext**(`tagContent`): `null` \| \{ `isNewTag`: `boolean`; `tagContent`: `string`; \}
+> `private` **validateAndReturnTagContext**(`tagContent`): \{ `isNewTag`: `boolean`; `tagContent`: `string`; \} \| `null`
 
 Defined in: [providers/completion.ts:290](https://github.com/ngx-rock/vscode-angular-auto-import/blob/main/src/providers/completion.ts#L290)
 
@@ -936,4 +936,4 @@ Validates tag content and returns context if valid.
 
 ###### Returns
 
-`null` \| \{ `isNewTag`: `boolean`; `tagContent`: `string`; \}
+\{ `isNewTag`: `boolean`; `tagContent`: `string`; \} \| `null`

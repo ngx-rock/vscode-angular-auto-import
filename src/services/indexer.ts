@@ -26,11 +26,29 @@ import { AngularElementData, type ComponentInfo, type FileElementsInfo } from ".
 import {
   type AngularDependency,
   createElementComparator,
+  debounce,
   findAngularDependencies,
   getLibraryEntryPoints,
   isStandalone,
   parseAngularSelector,
 } from "../utils";
+
+/**
+ * Glob (relative to the project root) matching dependency manifests and lock files.
+ * A change to any of these means installed packages may have changed, so the
+ * external library index must be refreshed. The glob is intentionally
+ * non-recursive so nested `node_modules/**\/package.json` files are ignored.
+ * @internal
+ */
+const DEPENDENCY_MANIFEST_GLOB = "{package.json,package-lock.json,pnpm-lock.yaml,yarn.lock}";
+
+/**
+ * Debounce delay (ms) before reacting to a dependency manifest change. Installs
+ * touch these files several times, so the delay coalesces the bursts and lets
+ * the file system settle before re-indexing.
+ * @internal
+ */
+const DEPENDENCY_REINDEX_DEBOUNCE_MS = 2000;
 
 /**
  * Represents a node in a Trie data structure for storing selectors.
@@ -340,6 +358,19 @@ export class AngularIndexer {
    * The file watcher for the project.
    */
   public fileWatcher: vscode.FileSystemWatcher | null = null;
+  /**
+   * Watches dependency manifests / lock files to refresh the external library
+   * index when packages are installed, removed or upgraded.
+   */
+  private dependencyWatcher: vscode.FileSystemWatcher | null = null;
+  private isReindexingDependencies: boolean = false;
+  private readonly _onDidIndexNodeModules = new vscode.EventEmitter<void>();
+  /**
+   * Fires after `node_modules` are re-indexed because a dependency manifest
+   * changed. Consumers (e.g. the diagnostic provider) can use this to refresh
+   * results that depend on the external library index.
+   */
+  public readonly onDidIndexNodeModules: vscode.Event<void> = this._onDidIndexNodeModules.event;
   private projectRootPath: string = "";
   private isIndexing: boolean = false;
 
@@ -455,6 +486,65 @@ export class AngularIndexer {
 
     context.subscriptions.push(this.fileWatcher);
     logger.info(`AngularIndexer: File watcher initialized for ${this.projectRootPath} with pattern ${pattern.pattern}`);
+
+    this.initializeDependencyWatcher(context);
+  }
+
+  /**
+   * Initializes a watcher for dependency manifests / lock files so the external
+   * library index is refreshed automatically when packages change. This guards
+   * against a stale index where a freshly installed library's elements are not
+   * yet known (the cause of false "missing import" diagnostics).
+   * @param context The extension context.
+   * @internal
+   */
+  private initializeDependencyWatcher(context: vscode.ExtensionContext): void {
+    if (this.dependencyWatcher) {
+      this.dependencyWatcher.dispose();
+    }
+
+    const pattern = new vscode.RelativePattern(this.projectRootPath, DEPENDENCY_MANIFEST_GLOB);
+    this.dependencyWatcher = vscode.workspace.createFileSystemWatcher(pattern);
+
+    const handler = debounce(() => {
+      void this.reindexNodeModulesAfterDependencyChange(context);
+    }, DEPENDENCY_REINDEX_DEBOUNCE_MS);
+
+    this.dependencyWatcher.onDidChange(handler);
+    this.dependencyWatcher.onDidCreate(handler);
+    this.dependencyWatcher.onDidDelete(handler);
+
+    context.subscriptions.push(this.dependencyWatcher);
+    logger.info(
+      `AngularIndexer: Dependency watcher initialized for ${this.projectRootPath} with pattern ${pattern.pattern}`
+    );
+  }
+
+  /**
+   * Re-indexes `node_modules` after a dependency manifest change and notifies
+   * listeners via {@link onDidIndexNodeModules}. Skips work while a full index
+   * or another dependency reindex is already running.
+   * @param context The extension context.
+   * @internal
+   */
+  private async reindexNodeModulesAfterDependencyChange(context: vscode.ExtensionContext): Promise<void> {
+    if (this.isIndexing || this.isReindexingDependencies) {
+      logger.debug(
+        `[DependencyWatcher] Skipping reindex for ${path.basename(this.projectRootPath)}: indexing already in progress.`
+      );
+      return;
+    }
+
+    this.isReindexingDependencies = true;
+    try {
+      logger.info(`🔄 Dependencies changed for ${path.basename(this.projectRootPath)}, re-indexing libraries...`);
+      await this.indexNodeModules(context);
+      this._onDidIndexNodeModules.fire();
+    } catch (error) {
+      logger.error("[DependencyWatcher] Error re-indexing libraries after dependency change:", error as Error);
+    } finally {
+      this.isReindexingDependencies = false;
+    }
   }
 
   /**
@@ -2283,9 +2373,14 @@ export class AngularIndexer {
     const classDeclarations = new Map<string, ClassDeclaration>();
 
     // This logic is duplicated from _buildComponentToModuleMap to ensure we have all class definitions.
-    // A more optimized approach could pass this data from the first pass, but this is safer.
+    // For entry-point indexing we only want classes that are publicly re-exported from this entry point.
+    // This filters out private aliases such as `export { Foo as ɵFoo }`, which are not importable API.
     const exportedDeclarations = sourceFile.getExportedDeclarations();
-    for (const declarations of exportedDeclarations.values()) {
+    for (const [exportName, declarations] of exportedDeclarations.entries()) {
+      if (exportName.startsWith("ɵ")) {
+        continue;
+      }
+
       for (const declaration of declarations) {
         if (declaration.isKind(SyntaxKind.ClassDeclaration)) {
           const classDecl = declaration as ClassDeclaration;
@@ -2294,12 +2389,6 @@ export class AngularIndexer {
             classDeclarations.set(name, classDecl);
           }
         }
-      }
-    }
-    for (const classDecl of sourceFile.getClasses()) {
-      const name = classDecl.getName();
-      if (name && !classDeclarations.has(name)) {
-        classDeclarations.set(name, classDecl);
       }
     }
 
@@ -2639,6 +2728,11 @@ export class AngularIndexer {
       this.fileWatcher.dispose();
       this.fileWatcher = null;
     }
+    if (this.dependencyWatcher) {
+      this.dependencyWatcher.dispose();
+      this.dependencyWatcher = null;
+    }
+    this._onDidIndexNodeModules.dispose();
     this.clearInMemoryState();
     // Note: Should we dispose the ts-morph Project as well? It doesn't have a dispose method, but we can clear its files
     removeAllSourceFiles(this.project, "dispose");

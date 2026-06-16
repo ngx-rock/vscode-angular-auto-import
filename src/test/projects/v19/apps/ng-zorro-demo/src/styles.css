@@ -1,0 +1,22 @@
+@import 'ng-zorro-antd/ng-zorro-antd.min.css';
+
+:root {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(22, 119, 255, 0.15), transparent 24%),
+    linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  color: #0f172a;
+}
