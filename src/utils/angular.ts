@@ -13,6 +13,7 @@ import { STANDARD_ANGULAR_ELEMENTS } from "../config";
 import { logger } from "../logger";
 import type { AngularIndexer } from "../services";
 import { AngularElementData } from "../types";
+import { getRelativeFilePath } from "./path";
 
 /**
  * Converts a string from kebab-case or camelCase to PascalCase.
@@ -564,19 +565,8 @@ export function resolveRelativePath(from: string, to: string): string {
   }
 
   try {
-    const path = require("node:path");
-    const fromDir = path.dirname(from);
-    let relativePath = path.relative(fromDir, to);
-
-    // Remove extension
-    relativePath = relativePath.replace(/\.ts$/, "");
-
-    // Ensure relative path starts with ./ or ../
-    if (!relativePath.startsWith(".")) {
-      relativePath = `./${relativePath}`;
-    }
-
-    return relativePath;
+    const toNoExt = to.replace(/\.ts$/, "");
+    return getRelativeFilePath(from, toNoExt);
   } catch (_error) {
     return "";
   }
