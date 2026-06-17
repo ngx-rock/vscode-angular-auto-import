@@ -1910,7 +1910,7 @@ export class AngularIndexer {
    */
   private getNgModuleObjectLiteral(ngModuleDecorator: Decorator): ObjectLiteralExpression | null {
     const decoratorArg = ngModuleDecorator.getArguments()[0];
-    if (!decoratorArg || !decoratorArg.isKind(SyntaxKind.ObjectLiteralExpression)) {
+    if (!decoratorArg?.isKind(SyntaxKind.ObjectLiteralExpression)) {
       return null;
     }
     return decoratorArg as ObjectLiteralExpression;

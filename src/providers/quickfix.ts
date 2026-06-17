@@ -90,7 +90,7 @@ export class QuickfixImportProvider implements vscode.CodeActionProvider {
     const actions: vscode.CodeAction[] = [];
 
     for (const diagnostic of diagnostics) {
-      if (!diagnostic || !diagnostic.message) {
+      if (!diagnostic?.message) {
         continue;
       }
 
