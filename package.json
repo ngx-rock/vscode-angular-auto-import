@@ -259,7 +259,8 @@
     "release": "pnpm run vsce:package && pnpm run vsce:publish",
     "docs:build": "rm -rf docs && typedoc",
     "pmd:cpd": "pnpm exec pmd cpd --minimum-tokens 100 --language typescript --dir src --format text --exclude 'src/test' --skip-lexical-errors",
-    "pmd:cpd:md": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format markdown --exclude 'src/test' --exclude 'src/test/fixtures' > duplicates-report.md"
+    "pmd:cpd:md": "pnpm exec pmd cpd --minimum-tokens 50 --language typescript --dir src --format markdown --exclude 'src/test' --exclude 'src/test/fixtures' > duplicates-report.md",
+    "context:bundle": "repomix --style markdown --output extension-context.md --include \"src/**/*.ts,package.json,CLAUDE.md,tsconfig*.json,biome.json,knip.json,esbuild.js\" --ignore \"src/test/**,node_modules/**,dist/**,out/**,.git/**,**/*.test.ts,**/.DS_Store\""
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
@@ -278,6 +279,7 @@
     "npm-run-all": "^4.1.5",
     "pmd-bin": "^2.24.0",
     "prettier": "^3.8.4",
+    "repomix": "^1.14.1",
     "tsx": "^4.22.4",
     "typedoc": "^0.28.19",
     "typedoc-plugin-markdown": "^4.12.0",
