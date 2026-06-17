@@ -496,6 +496,17 @@ function findAliasMatch(
     if (isInsideMatchedAliasRoot(absoluteCurrentFilePath, match.matchedRootPath, projectRoot)) {
       return relativePath;
     }
+
+    // A directory barrel (an `index.ts`) only covers what it actually re-exports.
+    // If the target is not reachable through the barrel, fall back to a relative
+    // path instead of producing a broken import. Exact-file aliases (no `index.ts`
+    // at the matched root, e.g. `@deep-alias`) are always used as-is.
+    const absoluteMatchedRoot = path.resolve(projectRoot, match.matchedRootPath);
+    const hasBarrelIndex = fs.existsSync(path.join(absoluteMatchedRoot, "index.ts"));
+    if (hasBarrelIndex && !barrelReExportsTarget(absoluteMatchedRoot, absoluteTargetModulePathNoExt)) {
+      return relativePath;
+    }
+
     return match.importPath;
   }
 
@@ -515,4 +526,94 @@ function isInsideMatchedAliasRoot(
   return (
     relativeToMatchedRoot === "" || (!relativeToMatchedRoot.startsWith("..") && !path.isAbsolute(relativeToMatchedRoot))
   );
+}
+
+/**
+ * Compares two filesystem paths for equality, ignoring separator style and case.
+ */
+function pathsEqual(a: string, b: string): boolean {
+  return normalizePath(a).toLowerCase() === normalizePath(b).toLowerCase();
+}
+
+/**
+ * Extracts the module specifiers of every `export ... from '...'` re-export
+ * statement found in a barrel's source (covers `export *`, `export * as ns`,
+ * and named/`type` re-exports).
+ */
+function extractReExportSpecifiers(content: string): string[] {
+  const reExportPattern =
+    /export\s+(?:type\s+)?(?:\*(?:\s+as\s+[A-Za-z0-9_$]+)?|\{[\s\S]*?\})\s+from\s*['"]([^'"]+)['"]/g;
+  const specifiers: string[] = [];
+
+  for (let match = reExportPattern.exec(content); match !== null; match = reExportPattern.exec(content)) {
+    specifiers.push(match[1]);
+  }
+
+  return specifiers;
+}
+
+function isBarrelModuleTarget(barrelDir: string, absoluteTargetModulePathNoExt: string): boolean {
+  return (
+    pathsEqual(barrelDir, absoluteTargetModulePathNoExt) ||
+    pathsEqual(path.join(barrelDir, "index"), absoluteTargetModulePathNoExt)
+  );
+}
+
+/**
+ * Determines whether the barrel `index.ts` at `barrelDir` actually re-exports
+ * the target module, following nested directory re-exports recursively.
+ * @param barrelDir Absolute path to the directory containing the barrel `index.ts`.
+ * @param absoluteTargetModulePathNoExt Absolute path to the target module, without extension.
+ * @param visited Set of already-inspected barrels, guarding against import cycles.
+ * @param depth Current recursion depth, bounded to avoid runaway traversals.
+ */
+function barrelReExportsTarget(
+  barrelDir: string,
+  absoluteTargetModulePathNoExt: string,
+  visited: Set<string> = new Set(),
+  depth = 0
+): boolean {
+  if (depth > 10) {
+    return false;
+  }
+
+  const indexFile = path.join(barrelDir, "index.ts");
+  if (visited.has(indexFile) || !fs.existsSync(indexFile)) {
+    return false;
+  }
+  visited.add(indexFile);
+
+  // The barrel module itself is reachable through its own alias.
+  if (isBarrelModuleTarget(barrelDir, absoluteTargetModulePathNoExt)) {
+    return true;
+  }
+
+  let content: string;
+  try {
+    content = fs.readFileSync(indexFile, "utf-8");
+  } catch (error) {
+    logger.warn(`[TsConfigHelper] Failed to read barrel '${indexFile}': ${(error as Error).message}`);
+    return false;
+  }
+
+  for (const specifier of extractReExportSpecifiers(content)) {
+    // Only relative re-exports can point back to a file inside the project.
+    if (!specifier.startsWith(".")) {
+      continue;
+    }
+
+    const resolved = path.resolve(barrelDir, specifier);
+    if (pathsEqual(resolved, absoluteTargetModulePathNoExt)) {
+      return true;
+    }
+
+    // Directory re-export (e.g. `export * from './pipes'`): recurse into its barrel.
+    if (fs.existsSync(path.join(resolved, "index.ts"))) {
+      if (barrelReExportsTarget(resolved, absoluteTargetModulePathNoExt, visited, depth + 1)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
