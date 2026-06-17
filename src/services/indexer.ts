@@ -1742,17 +1742,61 @@ export class AngularIndexer {
    * @internal
    */
   private async _indexLibrary(entryPoints: Map<string, string>): Promise<void> {
+    // Snapshot the files already in the project (project sources + anything indexed
+    // by a previous step). Everything ts-morph loads while indexing this library —
+    // both the entry-point barrels and the transitively resolved declaration files —
+    // will be the delta against this snapshot and can be released afterwards.
+    const preExistingPaths = new Set(this.project.getSourceFiles().map((sf) => sf.getFilePath()));
+
     const libraryFiles = this.loadLibrarySourceFiles(entryPoints);
 
     if (libraryFiles.length === 0) {
       return;
     }
 
-    const typeChecker = this.project.getTypeChecker();
-    const allLibraryClasses = this.collectAllLibraryClasses(libraryFiles);
-    const componentToModuleMap = this.buildLibraryComponentToModuleMap(libraryFiles, allLibraryClasses, typeChecker);
+    try {
+      const typeChecker = this.project.getTypeChecker();
+      const allLibraryClasses = this.collectAllLibraryClasses(libraryFiles);
+      const componentToModuleMap = this.buildLibraryComponentToModuleMap(libraryFiles, allLibraryClasses, typeChecker);
 
-    await this.indexLibraryDeclarations(libraryFiles, componentToModuleMap);
+      await this.indexLibraryDeclarations(libraryFiles, componentToModuleMap);
+    } finally {
+      // Free the AST of every source file loaded for this library once all metadata
+      // (selectors, modules) has been extracted into the persistent index. Library
+      // files are only read, never modified, and the persisted structures
+      // (`selectorTrie`, `externalModuleExportsIndex`) hold plain strings/`AngularElementData`
+      // with no AST references, so keeping these SourceFiles in memory only inflates
+      // the ts-morph Project. Entry points are re-export barrels, so the bulk of the
+      // AST lives in the transitively loaded declaration files — releasing the full
+      // delta (not just the entry points) is what actually bounds peak heap, which on
+      // large monorepos (e.g. Nx) can otherwise grow by 1-2 GB across all dependencies.
+      // Removal must happen here, after all three extraction phases complete, because
+      // module mapping resolves symbols across files via the TypeChecker; removing
+      // mid-loop would forget nodes still referenced by cross-file resolution.
+      // Pre-existing files (project sources) are preserved via the snapshot; shared
+      // typings (e.g. @angular/core) are reloaded on demand by the next library.
+      this.releaseLibrarySourceFiles(preExistingPaths);
+    }
+  }
+
+  /**
+   * Removes from the ts-morph project every source file that was not present in the
+   * given snapshot, releasing the AST loaded while indexing a single library. Nodes
+   * that are already forgotten are skipped safely.
+   * @param preExistingPaths File paths that existed before the library was indexed and must be kept.
+   * @internal
+   */
+  private releaseLibrarySourceFiles(preExistingPaths: Set<string>): void {
+    for (const sourceFile of this.project.getSourceFiles()) {
+      try {
+        const filePath = sourceFile.getFilePath(); // Throws if the node is already forgotten
+        if (!preExistingPaths.has(filePath)) {
+          this.project.removeSourceFile(sourceFile);
+        }
+      } catch {
+        // SourceFile node already forgotten/removed, nothing to release.
+      }
+    }
   }
 
   private loadLibrarySourceFiles(
