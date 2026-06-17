@@ -1297,6 +1297,23 @@ export class AngularIndexer {
       // This ensures transitive exports are available even when loading old cache
       this.expandAllModuleExports();
 
+      // Guard against a stale cache: if a project file was moved/deleted while the
+      // extension was not running (e.g. git pull, branch switch, `git mv`), the file
+      // watcher never observed the change and the cached selector still points to a
+      // path that no longer exists. Trusting it would make quick-fixes generate broken
+      // import paths. In that case discard the cache so the caller performs a full
+      // rescan, which rebuilds the index from the current state of the filesystem.
+      const staleFile = this.findStaleCachedProjectFile();
+      if (staleFile) {
+        logger.warn(
+          `AngularIndexer (${path.basename(
+            this.projectRootPath
+          )}): Cache references a missing file (${staleFile}). Discarding cache and forcing a full reindex.`
+        );
+        this.clearInMemoryState();
+        return false;
+      }
+
       logger.info(
         `AngularIndexer (${path.basename(this.projectRootPath)}): Loaded ${
           this.selectorTrie.size
@@ -1311,6 +1328,30 @@ export class AngularIndexer {
       logNoCacheFound(this.projectRootPath);
       return false;
     }
+  }
+
+  /**
+   * Scans the just-loaded cache for project (non-external) source files that no
+   * longer exist on disk. Such entries indicate the cache drifted from the
+   * filesystem while the watcher was inactive (offline file move/delete) and
+   * therefore cannot be trusted for import-path resolution.
+   * @returns The absolute path of the first missing file, or `null` if the cache
+   * is consistent with the filesystem.
+   * @internal
+   */
+  private findStaleCachedProjectFile(): string | null {
+    const nodeModulesPath = path.join(this.projectRootPath, "node_modules");
+    for (const filePath of this.fileCache.keys()) {
+      // External library files live under node_modules and are refreshed by the
+      // dependency watcher; skip them to avoid unnecessary full reindexes.
+      if (filePath.startsWith(nodeModulesPath)) {
+        continue;
+      }
+      if (!fs.existsSync(filePath)) {
+        return filePath;
+      }
+    }
+    return null;
   }
 
   private retrieveWorkspaceData(context: vscode.ExtensionContext) {

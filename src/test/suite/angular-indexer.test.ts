@@ -416,6 +416,37 @@ export class TempComponent {}
       assert.strictEqual(loaded, false, "Should return false when no cache exists");
     });
 
+    it("should discard cache when a cached project file no longer exists", async () => {
+      indexer.setProjectRoot(testProjectPath);
+      await indexer.generateFullIndex(mockContext);
+
+      // Simulate a file that was moved/deleted while the extension was not running:
+      // the cached fileCache still references its old (now missing) path.
+      const fileCacheKey = indexer.workspaceFileCacheKey;
+      const cachedFiles = mockWorkspaceState.get(fileCacheKey) as Record<string, FileElementsInfo>;
+      const stalePath = path.join(testProjectPath, "src", "app", "__moved-away__.component.ts");
+      cachedFiles[stalePath] = {
+        filePath: stalePath,
+        lastModified: Date.now(),
+        hash: "stale",
+        elements: [],
+      };
+      mockWorkspaceState.set(fileCacheKey, cachedFiles);
+
+      const newIndexer = new AngularIndexer();
+      newIndexer.setProjectRoot(testProjectPath);
+
+      const loaded = await newIndexer.loadFromWorkspace(mockContext);
+      assert.strictEqual(loaded, false, "Should reject a cache that references a missing file");
+      assert.strictEqual(
+        newIndexer.getAllSelectors().length,
+        0,
+        "Stale in-memory state should be cleared so the caller performs a full reindex"
+      );
+
+      newIndexer.dispose();
+    });
+
     it("should handle FileElementsInfo format correctly", async () => {
       indexer.setProjectRoot(testProjectPath);
       await indexer.generateFullIndex(mockContext);
