@@ -6,6 +6,7 @@ import { UiMarsComponent } from '@angular-demo/ui-mars';
 import { AliasComponent } from '@alias/alias.component';
 // eslint-disable-next-line @nx/enforce-module-boundaries
 import { DeepAliasComponent } from '@deep-alias';
+import { SelfImportTargetComponent } from './self-import/self-import-target.component';
 
 @Component({
   selector: 'app-ui-demo-one-alias',
@@ -16,6 +17,7 @@ import { DeepAliasComponent } from '@deep-alias';
     UiMarsComponent,
     AliasComponent,
     DeepAliasComponent,
+    SelfImportTargetComponent,
   ],
   templateUrl: './ui-demo-one-alias.component.html',
   styleUrl: './ui-demo-one-alias.component.css',

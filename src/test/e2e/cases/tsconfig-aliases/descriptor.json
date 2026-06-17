@@ -56,6 +56,15 @@
       "startCharacter": 0,
       "endLine": 16,
       "endCharacter": 16
+    },
+    {
+      "code": "missing-component-import:app-self-import-target",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 20,
+      "startCharacter": 0,
+      "endLine": 20,
+      "endCharacter": 24
     }
   ],
   "quickfixes": [
@@ -111,6 +120,15 @@
       "expectedImport": {
         "className": "DeepAliasComponent",
         "moduleSpecifier": "@deep-alias"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:app-self-import-target",
+      "title": "⟐ Import SelfImportTargetComponent from './self-import/self-import-target.component'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "SelfImportTargetComponent",
+        "moduleSpecifier": "./self-import/self-import-target.component"
       }
     }
   ]

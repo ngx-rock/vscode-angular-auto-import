@@ -171,6 +171,40 @@ describe("TsConfigHelper", function () {
         assert.strictEqual(result, "@core", "Should resolve to @core barrel import");
       });
 
+      it("should avoid barrel self-imports inside the same Nx library", async () => {
+        await TsConfigHelper.findAndParseTsConfig(nxProjectPath);
+        const targetPath = path.join(
+          nxProjectPath,
+          "libs",
+          "shared",
+          "ui",
+          "src",
+          "lib",
+          "components",
+          "button",
+          "button"
+        );
+        const currentFile = path.join(
+          nxProjectPath,
+          "libs",
+          "shared",
+          "ui",
+          "src",
+          "lib",
+          "components",
+          "card",
+          "card.ts"
+        );
+
+        const result = await TsConfigHelper.resolveImportPath(targetPath, currentFile, nxProjectPath);
+
+        assert.strictEqual(
+          result,
+          "../button/button",
+          "Should use relative path instead of importing library from itself"
+        );
+      });
+
       it("should handle complex nested aliases", async () => {
         // Ensure tsconfig is loaded first
         await TsConfigHelper.findAndParseTsConfig(complexProjectPath);

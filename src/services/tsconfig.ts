@@ -143,7 +143,7 @@ class PathAliasTrie {
   public findLongestPrefixMatch(
     absoluteTargetPath: string,
     projectRoot?: string
-  ): { importPath: string; isBarrel?: boolean } | null {
+  ): { importPath: string; isBarrel?: boolean; matchedRootPath: string } | null {
     const targetPath = this.getTargetPath(absoluteTargetPath, projectRoot);
     const pathSegments = this.getPathSegments(targetPath);
     const longestMatch = this.findLongestMatchInTrie(pathSegments.lower, pathSegments.original);
@@ -153,7 +153,8 @@ class PathAliasTrie {
     }
 
     const importPath = this.buildImportPath(longestMatch, pathSegments.original);
-    return { importPath, isBarrel: longestMatch.isBarrel };
+    const matchedRootPath = pathSegments.original.slice(0, longestMatch.depth).join("/");
+    return { importPath, isBarrel: longestMatch.isBarrel, matchedRootPath };
   }
 
   /**
@@ -399,7 +400,13 @@ export async function resolveImportPath(
   const relativePath = getRelativeFilePath(absoluteCurrentFilePath, absoluteTargetModulePathNoExt);
 
   // Try to find alias match
-  const aliasMatch = findAliasMatch(trie, absoluteTargetModulePathNoExt, projectRoot);
+  const aliasMatch = findAliasMatch(
+    trie,
+    absoluteTargetModulePathNoExt,
+    absoluteCurrentFilePath,
+    projectRoot,
+    relativePath
+  );
   if (aliasMatch) {
     return aliasMatch;
   }
@@ -471,7 +478,9 @@ async function loadTsConfig(projectRoot: string): Promise<ProcessedTsConfig | nu
 function findAliasMatch(
   trie: PathAliasTrie | null,
   absoluteTargetModulePathNoExt: string,
-  projectRoot: string
+  absoluteCurrentFilePath: string,
+  projectRoot: string,
+  relativePath: string
 ): string | null {
   if (!trie) {
     return null;
@@ -484,10 +493,26 @@ function findAliasMatch(
 
   // Always prefer barrel imports over relative paths
   if (match.isBarrel) {
+    if (isInsideMatchedAliasRoot(absoluteCurrentFilePath, match.matchedRootPath, projectRoot)) {
+      return relativePath;
+    }
     return match.importPath;
   }
 
   // For non-barrel (wildcard) aliases, always prefer aliases over relative paths
   // according to the configured priority which expects clean imports
   return match.importPath;
+}
+
+function isInsideMatchedAliasRoot(
+  absoluteCurrentFilePath: string,
+  matchedRootPath: string,
+  projectRoot: string
+): boolean {
+  const absoluteMatchedRoot = path.resolve(projectRoot, matchedRootPath);
+  const relativeToMatchedRoot = path.relative(absoluteMatchedRoot, absoluteCurrentFilePath);
+
+  return (
+    relativeToMatchedRoot === "" || (!relativeToMatchedRoot.startsWith("..") && !path.isAbsolute(relativeToMatchedRoot))
+  );
 }

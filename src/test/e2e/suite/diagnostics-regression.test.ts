@@ -16,6 +16,7 @@ import { severityToString } from "../types";
 
 const DIAGNOSTIC_SOURCE = "angular-auto-import";
 const IMPORT_COMMAND = "angular-auto-import.importElement";
+const CASE_FILTER = process.env.AAI_E2E_CASE;
 
 function isInlineTemplateCase(descriptor: CaseDescriptor): boolean {
   return descriptor.componentPath === descriptor.templatePath;
@@ -79,7 +80,9 @@ function discoverCases(casesDir: string): CaseDescriptor[] {
       const descriptorPath = path.join(casesDir, entry.name, "descriptor.json");
       if (fs.existsSync(descriptorPath)) {
         const descriptor = JSON.parse(fs.readFileSync(descriptorPath, "utf-8")) as CaseDescriptor;
-        cases.push(descriptor);
+        if (!CASE_FILTER || descriptor.case === CASE_FILTER) {
+          cases.push(descriptor);
+        }
       }
     }
   }

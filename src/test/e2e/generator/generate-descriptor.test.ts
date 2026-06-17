@@ -13,6 +13,7 @@ import { severityToString } from "../types";
 
 const DIAGNOSTIC_SOURCE = "angular-auto-import";
 const IMPORT_COMMAND = "angular-auto-import.importElement";
+const CASE_FILTER = process.env.AAI_E2E_CASE;
 
 function isInlineTemplateCase(caseConfig: CaseConfig): boolean {
   return caseConfig.componentPath === caseConfig.templatePath;
@@ -249,7 +250,7 @@ async function restoreCaseFiles(context: CaseRunContext): Promise<void> {
 describe("Descriptor Generator", function () {
   this.timeout(120000);
 
-  for (const caseConfig of CASES) {
+  for (const caseConfig of CASES.filter((config) => !CASE_FILTER || config.name === CASE_FILTER)) {
     it(`generate ${caseConfig.name}`, async function () {
       this.timeout(90000);
 
