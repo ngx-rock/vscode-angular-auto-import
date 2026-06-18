@@ -3,10 +3,10 @@
   "displayName": "Angular Auto Import",
   "description": "Intelligent auto-import for Angular standalone components, directives & pipes. Fix all missing imports with one command. Works with templates, external libraries & monorepos.",
   "publisher": "baryshevrs",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "icon": "img/icon.png",
   "galleryBanner": {
-    "color": "#DD0031",
+    "color": "#0f172a",
     "theme": "dark"
   },
   "qna": "marketplace",
@@ -52,12 +52,12 @@
   "main": "./dist/extension.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ngx-rock/vscode-angular-auto-import.git"
+    "url": "https://github.com/BaryshevRS/angular-auto-import.git"
   },
   "bugs": {
-    "url": "https://github.com/ngx-rock/vscode-angular-auto-import/issues"
+    "url": "https://github.com/BaryshevRS/angular-auto-import/issues"
   },
-  "homepage": "https://github.com/ngx-rock/vscode-angular-auto-import#readme",
+  "homepage": "https://github.com/BaryshevRS/angular-auto-import#readme",
   "license": "MIT",
   "badges": [
     {

@@ -1,8 +1,13 @@
 # Angular Auto-Import for VS Code
 
-[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/baryshevrs.angular-auto-import?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/baryshevrs.angular-auto-import?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/baryshevrs.angular-auto-import?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
+[![VS Marketplace](https://img.shields.io/badge/VS%20Marketplace-Angular%20Auto--Import-blue?style=flat-square&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
+[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-007ACC?style=flat-square&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=baryshevrs.angular-auto-import)
+
+[![GitHub release](https://img.shields.io/github/v/release/BaryshevRS/angular-auto-import?style=flat-square&sort=semver)](https://github.com/BaryshevRS/angular-auto-import/releases)
+[![GitHub stars](https://img.shields.io/github/stars/BaryshevRS/angular-auto-import?style=flat-square)](https://github.com/BaryshevRS/angular-auto-import/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/BaryshevRS/angular-auto-import?style=flat-square)](https://github.com/BaryshevRS/angular-auto-import/issues)
+[![GitHub license](https://img.shields.io/github/license/BaryshevRS/angular-auto-import?style=flat-square)](https://github.com/BaryshevRS/angular-auto-import/blob/main/LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/BaryshevRS/angular-auto-import?style=flat-square)](https://github.com/BaryshevRS/angular-auto-import/commits/main)
 
 **Stop manually importing Angular components, directives, and pipes.** Let Angular Auto-Import handle it for you with intelligent Quick Fixes and bulk import capabilities.
 
