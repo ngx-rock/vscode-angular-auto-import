@@ -4,6 +4,17 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [2.4.0] - 2026-06-18
+
+### Fixed
+- **Path alias imports**: quick fixes now avoid importing an Angular library from its own barrel and use relative imports inside the same alias root
+- **Barrel alias safety**: directory aliases now fall back to relative imports when the barrel `index.ts` does not re-export the target module
+- **Stale index cache entries**: cached project files that were moved or deleted while the extension was not running are detected and trigger a full reindex instead of producing broken import paths
+- **Cross-platform relative paths**: relative import generation now uses the shared path helper for consistent Windows path separator handling
+
+### Improved
+- **External library indexing memory usage**: library AST source files are released after indexing to keep ts-morph memory growth bounded in large workspaces
+ 
 ## [2.3.0] - 2026-06-17
 
 ### Fixed
