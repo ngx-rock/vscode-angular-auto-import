@@ -1,0 +1,146 @@
+.playground-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.page-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.page-actions h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.9rem;
+}
+
+.page-actions p {
+  margin: 0;
+  max-width: 56rem;
+  color: #475569;
+}
+
+.top-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.playground-layout {
+  min-height: 70vh;
+  border: 1px solid rgba(99, 102, 241, 0.14);
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.playground-drawer {
+  width: 17rem;
+  padding: 0.75rem;
+  border-right: 1px solid #e2e8f0;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.playground-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.dense-card {
+  border-radius: 20px;
+}
+
+.wide-card {
+  grid-column: span 2;
+}
+
+.stack,
+.tab-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.control-cluster {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.group-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-row p {
+  margin: 0.15rem 0 0;
+  color: #64748b;
+}
+
+mat-card-header {
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 1200px) {
+  .playground-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wide-card {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 840px) {
+  .playground-layout {
+    min-height: auto;
+  }
+
+  .playground-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wide-card {
+    grid-column: auto;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .playground-drawer {
+    width: 100%;
+  }
+}

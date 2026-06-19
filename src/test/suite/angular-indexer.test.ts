@@ -10,6 +10,7 @@
 import * as assert from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { Project, SyntaxKind } from "ts-morph";
 import * as vscode from "vscode";
 import { AngularIndexer } from "../../services";
 import type { FileElementsInfo } from "../../types";
@@ -511,6 +512,41 @@ export class TempComponent {}
         !submenuElements.some((element) => element.name === "MockTransitionPatchDirective"),
         "Should not index a directive re-exported only as a private ɵ alias for mock-submenu"
       );
+    });
+  });
+
+  describe("NgModule export name resolution", () => {
+    /**
+     * Builds the first element of a tuple type so it can be fed to the private
+     * `_resolveExportedClassName`, mirroring an `ɵmod` exports tuple entry.
+     */
+    function firstTupleElement(sourceText: string) {
+      const project = new Project({ useInMemoryFileSystem: true });
+      const sourceFile = project.createSourceFile("mod.d.ts", sourceText);
+      const alias = sourceFile.getTypeAliasOrThrow("Exports");
+      const tuple = alias.getTypeNodeOrThrow().asKindOrThrow(SyntaxKind.TupleType);
+      return { element: tuple.getElements()[0], typeChecker: project.getTypeChecker() };
+    }
+
+    it("resolves the class name via the TypeChecker when the symbol is available", () => {
+      const { element, typeChecker } = firstTupleElement(
+        "declare class TranslatePipe {}\ntype Exports = [typeof TranslatePipe];"
+      );
+
+      const resolved = (indexer as any)._resolveExportedClassName(element, typeChecker);
+      assert.strictEqual(resolved, "TranslatePipe");
+    });
+
+    it("falls back to the syntactic name when cross-file symbol resolution fails", () => {
+      // `i1` is an unresolved namespace (no import), so the TypeChecker yields no
+      // symbol — mirroring environments (e.g. WSL/Windows mounts) where compiled
+      // library `.d.ts` cross-file references don't resolve. Without the fallback
+      // the module's exports are silently dropped, causing false-positive
+      // "not imported" diagnostics for pipes provided via an NgModule.
+      const { element, typeChecker } = firstTupleElement("type Exports = [typeof i1.TranslatePipe];");
+
+      const resolved = (indexer as any)._resolveExportedClassName(element, typeChecker);
+      assert.strictEqual(resolved, "TranslatePipe");
     });
   });
 

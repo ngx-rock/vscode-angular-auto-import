@@ -1,0 +1,1242 @@
+{
+  "case": "primeng",
+  "componentPath": "apps/primeng-demo/src/app/playground/prime-playground.component.ts",
+  "templatePath": "apps/primeng-demo/src/app/playground/prime-playground.component.html",
+  "diagnostics": [
+    {
+      "code": "missing-component-import:p-toast",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 1,
+      "startCharacter": 2,
+      "endLine": 1,
+      "endCharacter": 11
+    },
+    {
+      "code": "missing-component-import:p-menubar",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 3,
+      "startCharacter": 2,
+      "endLine": 3,
+      "endCharacter": 55
+    },
+    {
+      "code": "missing-component-import:p-breadcrumb",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 4,
+      "startCharacter": 2,
+      "endLine": 4,
+      "endCharacter": 91
+    },
+    {
+      "code": "missing-component-import:p-button",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 16,
+      "startCharacter": 6,
+      "endLine": 16,
+      "endCharacter": 92
+    },
+    {
+      "code": "missing-component-import:p-button",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 17,
+      "startCharacter": 6,
+      "endLine": 21,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-component-import:p-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 26,
+      "startCharacter": 4,
+      "endLine": 26,
+      "endCharacter": 82
+    },
+    {
+      "code": "missing-component-import:p-button",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 29,
+      "startCharacter": 10,
+      "endLine": 34,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-directive-import:[pRipple]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 32,
+      "startCharacter": 12,
+      "endLine": 32,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[pTooltip]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 33,
+      "startCharacter": 12,
+      "endLine": 33,
+      "endCharacter": 20
+    },
+    {
+      "code": "missing-component-import:p-badge",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 35,
+      "startCharacter": 10,
+      "endLine": 35,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:p-avatar",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 36,
+      "startCharacter": 10,
+      "endLine": 36,
+      "endCharacter": 46
+    },
+    {
+      "code": "missing-component-import:p-chip",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 37,
+      "startCharacter": 10,
+      "endLine": 37,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:p-tag",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 38,
+      "startCharacter": 10,
+      "endLine": 38,
+      "endCharacter": 48
+    },
+    {
+      "code": "missing-directive-import:[pButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 42,
+      "startCharacter": 10,
+      "endLine": 42,
+      "endCharacter": 17
+    },
+    {
+      "code": "missing-directive-import:[pStyleClass]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 46,
+      "startCharacter": 10,
+      "endLine": 46,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:p-message",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 50,
+      "startCharacter": 10,
+      "endLine": 50,
+      "endCharacter": 62
+    },
+    {
+      "code": "missing-component-import:p-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 55,
+      "startCharacter": 4,
+      "endLine": 55,
+      "endCharacter": 74
+    },
+    {
+      "code": "missing-component-import:p-floatlabel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 57,
+      "startCharacter": 8,
+      "endLine": 57,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:[pInputText]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 58,
+      "startCharacter": 17,
+      "endLine": 58,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-component-import:p-floatlabel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 62,
+      "startCharacter": 8,
+      "endLine": 62,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-component-import:p-autocomplete",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 63,
+      "startCharacter": 10,
+      "endLine": 69,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 65,
+      "startCharacter": 14,
+      "endLine": 65,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:p-floatlabel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 73,
+      "startCharacter": 8,
+      "endLine": 73,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-component-import:p-select",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 74,
+      "startCharacter": 10,
+      "endLine": 79,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 77,
+      "startCharacter": 14,
+      "endLine": 77,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:p-floatlabel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 83,
+      "startCharacter": 8,
+      "endLine": 83,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-component-import:p-datepicker",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 84,
+      "startCharacter": 10,
+      "endLine": 88,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 86,
+      "startCharacter": 14,
+      "endLine": 86,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:p-floatlabel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 92,
+      "startCharacter": 8,
+      "endLine": 92,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-component-import:p-inputnumber",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 93,
+      "startCharacter": 10,
+      "endLine": 93,
+      "endCharacter": 98
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 93,
+      "startCharacter": 50,
+      "endLine": 93,
+      "endCharacter": 57
+    },
+    {
+      "code": "missing-component-import:p-checkbox",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 98,
+      "startCharacter": 10,
+      "endLine": 102,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 99,
+      "startCharacter": 14,
+      "endLine": 99,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:p-toggleswitch",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 105,
+      "startCharacter": 10,
+      "endLine": 105,
+      "endCharacter": 89
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 105,
+      "startCharacter": 28,
+      "endLine": 105,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:p-selectbutton",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 108,
+      "startCharacter": 8,
+      "endLine": 114,
+      "endCharacter": 38
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 110,
+      "startCharacter": 12,
+      "endLine": 110,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-component-import:p-colorPicker",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 116,
+      "startCharacter": 8,
+      "endLine": 116,
+      "endCharacter": 88
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 116,
+      "startCharacter": 25,
+      "endLine": 116,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-component-import:p-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 120,
+      "startCharacter": 4,
+      "endLine": 120,
+      "endCharacter": 68
+    },
+    {
+      "code": "missing-component-import:p-blockUI",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 121,
+      "startCharacter": 6,
+      "endLine": 121,
+      "endCharacter": 65
+    },
+    {
+      "code": "missing-component-import:p-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 122,
+      "startCharacter": 6,
+      "endLine": 122,
+      "endCharacter": 52
+    },
+    {
+      "code": "missing-component-import:p-button",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 127,
+      "startCharacter": 8,
+      "endLine": 127,
+      "endCharacter": 99
+    },
+    {
+      "code": "missing-component-import:p-button",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 128,
+      "startCharacter": 8,
+      "endLine": 132,
+      "endCharacter": 43
+    },
+    {
+      "code": "missing-component-import:p-dialog",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 135,
+      "startCharacter": 6,
+      "endLine": 140,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:p-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 145,
+      "startCharacter": 4,
+      "endLine": 145,
+      "endCharacter": 69
+    },
+    {
+      "code": "missing-component-import:p-tabs",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 146,
+      "startCharacter": 6,
+      "endLine": 146,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:p-tablist",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 147,
+      "startCharacter": 8,
+      "endLine": 147,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-component-import:p-tab",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 148,
+      "startCharacter": 10,
+      "endLine": 148,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-component-import:p-tab",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 149,
+      "startCharacter": 10,
+      "endLine": 149,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:p-tabpanels",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 152,
+      "startCharacter": 8,
+      "endLine": 152,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:p-tabpanel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 153,
+      "startCharacter": 10,
+      "endLine": 153,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:p-progressBar",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 155,
+      "startCharacter": 14,
+      "endLine": 155,
+      "endCharacter": 48
+    },
+    {
+      "code": "missing-component-import:p-chip",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 158,
+      "startCharacter": 18,
+      "endLine": 158,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-component-import:p-accordion",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 161,
+      "startCharacter": 14,
+      "endLine": 161,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-component-import:p-accordion-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 162,
+      "startCharacter": 16,
+      "endLine": 162,
+      "endCharacter": 45
+    },
+    {
+      "code": "missing-component-import:p-accordion-header",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 163,
+      "startCharacter": 18,
+      "endLine": 163,
+      "endCharacter": 38
+    },
+    {
+      "code": "missing-component-import:p-accordion-content",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 164,
+      "startCharacter": 18,
+      "endLine": 164,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:p-accordion-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 168,
+      "startCharacter": 16,
+      "endLine": 168,
+      "endCharacter": 45
+    },
+    {
+      "code": "missing-component-import:p-accordion-header",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 169,
+      "startCharacter": 18,
+      "endLine": 169,
+      "endCharacter": 38
+    },
+    {
+      "code": "missing-component-import:p-accordion-content",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 170,
+      "startCharacter": 18,
+      "endLine": 170,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:p-tabpanel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 176,
+      "startCharacter": 10,
+      "endLine": 176,
+      "endCharacter": 38
+    },
+    {
+      "code": "missing-component-import:p-skeleton",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 178,
+      "startCharacter": 14,
+      "endLine": 178,
+      "endCharacter": 53
+    },
+    {
+      "code": "missing-component-import:p-skeleton",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 179,
+      "startCharacter": 14,
+      "endLine": 179,
+      "endCharacter": 52
+    },
+    {
+      "code": "missing-component-import:p-divider",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 180,
+      "startCharacter": 14,
+      "endLine": 180,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-component-import:p-message",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 181,
+      "startCharacter": 14,
+      "endLine": 181,
+      "endCharacter": 69
+    },
+    {
+      "code": "missing-component-import:p-contextMenu",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 191,
+      "startCharacter": 4,
+      "endLine": 191,
+      "endCharacter": 64
+    },
+    {
+      "code": "missing-component-import:p-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 193,
+      "startCharacter": 4,
+      "endLine": 193,
+      "endCharacter": 76
+    },
+    {
+      "code": "missing-component-import:p-table",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 194,
+      "startCharacter": 6,
+      "endLine": 194,
+      "endCharacter": 120
+    },
+    {
+      "code": "missing-directive-import:[pTemplate]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 195,
+      "startCharacter": 21,
+      "endLine": 195,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-directive-import:[pSortableColumn]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 197,
+      "startCharacter": 16,
+      "endLine": 197,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:p-sortIcon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 199,
+      "startCharacter": 14,
+      "endLine": 199,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-directive-import:[pSortableColumn]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 201,
+      "startCharacter": 16,
+      "endLine": 201,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:p-sortIcon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 203,
+      "startCharacter": 14,
+      "endLine": 203,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-directive-import:[pSortableColumn]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 205,
+      "startCharacter": 16,
+      "endLine": 205,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:p-sortIcon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 207,
+      "startCharacter": 14,
+      "endLine": 207,
+      "endCharacter": 43
+    },
+    {
+      "code": "missing-directive-import:[pSortableColumn]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 209,
+      "startCharacter": 16,
+      "endLine": 209,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:p-sortIcon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 211,
+      "startCharacter": 14,
+      "endLine": 211,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-directive-import:[pTemplate]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 217,
+      "startCharacter": 21,
+      "endLine": 217,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-component-import:p-tag",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 224,
+      "startCharacter": 14,
+      "endLine": 228,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-component-import:p-scrollTop",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 236,
+      "startCharacter": 2,
+      "endLine": 236,
+      "endCharacter": 15
+    }
+  ],
+  "quickfixes": [
+    {
+      "diagnosticCode": "missing-component-import:p-toast",
+      "title": "⟐ Import Toast from 'primeng/toast'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Toast",
+        "moduleSpecifier": "primeng/toast"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-menubar",
+      "title": "⟐ Import Menubar from 'primeng/menubar'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Menubar",
+        "moduleSpecifier": "primeng/menubar"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-breadcrumb",
+      "title": "⟐ Import Breadcrumb from 'primeng/breadcrumb'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Breadcrumb",
+        "moduleSpecifier": "primeng/breadcrumb"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-button",
+      "title": "⟐ Import Button from 'primeng/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Button",
+        "moduleSpecifier": "primeng/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-panel",
+      "title": "⟐ Import Panel from 'primeng/panel'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Panel",
+        "moduleSpecifier": "primeng/panel"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[pRipple]",
+      "title": "⟐ Import Button from 'primeng/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Button",
+        "moduleSpecifier": "primeng/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[pRipple]",
+      "title": "⟐ Import Ripple from 'primeng/ripple'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Ripple",
+        "moduleSpecifier": "primeng/ripple"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[pTooltip]",
+      "title": "⟐ Import Button from 'primeng/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Button",
+        "moduleSpecifier": "primeng/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[pTooltip]",
+      "title": "⟐ Import Tooltip from 'primeng/tooltip'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Tooltip",
+        "moduleSpecifier": "primeng/tooltip"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-badge",
+      "title": "⟐ Import Badge from 'primeng/badge'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Badge",
+        "moduleSpecifier": "primeng/badge"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-avatar",
+      "title": "⟐ Import Avatar from 'primeng/avatar'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Avatar",
+        "moduleSpecifier": "primeng/avatar"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-chip",
+      "title": "⟐ Import Chip from 'primeng/chip'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Chip",
+        "moduleSpecifier": "primeng/chip"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-tag",
+      "title": "⟐ Import Tag from 'primeng/tag'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Tag",
+        "moduleSpecifier": "primeng/tag"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[pButton]",
+      "title": "⟐ Import ButtonDirective from 'primeng/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "ButtonDirective",
+        "moduleSpecifier": "primeng/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[pStyleClass]",
+      "title": "⟐ Import StyleClass from 'primeng/styleclass'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "StyleClass",
+        "moduleSpecifier": "primeng/styleclass"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-message",
+      "title": "⟐ Import Message from 'primeng/message'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Message",
+        "moduleSpecifier": "primeng/message"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-floatlabel",
+      "title": "⟐ Import FloatLabel from 'primeng/floatlabel'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FloatLabel",
+        "moduleSpecifier": "primeng/floatlabel"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[pInputText]",
+      "title": "⟐ Import InputText from 'primeng/inputtext'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "InputText",
+        "moduleSpecifier": "primeng/inputtext"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-autocomplete",
+      "title": "⟐ Import AutoComplete from 'primeng/autocomplete'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "AutoComplete",
+        "moduleSpecifier": "primeng/autocomplete"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-autocomplete",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "title": "⟐ Import AutoComplete from 'primeng/autocomplete'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "AutoComplete",
+        "moduleSpecifier": "primeng/autocomplete"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-select",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-select",
+      "title": "⟐ Import Select from 'primeng/select'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Select",
+        "moduleSpecifier": "primeng/select"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-datepicker",
+      "title": "⟐ Import DatePicker from 'primeng/datepicker'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "DatePicker",
+        "moduleSpecifier": "primeng/datepicker"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-datepicker",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-inputnumber",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-inputnumber",
+      "title": "⟐ Import InputNumber from 'primeng/inputnumber'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "InputNumber",
+        "moduleSpecifier": "primeng/inputnumber"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-checkbox",
+      "title": "⟐ Import Checkbox from 'primeng/checkbox'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Checkbox",
+        "moduleSpecifier": "primeng/checkbox"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-checkbox",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-toggleswitch",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-toggleswitch",
+      "title": "⟐ Import ToggleSwitch from 'primeng/toggleswitch'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "ToggleSwitch",
+        "moduleSpecifier": "primeng/toggleswitch"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-selectbutton",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-selectbutton",
+      "title": "⟐ Import SelectButton from 'primeng/selectbutton'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "SelectButton",
+        "moduleSpecifier": "primeng/selectbutton"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-colorPicker",
+      "title": "⟐ Import ColorPicker from 'primeng/colorpicker'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "ColorPicker",
+        "moduleSpecifier": "primeng/colorpicker"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-colorPicker",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-blockUI",
+      "title": "⟐ Import BlockUI from 'primeng/blockui'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "BlockUI",
+        "moduleSpecifier": "primeng/blockui"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-dialog",
+      "title": "⟐ Import Dialog from 'primeng/dialog'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Dialog",
+        "moduleSpecifier": "primeng/dialog"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-tabs",
+      "title": "⟐ Import Tabs from 'primeng/tabs'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Tabs",
+        "moduleSpecifier": "primeng/tabs"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-tablist",
+      "title": "⟐ Import TabList from 'primeng/tabs'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TabList",
+        "moduleSpecifier": "primeng/tabs"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-tab",
+      "title": "⟐ Import Tab from 'primeng/tabs'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Tab",
+        "moduleSpecifier": "primeng/tabs"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-tabpanels",
+      "title": "⟐ Import TabPanels from 'primeng/tabs'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TabPanels",
+        "moduleSpecifier": "primeng/tabs"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-tabpanel",
+      "title": "⟐ Import TabPanel from 'primeng/tabs'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TabPanel",
+        "moduleSpecifier": "primeng/tabs"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-progressBar",
+      "title": "⟐ Import ProgressBar from 'primeng/progressbar'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "ProgressBar",
+        "moduleSpecifier": "primeng/progressbar"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-accordion",
+      "title": "⟐ Import Accordion from 'primeng/accordion'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Accordion",
+        "moduleSpecifier": "primeng/accordion"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-accordion-panel",
+      "title": "⟐ Import AccordionPanel from 'primeng/accordion'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "AccordionPanel",
+        "moduleSpecifier": "primeng/accordion"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-accordion-header",
+      "title": "⟐ Import AccordionHeader from 'primeng/accordion'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "AccordionHeader",
+        "moduleSpecifier": "primeng/accordion"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-accordion-content",
+      "title": "⟐ Import AccordionContent from 'primeng/accordion'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "AccordionContent",
+        "moduleSpecifier": "primeng/accordion"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-skeleton",
+      "title": "⟐ Import Skeleton from 'primeng/skeleton'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Skeleton",
+        "moduleSpecifier": "primeng/skeleton"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-divider",
+      "title": "⟐ Import Divider from 'primeng/divider'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "Divider",
+        "moduleSpecifier": "primeng/divider"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-contextMenu",
+      "title": "⟐ Import ContextMenu from 'primeng/contextmenu'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "ContextMenu",
+        "moduleSpecifier": "primeng/contextmenu"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-table",
+      "title": "⟐ Import TableModule from 'primeng/table'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TableModule",
+        "moduleSpecifier": "primeng/table"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[pTemplate]",
+      "title": "⟐ Import PrimeTemplate from 'primeng/api'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "PrimeTemplate",
+        "moduleSpecifier": "primeng/api"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[pSortableColumn]",
+      "title": "⟐ Import TableModule from 'primeng/table'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TableModule",
+        "moduleSpecifier": "primeng/table"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-sortIcon",
+      "title": "⟐ Import TableModule from 'primeng/table'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TableModule",
+        "moduleSpecifier": "primeng/table"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:p-scrollTop",
+      "title": "⟐ Import ScrollTop from 'primeng/scrolltop'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "ScrollTop",
+        "moduleSpecifier": "primeng/scrolltop"
+      }
+    }
+  ]
+}

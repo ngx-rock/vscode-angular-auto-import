@@ -1,0 +1,66 @@
+@if (show) {
+  @for (item of items; track $index) {
+    @switch (item) {
+      @case ('один') {
+        <div *ngIf="show"></div>
+        <lib-ui-demo-one></lib-ui-demo-one>
+        <div libDirectivePrefixLess></div>
+        {{ '123' | bytes }}
+      }
+    }
+  }
+}
+
+@if (itemCount | percent) {
+  <div *ngIf="itemCount | percent"></div>
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+}
+
+@for (item of obj | keyvalue; track $index) {
+  <div *ngIf="itemCount | percent"></div>
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @empty {
+  <div *ngIf="itemCount | percent"></div>
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+}
+
+@switch (itemCount | percent) {
+  @case ('1') {
+    <div *ngIf="itemCount | percent"></div>
+    <div *ngIf="show"></div>
+    <lib-ui-demo-one></lib-ui-demo-one>
+    <div libDirectivePrefixLess></div>
+    {{ '123' | bytes }}
+  }
+}
+
+@defer (when itemCount | percent) {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @placeholder (minimum 10ms) {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @loading (after 20ms) {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+} @error {
+  <div *ngIf="show"></div>
+  <lib-ui-demo-one></lib-ui-demo-one>
+  <div libDirectivePrefixLess></div>
+  {{ '123' | bytes }}
+}

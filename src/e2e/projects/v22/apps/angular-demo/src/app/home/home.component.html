@@ -1,0 +1,250 @@
+<h1>🎯 Component Selectors & Organization Patterns</h1>
+
+<section>
+  <h2>Prefix-less & Convention-Breaking Selectors</h2>
+  <p>
+    Demonstrates components, pipes, and directives that diverge from Angular naming conventions (suppressed ESLint
+    rules)
+  </p>
+
+  <lib-prefix-less>{{ 123 | pipePrefixLess }}</lib-prefix-less>
+  <div libDirectivePrefixLess></div>
+</section>
+
+<section>
+  <h2>Component Loading via Path Aliases</h2>
+  <p>Component resolved through tsconfig path aliases instead of NX module boundaries</p>
+
+  <app-ui-demo-one-alias></app-ui-demo-one-alias>
+</section>
+
+<section>
+  <h2>Standalone Components with Relative Imports</h2>
+  <p>Standard standalone component with direct relative path import (no library routing)</p>
+
+  <app-nx-welcome></app-nx-welcome>
+</section>
+
+<section>
+  <h2>Custom Bare-Word Selectors</h2>
+  <p>Non-prefixed element selector — violates ESLint component-selector rule</p>
+
+  <moon />
+</section>
+
+<section>
+  <h2>Co-located Component & Directive in Single File</h2>
+  <p>Component and directive declared in same TypeScript file and applied together on same element</p>
+
+  <lib-ui-moon-double libDoubleWay />
+</section>
+
+<section>
+  <h2>Multiple Components in One File with Inheritance</h2>
+  <p>Two &#64;Component declarations in single file — second extends first with signal input override</p>
+
+  <smart-captcha [invisible]="true"></smart-captcha>
+  <invisible-smart-captcha></invisible-smart-captcha>
+</section>
+
+<h1>🔄 Pipes & Multi-Declaration Files</h1>
+
+<section>
+  <h2>Custom Pipe Names (Independent of Class Names)</h2>
+  <p>Pipes with arbitrary registered names — name in &#64;Pipe decorator is independent of class name</p>
+
+  {{ '123' | bytes }}
+  {{ '123' | uiDemoPhoneFormat }}
+</section>
+
+<section>
+  <h2>Four Angular Declarations in Single File</h2>
+  <p>Two &#64;Component, one &#64;Directive, one &#64;Pipe co-exported from same .ts file</p>
+
+  <app-button></app-button>
+  <app-card appHighlight></app-card>
+  {{ '123' | capitalize }}
+  <div appHighlight></div>
+</section>
+
+<h1>📍 Attribute Directives</h1>
+
+<section>
+  <h2>Simple Attribute Directives (No &#64;Input)</h2>
+  <p>Directives that apply only side effects on instantiation — no parameters accepted</p>
+
+  <div libUiDemoBgColor></div>
+  <div invisible></div>
+</section>
+
+<section>
+  <h2>Attribute Directives with &#64;Input (Same as Selector)</h2>
+  <p>Input property name matches selector for inline binding: [libUiDemoBgColorWithParams]="1"</p>
+
+  <div [libUiDemoBgColorWithParams]="1"></div>
+</section>
+
+<section>
+  <h2>Attribute Directives with Signal Inputs</h2>
+  <p>Modern Angular signal-based inputs with default values and aliasing to selector</p>
+
+  <div libUiDemoBgColorWithSignalParams="green" [size]="123">Signal input</div>
+</section>
+
+<h1>🔄 Structural Directives</h1>
+
+<section>
+  <h2>Structural Directives with Microsyntax</h2>
+  <p>
+    Microsyntax allows passing parameters inline. Secondary inputs follow convention:
+    [directiveNameInputNameInPascalCase]
+  </p>
+
+  <div *libUiDemoShowIf="123; show: false">
+    Microsyntax only: structural directives accept parameters only via microsyntax, not via regular property bindings.
+    Additional inputs must be named starting with the directive selector followed by the input name in PascalCase.
+  </div>
+
+  <ng-template libUiDemoShowIf [libUiDemoShowIfShow]="true">
+    <div>Content</div>
+  </ng-template>
+</section>
+
+<section>
+  <h2>Structural Directives on ng-template (Classic &#64;Input)</h2>
+  <p>Traditional &#64;Input binding on ng-template with TemplateRef + ViewContainerRef + effect() for reactivity</p>
+
+  <ng-template [libUiDisplay]="true" let-i="123"></ng-template>
+</section>
+
+<section>
+  <h2>Structural Directives on ng-template (Signal Inputs)</h2>
+  <p>Modern signal input() API applied on ng-template with reactive effect() rendering</p>
+
+  <ng-template libUiDisplaySignal="123" let-i="123">signal variant</ng-template>
+</section>
+
+<section>
+  <h2>Structural Directives with No Inputs</h2>
+  <p>Directives that accept no parameters — can use with or without brackets [libUiDisplayNoParams]</p>
+
+  <ng-template libUiDisplayNoParams let-i="41">No params — works without brackets</ng-template>
+  <ng-template [libUiDisplayNoParams] let-i="41">No params — works with brackets too</ng-template>
+</section>
+
+<section>
+  <h2>Structural Directive on Plain Element (Compiler Error)</h2>
+  <p>Demonstrates incorrect usage — structural directives require * or ng-template. Shown here for reference only.</p>
+
+  <div libUiDemoShowIf>Structural directive called without * on a plain element (expected compiler error)</div>
+</section>
+
+<section>
+  <h2>Component Directive (Directive with Element Selector)</h2>
+  <p>
+    &#64;Directive (not &#64;Component) with bare element selector — activates on &lt;mars /&gt; but has no template
+  </p>
+
+  <mars />
+</section>
+
+<h1>🎨 Advanced CSS Selectors in Angular</h1>
+
+<section>
+  <h2>Exact Attribute Value Selectors</h2>
+  <p>Directives with [attr="value"] selectors — match only exact attribute values</p>
+
+  <button role="button">Button with role="button"</button>
+</section>
+
+<section>
+  <h2>Pseudo-Class Selectors: :not() Chains</h2>
+  <p>Match elements based on what they DON'T have. Single :not() and chained :not():not()</p>
+
+  <h3>input:not([disabled])</h3>
+  <p>Applies to enabled inputs only</p>
+  <div>
+    <input value="hello" type="text" />
+  </div>
+
+  <h3>input:not([disabled]):not([readonly]) — Chained :not()</h3>
+  <p>Applies when element has neither disabled nor readonly attributes</p>
+  <div>
+    <input value="hello" type="text" />
+    (applies — no disabled/readonly)
+    <br />
+    <input value="hello" type="text" disabled />
+    (doesn't apply — has disabled)
+    <br />
+    <input value="hello" type="text" readonly />
+    (doesn't apply — has readonly)
+    <br />
+    <input value="hello" type="text" disabled readonly />
+    (doesn't apply — has both)
+  </div>
+
+  <h3>custom-input:not([disabled]):not([readonly]) — Custom Element</h3>
+  <p>Chained :not() on custom element</p>
+  <div>
+    <custom-input>12321321321</custom-input>
+  </div>
+</section>
+
+<section>
+  <h2>Compound Selectors: Single Directive, Multiple Selector Forms</h2>
+  <p>One directive activated by multiple selector patterns: [attr], [kebab-attr], element-name</p>
+
+  <h3>[fontColor], [green-font-color], green-font-color</h3>
+  <div green-font-color></div>
+  <green-font-color></green-font-color>
+  <div fontColor></div>
+</section>
+
+<section>
+  <h2>Compound Selectors: Element + Attribute Restriction</h2>
+  <p>Directive applies only to specific element types (e.g., button/a) with specific attributes</p>
+
+  <h3>button[jupiter-icon-button], a[jupiter-icon-button], button[jupiterIconButton], a[jupiterIconButton]</h3>
+  <button jupiter-icon-button>button with dash-attr</button>
+  <a jupiter-icon-button href="#">link with dash-attr</a>
+  <button jupiterIconButton>button with camelCase</button>
+  <a jupiterIconButton href="#">link with camelCase</a>
+
+  <p style="color: #999">These do NOT apply (div not allowed):</p>
+  <div jupiterIconButton>div — should NOT apply</div>
+  <div jupiter-icon-button>div — should NOT apply</div>
+</section>
+
+<section>
+  <h2>Multi-Attribute Compound Selectors</h2>
+  <p>Directive requires multiple attributes simultaneously to activate</p>
+
+  <h3>jupiter-table OR table[jupiter-table]</h3>
+  <p>Matches custom element OR native table with attribute</p>
+  <table jupiter-table></table>
+  <jupiter-table />
+
+  <h3>jupiter-table[bigRows] OR table[jupiter-table][bigRows]</h3>
+  <p>Requires two attributes present together</p>
+  <table jupiter-table bigRows></table>
+  <jupiter-table bigRows />
+
+  <p style="color: #999">This does NOT apply (div not allowed):</p>
+  <div jupiter-table bigRows>div — should NOT apply</div>
+</section>
+
+<section>
+  <h2>ng-template Specific Selectors</h2>
+  <p>Directive that activates exclusively on ng-template elements with specific attributes</p>
+
+  <ng-template jupiterTemplateRow></ng-template>
+</section>
+
+<h1>📦 Module-Based Components (NgModule Pattern)</h1>
+
+<section>
+  <h2>Non-Standalone Component in NgModule</h2>
+  <p>Classic Angular pattern: non-standalone component declared in NgModule (backward compatibility)</p>
+
+  <lib-mod-simple />
+</section>

@@ -1,0 +1,486 @@
+{
+  "case": "control-flow",
+  "componentPath": "apps/angular-demo/src/app/control-flow/control-flow.component.ts",
+  "templatePath": "apps/angular-demo/src/app/control-flow/control-flow.component.html",
+  "diagnostics": [
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 4,
+      "startCharacter": 14,
+      "endLine": 4,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 5,
+      "startCharacter": 8,
+      "endLine": 5,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 6,
+      "startCharacter": 13,
+      "endLine": 6,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 7,
+      "startCharacter": 19,
+      "endLine": 7,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-pipe-import:percent",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 13,
+      "startCharacter": 17,
+      "endLine": 13,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 14,
+      "startCharacter": 8,
+      "endLine": 14,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-pipe-import:percent",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 14,
+      "startCharacter": 26,
+      "endLine": 14,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 15,
+      "startCharacter": 8,
+      "endLine": 15,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 16,
+      "startCharacter": 2,
+      "endLine": 16,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 17,
+      "startCharacter": 7,
+      "endLine": 17,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 18,
+      "startCharacter": 13,
+      "endLine": 18,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-pipe-import:keyvalue",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 21,
+      "startCharacter": 20,
+      "endLine": 21,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 22,
+      "startCharacter": 8,
+      "endLine": 22,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-pipe-import:percent",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 22,
+      "startCharacter": 26,
+      "endLine": 22,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 23,
+      "startCharacter": 8,
+      "endLine": 23,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 24,
+      "startCharacter": 2,
+      "endLine": 24,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 25,
+      "startCharacter": 7,
+      "endLine": 25,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 26,
+      "startCharacter": 13,
+      "endLine": 26,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 28,
+      "startCharacter": 8,
+      "endLine": 28,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-pipe-import:percent",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 28,
+      "startCharacter": 26,
+      "endLine": 28,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 29,
+      "startCharacter": 8,
+      "endLine": 29,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 30,
+      "startCharacter": 2,
+      "endLine": 30,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 31,
+      "startCharacter": 7,
+      "endLine": 31,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 32,
+      "startCharacter": 13,
+      "endLine": 32,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-pipe-import:percent",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 35,
+      "startCharacter": 21,
+      "endLine": 35,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 37,
+      "startCharacter": 10,
+      "endLine": 37,
+      "endCharacter": 14
+    },
+    {
+      "code": "missing-pipe-import:percent",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 37,
+      "startCharacter": 28,
+      "endLine": 37,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 38,
+      "startCharacter": 10,
+      "endLine": 38,
+      "endCharacter": 14
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 39,
+      "startCharacter": 4,
+      "endLine": 39,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 40,
+      "startCharacter": 9,
+      "endLine": 40,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 41,
+      "startCharacter": 15,
+      "endLine": 41,
+      "endCharacter": 20
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 46,
+      "startCharacter": 8,
+      "endLine": 46,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 47,
+      "startCharacter": 2,
+      "endLine": 47,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 48,
+      "startCharacter": 7,
+      "endLine": 48,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 49,
+      "startCharacter": 13,
+      "endLine": 49,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 51,
+      "startCharacter": 8,
+      "endLine": 51,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 52,
+      "startCharacter": 2,
+      "endLine": 52,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 53,
+      "startCharacter": 7,
+      "endLine": 53,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 54,
+      "startCharacter": 13,
+      "endLine": 54,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 56,
+      "startCharacter": 8,
+      "endLine": 56,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 57,
+      "startCharacter": 2,
+      "endLine": 57,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 58,
+      "startCharacter": 7,
+      "endLine": 58,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 59,
+      "startCharacter": 13,
+      "endLine": 59,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 61,
+      "startCharacter": 8,
+      "endLine": 61,
+      "endCharacter": 12
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 62,
+      "startCharacter": 2,
+      "endLine": 62,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[libDirectivePrefixLess]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 63,
+      "startCharacter": 7,
+      "endLine": 63,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-pipe-import:bytes",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 64,
+      "startCharacter": 13,
+      "endLine": 64,
+      "endCharacter": 18
+    }
+  ],
+  "quickfixes": [
+    {
+      "diagnosticCode": "missing-directive-import:[ngIf]",
+      "title": "⟐ Import NgIf from '@angular/common'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NgIf",
+        "moduleSpecifier": "@angular/common"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:lib-ui-demo-one",
+      "title": "⟐ Import UiDemoOneComponent from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoOneComponent",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[libDirectivePrefixLess]",
+      "title": "⟐ Import DirectivePrefixLess from '@angular-demo/ui-moon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "DirectivePrefixLess",
+        "moduleSpecifier": "@angular-demo/ui-moon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:bytes",
+      "title": "⟐ Import UiDemoBytesPipe from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoBytesPipe",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:percent",
+      "title": "⟐ Import PercentPipe from '@angular/common'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "PercentPipe",
+        "moduleSpecifier": "@angular/common"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:keyvalue",
+      "title": "⟐ Import KeyValuePipe from '@angular/common'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "KeyValuePipe",
+        "moduleSpecifier": "@angular/common"
+      }
+    }
+  ]
+}

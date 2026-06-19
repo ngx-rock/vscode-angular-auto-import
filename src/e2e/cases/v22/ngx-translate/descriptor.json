@@ -1,0 +1,8 @@
+{
+  "case": "ngx-translate",
+  "componentPath": "apps/angular-demo/src/app/ngx-translate/ngx-translate.component.ts",
+  "templatePath": "apps/angular-demo/src/app/ngx-translate/ngx-translate.component.html",
+  "preserveImports": true,
+  "diagnostics": [],
+  "quickfixes": []
+}

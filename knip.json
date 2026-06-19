@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/extension.ts", "src/test/suite/**/*.ts", "src/test/e2e/**/*.ts", "src/test/runTest.ts"],
+  "entry": ["src/extension.ts", "src/test/suite/**/*.ts", "src/e2e/**/*.ts", "src/test/runTest.ts"],
   "project": ["src/**/*.ts"],
-  "ignore": ["src/test/fixtures/**", "src/test/projects/**", "typedoc.json"]
+  "ignore": ["src/test/fixtures/**", "src/e2e/projects/**", "typedoc.json"]
 } 

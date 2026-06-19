@@ -1,0 +1,8 @@
+{
+  "case": "primeng-legacy-modules",
+  "componentPath": "apps/primeng-demo/src/app/modules/prime-playground-modules.component.ts",
+  "templatePath": "apps/primeng-demo/src/app/modules/prime-playground-modules.component.html",
+  "preserveImports": true,
+  "diagnostics": [],
+  "quickfixes": []
+}

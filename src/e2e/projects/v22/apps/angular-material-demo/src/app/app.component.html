@@ -1,0 +1,18 @@
+<div class="app-shell">
+  <mat-toolbar class="app-toolbar">
+    <nav class="toolbar-nav" aria-label="Material demo navigation">
+      <a mat-button routerLink="/" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon>widgets</mat-icon>
+        Overview
+      </a>
+      <a mat-button routerLink="/table" routerLinkActive="active-link">
+        <mat-icon>table_chart</mat-icon>
+        Table
+      </a>
+    </nav>
+  </mat-toolbar>
+
+  <main class="app-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

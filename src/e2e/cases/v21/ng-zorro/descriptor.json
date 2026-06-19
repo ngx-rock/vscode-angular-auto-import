@@ -1,0 +1,1467 @@
+{
+  "case": "ng-zorro",
+  "componentPath": "apps/ng-zorro-demo/src/app/playground/nz-playground.component.ts",
+  "templatePath": "apps/ng-zorro-demo/src/app/playground/nz-playground.component.html",
+  "diagnostics": [
+    {
+      "code": "missing-component-import:nz-layout",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 0,
+      "startCharacter": 0,
+      "endLine": 0,
+      "endCharacter": 65
+    },
+    {
+      "code": "missing-component-import:nz-sider",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 1,
+      "startCharacter": 2,
+      "endLine": 1,
+      "endCharacter": 66
+    },
+    {
+      "code": "missing-directive-import:[nz-icon]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 3,
+      "startCharacter": 12,
+      "endLine": 3,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[nz-menu]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 7,
+      "startCharacter": 8,
+      "endLine": 7,
+      "endCharacter": 15
+    },
+    {
+      "code": "missing-component-import:[nz-menu-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 8,
+      "startCharacter": 10,
+      "endLine": 8,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:[nz-icon]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 9,
+      "startCharacter": 14,
+      "endLine": 9,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:[nz-submenu]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 12,
+      "startCharacter": 10,
+      "endLine": 12,
+      "endCharacter": 20
+    },
+    {
+      "code": "missing-component-import:[nz-menu-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 14,
+      "startCharacter": 14,
+      "endLine": 14,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:[nz-menu-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 15,
+      "startCharacter": 14,
+      "endLine": 15,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:[nz-menu-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 16,
+      "startCharacter": 14,
+      "endLine": 16,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:nz-layout",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 22,
+      "startCharacter": 2,
+      "endLine": 22,
+      "endCharacter": 13
+    },
+    {
+      "code": "missing-component-import:nz-header",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 23,
+      "startCharacter": 4,
+      "endLine": 23,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 25,
+      "startCharacter": 16,
+      "endLine": 25,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 25,
+      "startCharacter": 16,
+      "endLine": 25,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:[nz-dropdown]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 25,
+      "startCharacter": 59,
+      "endLine": 25,
+      "endCharacter": 70
+    },
+    {
+      "code": "missing-directive-import:[nz-icon]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 27,
+      "startCharacter": 16,
+      "endLine": 27,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-component-import:nz-dropdown-menu",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 30,
+      "startCharacter": 8,
+      "endLine": 30,
+      "endCharacter": 55
+    },
+    {
+      "code": "missing-directive-import:[nz-menu]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 31,
+      "startCharacter": 14,
+      "endLine": 31,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:[nz-menu-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 32,
+      "startCharacter": 16,
+      "endLine": 32,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-component-import:[nz-menu-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 33,
+      "startCharacter": 16,
+      "endLine": 33,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-component-import:[nz-menu-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 34,
+      "startCharacter": 16,
+      "endLine": 34,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-component-import:nz-badge",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 38,
+      "startCharacter": 8,
+      "endLine": 38,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-component-import:nz-avatar",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 39,
+      "startCharacter": 10,
+      "endLine": 39,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:nz-content",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 44,
+      "startCharacter": 4,
+      "endLine": 44,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-component-import:nz-breadcrumb",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 45,
+      "startCharacter": 6,
+      "endLine": 45,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:nz-breadcrumb-item",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 46,
+      "startCharacter": 8,
+      "endLine": 46,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-component-import:nz-breadcrumb-item",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 47,
+      "startCharacter": 8,
+      "endLine": 47,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-component-import:nz-breadcrumb-item",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 48,
+      "startCharacter": 8,
+      "endLine": 48,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 61,
+      "startCharacter": 18,
+      "endLine": 61,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 61,
+      "startCharacter": 18,
+      "endLine": 61,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 62,
+      "startCharacter": 18,
+      "endLine": 62,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 62,
+      "startCharacter": 18,
+      "endLine": 62,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:[nz-tooltip]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 62,
+      "startCharacter": 45,
+      "endLine": 62,
+      "endCharacter": 55
+    },
+    {
+      "code": "missing-directive-import:[nz-row]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 66,
+      "startCharacter": 11,
+      "endLine": 66,
+      "endCharacter": 17
+    },
+    {
+      "code": "missing-directive-import:[nz-col]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 67,
+      "startCharacter": 13,
+      "endLine": 67,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-component-import:nz-card",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 68,
+      "startCharacter": 10,
+      "endLine": 68,
+      "endCharacter": 52
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 71,
+      "startCharacter": 24,
+      "endLine": 71,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 71,
+      "startCharacter": 24,
+      "endLine": 71,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 72,
+      "startCharacter": 24,
+      "endLine": 72,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 72,
+      "startCharacter": 24,
+      "endLine": 72,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 73,
+      "startCharacter": 24,
+      "endLine": 73,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 73,
+      "startCharacter": 24,
+      "endLine": 73,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 74,
+      "startCharacter": 24,
+      "endLine": 74,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 75,
+      "startCharacter": 24,
+      "endLine": 75,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 79,
+      "startCharacter": 24,
+      "endLine": 79,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 79,
+      "startCharacter": 24,
+      "endLine": 79,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 80,
+      "startCharacter": 24,
+      "endLine": 80,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 80,
+      "startCharacter": 24,
+      "endLine": 80,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:[nz-icon]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 81,
+      "startCharacter": 24,
+      "endLine": 81,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:button[nz-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 83,
+      "startCharacter": 24,
+      "endLine": 83,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 83,
+      "startCharacter": 24,
+      "endLine": 83,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:[nz-icon]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 84,
+      "startCharacter": 24,
+      "endLine": 84,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:nz-segmented",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 89,
+      "startCharacter": 14,
+      "endLine": 89,
+      "endCharacter": 86
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 89,
+      "startCharacter": 61,
+      "endLine": 89,
+      "endCharacter": 68
+    },
+    {
+      "code": "missing-component-import:nz-tag",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 91,
+      "startCharacter": 14,
+      "endLine": 91,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-component-import:nz-badge",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 92,
+      "startCharacter": 14,
+      "endLine": 92,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-directive-import:[nz-col]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 97,
+      "startCharacter": 13,
+      "endLine": 97,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-component-import:nz-card",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 98,
+      "startCharacter": 10,
+      "endLine": 98,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-directive-import:input[nz-input]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 100,
+      "startCharacter": 21,
+      "endLine": 100,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 100,
+      "startCharacter": 55,
+      "endLine": 100,
+      "endCharacter": 62
+    },
+    {
+      "code": "missing-component-import:nz-input-group",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 102,
+      "startCharacter": 14,
+      "endLine": 102,
+      "endCharacter": 52
+    },
+    {
+      "code": "missing-directive-import:input[nz-input]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 103,
+      "startCharacter": 23,
+      "endLine": 103,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:nz-select",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 106,
+      "startCharacter": 14,
+      "endLine": 106,
+      "endCharacter": 80
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 106,
+      "startCharacter": 27,
+      "endLine": 106,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-component-import:nz-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 108,
+      "startCharacter": 18,
+      "endLine": 108,
+      "endCharacter": 63
+    },
+    {
+      "code": "missing-directive-import:input[nz-input]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 112,
+      "startCharacter": 21,
+      "endLine": 112,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-directive-import:input[nzAutocomplete]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 112,
+      "startCharacter": 58,
+      "endLine": 112,
+      "endCharacter": 72
+    },
+    {
+      "code": "missing-component-import:nz-autocomplete",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 113,
+      "startCharacter": 14,
+      "endLine": 113,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-component-import:nz-auto-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 115,
+      "startCharacter": 18,
+      "endLine": 115,
+      "endCharacter": 51
+    },
+    {
+      "code": "missing-component-import:nz-date-picker",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 119,
+      "startCharacter": 14,
+      "endLine": 119,
+      "endCharacter": 57
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 119,
+      "startCharacter": 32,
+      "endLine": 119,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:nz-tree-select",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 121,
+      "startCharacter": 14,
+      "endLine": 121,
+      "endCharacter": 83
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 121,
+      "startCharacter": 54,
+      "endLine": 121,
+      "endCharacter": 61
+    },
+    {
+      "code": "missing-component-import:[nz-checkbox]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 123,
+      "startCharacter": 21,
+      "endLine": 123,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 123,
+      "startCharacter": 35,
+      "endLine": 123,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-component-import:nz-switch",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 124,
+      "startCharacter": 14,
+      "endLine": 124,
+      "endCharacter": 48
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 124,
+      "startCharacter": 27,
+      "endLine": 124,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-component-import:nz-radio-group",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 126,
+      "startCharacter": 14,
+      "endLine": 126,
+      "endCharacter": 55
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 126,
+      "startCharacter": 32,
+      "endLine": 126,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:[nz-radio]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 127,
+      "startCharacter": 23,
+      "endLine": 127,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:[nz-radio]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 128,
+      "startCharacter": 23,
+      "endLine": 128,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:nz-rate",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 131,
+      "startCharacter": 14,
+      "endLine": 131,
+      "endCharacter": 47
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 131,
+      "startCharacter": 25,
+      "endLine": 131,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-directive-import:[nz-col]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 136,
+      "startCharacter": 13,
+      "endLine": 136,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-component-import:nz-card",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 137,
+      "startCharacter": 10,
+      "endLine": 137,
+      "endCharacter": 50
+    },
+    {
+      "code": "missing-component-import:nz-statistic",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 139,
+      "startCharacter": 14,
+      "endLine": 139,
+      "endCharacter": 71
+    },
+    {
+      "code": "missing-component-import:nz-progress",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 141,
+      "startCharacter": 14,
+      "endLine": 141,
+      "endCharacter": 50
+    },
+    {
+      "code": "missing-component-import:nz-progress",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 142,
+      "startCharacter": 14,
+      "endLine": 142,
+      "endCharacter": 66
+    },
+    {
+      "code": "missing-component-import:nz-spin",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 144,
+      "startCharacter": 14,
+      "endLine": 144,
+      "endCharacter": 46
+    },
+    {
+      "code": "missing-component-import:nz-skeleton",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 148,
+      "startCharacter": 14,
+      "endLine": 148,
+      "endCharacter": 73
+    },
+    {
+      "code": "missing-component-import:nz-divider",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 154,
+      "startCharacter": 6,
+      "endLine": 154,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-component-import:nz-tabs",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 156,
+      "startCharacter": 6,
+      "endLine": 156,
+      "endCharacter": 15
+    },
+    {
+      "code": "missing-component-import:nz-tab",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 157,
+      "startCharacter": 8,
+      "endLine": 157,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:nz-collapse",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 158,
+      "startCharacter": 10,
+      "endLine": 158,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-component-import:nz-collapse-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 159,
+      "startCharacter": 12,
+      "endLine": 159,
+      "endCharacter": 76
+    },
+    {
+      "code": "missing-component-import:nz-collapse-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 162,
+      "startCharacter": 12,
+      "endLine": 162,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-component-import:nz-tab",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 166,
+      "startCharacter": 8,
+      "endLine": 166,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-component-import:nz-table",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 167,
+      "startCharacter": 10,
+      "endLine": 167,
+      "endCharacter": 52
+    },
+    {
+      "code": "missing-component-import:th[nzSortFn]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 170,
+      "startCharacter": 19,
+      "endLine": 170,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-component-import:th[nzSortFn]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 171,
+      "startCharacter": 19,
+      "endLine": 171,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-component-import:th[nzSortFn]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 173,
+      "startCharacter": 19,
+      "endLine": 173,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-component-import:nz-tag",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 182,
+      "startCharacter": 20,
+      "endLine": 182,
+      "endCharacter": 118
+    },
+    {
+      "code": "missing-component-import:nz-modal",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 197,
+      "startCharacter": 0,
+      "endLine": 201,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-directive-import:[nzModalContent]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 202,
+      "startCharacter": 17,
+      "endLine": 202,
+      "endCharacter": 31
+    }
+  ],
+  "quickfixes": [
+    {
+      "diagnosticCode": "missing-component-import:nz-layout",
+      "title": "⟐ Import NzLayoutComponent from 'ng-zorro-antd/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzLayoutComponent",
+        "moduleSpecifier": "ng-zorro-antd/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-sider",
+      "title": "⟐ Import NzSiderComponent from 'ng-zorro-antd/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzSiderComponent",
+        "moduleSpecifier": "ng-zorro-antd/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[nz-icon]",
+      "title": "⟐ Import NzIconDirective from 'ng-zorro-antd/icon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzIconDirective",
+        "moduleSpecifier": "ng-zorro-antd/icon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[nz-menu]",
+      "title": "⟐ Import NzMenuDirective from 'ng-zorro-antd/menu'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzMenuDirective",
+        "moduleSpecifier": "ng-zorro-antd/menu"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:[nz-menu-item]",
+      "title": "⟐ Import NzMenuItemComponent from 'ng-zorro-antd/menu'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzMenuItemComponent",
+        "moduleSpecifier": "ng-zorro-antd/menu"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:[nz-submenu]",
+      "title": "⟐ Import NzSubMenuComponent from 'ng-zorro-antd/menu'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzSubMenuComponent",
+        "moduleSpecifier": "ng-zorro-antd/menu"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-header",
+      "title": "⟐ Import NzHeaderComponent from 'ng-zorro-antd/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzHeaderComponent",
+        "moduleSpecifier": "ng-zorro-antd/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:button[nz-button]",
+      "title": "⟐ Import NzButtonComponent from 'ng-zorro-antd/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzButtonComponent",
+        "moduleSpecifier": "ng-zorro-antd/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:button[nz-button]:not([nzType=link]):not([nzType=text])",
+      "title": "⟐ Import NzButtonComponent from 'ng-zorro-antd/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzButtonComponent",
+        "moduleSpecifier": "ng-zorro-antd/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[nz-dropdown]",
+      "title": "⟐ Import NzDropdownDirective from 'ng-zorro-antd/dropdown'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzDropdownDirective",
+        "moduleSpecifier": "ng-zorro-antd/dropdown"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-dropdown-menu",
+      "title": "⟐ Import NzDropdownMenuComponent from 'ng-zorro-antd/dropdown'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzDropdownMenuComponent",
+        "moduleSpecifier": "ng-zorro-antd/dropdown"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-badge",
+      "title": "⟐ Import NzBadgeComponent from 'ng-zorro-antd/badge'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzBadgeComponent",
+        "moduleSpecifier": "ng-zorro-antd/badge"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-avatar",
+      "title": "⟐ Import NzAvatarComponent from 'ng-zorro-antd/avatar'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzAvatarComponent",
+        "moduleSpecifier": "ng-zorro-antd/avatar"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-content",
+      "title": "⟐ Import NzContentComponent from 'ng-zorro-antd/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzContentComponent",
+        "moduleSpecifier": "ng-zorro-antd/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-breadcrumb",
+      "title": "⟐ Import NzBreadCrumbComponent from 'ng-zorro-antd/breadcrumb'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzBreadCrumbComponent",
+        "moduleSpecifier": "ng-zorro-antd/breadcrumb"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-breadcrumb-item",
+      "title": "⟐ Import NzBreadCrumbItemComponent from 'ng-zorro-antd/breadcrumb'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzBreadCrumbItemComponent",
+        "moduleSpecifier": "ng-zorro-antd/breadcrumb"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[nz-tooltip]",
+      "title": "⟐ Import NzTooltipDirective from 'ng-zorro-antd/tooltip'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzTooltipDirective",
+        "moduleSpecifier": "ng-zorro-antd/tooltip"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[nz-row]",
+      "title": "⟐ Import NzRowDirective from 'ng-zorro-antd/grid'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzRowDirective",
+        "moduleSpecifier": "ng-zorro-antd/grid"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[nz-col]",
+      "title": "⟐ Import NzColDirective from 'ng-zorro-antd/grid'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzColDirective",
+        "moduleSpecifier": "ng-zorro-antd/grid"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-card",
+      "title": "⟐ Import NzCardComponent from 'ng-zorro-antd/card'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzCardComponent",
+        "moduleSpecifier": "ng-zorro-antd/card"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-segmented",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-segmented",
+      "title": "⟐ Import NzSegmentedComponent from 'ng-zorro-antd/segmented'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzSegmentedComponent",
+        "moduleSpecifier": "ng-zorro-antd/segmented"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "title": "⟐ Import NzSegmentedComponent from 'ng-zorro-antd/segmented'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzSegmentedComponent",
+        "moduleSpecifier": "ng-zorro-antd/segmented"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-tag",
+      "title": "⟐ Import NzTagComponent from 'ng-zorro-antd/tag'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzTagComponent",
+        "moduleSpecifier": "ng-zorro-antd/tag"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[nz-input]",
+      "title": "⟐ Import NzInputDirective from 'ng-zorro-antd/input'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzInputDirective",
+        "moduleSpecifier": "ng-zorro-antd/input"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-input-group",
+      "title": "⟐ Import NzInputGroupComponent from 'ng-zorro-antd/input'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzInputGroupComponent",
+        "moduleSpecifier": "ng-zorro-antd/input"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-select",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-select",
+      "title": "⟐ Import NzSelectComponent from 'ng-zorro-antd/select'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzSelectComponent",
+        "moduleSpecifier": "ng-zorro-antd/select"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-option",
+      "title": "⟐ Import NzOptionComponent from 'ng-zorro-antd/select'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzOptionComponent",
+        "moduleSpecifier": "ng-zorro-antd/select"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[nzAutocomplete]",
+      "title": "⟐ Import NzAutocompleteTriggerDirective from 'ng-zorro-antd/auto-complete'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzAutocompleteTriggerDirective",
+        "moduleSpecifier": "ng-zorro-antd/auto-complete"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-autocomplete",
+      "title": "⟐ Import NzAutocompleteComponent from 'ng-zorro-antd/auto-complete'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzAutocompleteComponent",
+        "moduleSpecifier": "ng-zorro-antd/auto-complete"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-auto-option",
+      "title": "⟐ Import NzAutocompleteOptionComponent from 'ng-zorro-antd/auto-complete'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzAutocompleteOptionComponent",
+        "moduleSpecifier": "ng-zorro-antd/auto-complete"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-date-picker",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-date-picker",
+      "title": "⟐ Import NzDatePickerComponent from 'ng-zorro-antd/date-picker'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzDatePickerComponent",
+        "moduleSpecifier": "ng-zorro-antd/date-picker"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-tree-select",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-tree-select",
+      "title": "⟐ Import NzTreeSelectComponent from 'ng-zorro-antd/tree-select'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzTreeSelectComponent",
+        "moduleSpecifier": "ng-zorro-antd/tree-select"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:[nz-checkbox]",
+      "title": "⟐ Import NzCheckboxComponent from 'ng-zorro-antd/checkbox'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzCheckboxComponent",
+        "moduleSpecifier": "ng-zorro-antd/checkbox"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-switch",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-switch",
+      "title": "⟐ Import NzSwitchComponent from 'ng-zorro-antd/switch'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzSwitchComponent",
+        "moduleSpecifier": "ng-zorro-antd/switch"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-radio-group",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-radio-group",
+      "title": "⟐ Import NzRadioGroupComponent from 'ng-zorro-antd/radio'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzRadioGroupComponent",
+        "moduleSpecifier": "ng-zorro-antd/radio"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:[nz-radio]",
+      "title": "⟐ Import NzRadioComponent from 'ng-zorro-antd/radio'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzRadioComponent",
+        "moduleSpecifier": "ng-zorro-antd/radio"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-rate",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-rate",
+      "title": "⟐ Import NzRateComponent from 'ng-zorro-antd/rate'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzRateComponent",
+        "moduleSpecifier": "ng-zorro-antd/rate"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-statistic",
+      "title": "⟐ Import NzStatisticComponent from 'ng-zorro-antd/statistic'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzStatisticComponent",
+        "moduleSpecifier": "ng-zorro-antd/statistic"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-progress",
+      "title": "⟐ Import NzProgressComponent from 'ng-zorro-antd/progress'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzProgressComponent",
+        "moduleSpecifier": "ng-zorro-antd/progress"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-spin",
+      "title": "⟐ Import NzSpinComponent from 'ng-zorro-antd/spin'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzSpinComponent",
+        "moduleSpecifier": "ng-zorro-antd/spin"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-skeleton",
+      "title": "⟐ Import NzSkeletonComponent from 'ng-zorro-antd/skeleton'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzSkeletonComponent",
+        "moduleSpecifier": "ng-zorro-antd/skeleton"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-divider",
+      "title": "⟐ Import NzDividerComponent from 'ng-zorro-antd/divider'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzDividerComponent",
+        "moduleSpecifier": "ng-zorro-antd/divider"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-tabs",
+      "title": "⟐ Import NzTabsComponent from 'ng-zorro-antd/tabs'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzTabsComponent",
+        "moduleSpecifier": "ng-zorro-antd/tabs"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-tab",
+      "title": "⟐ Import NzTabComponent from 'ng-zorro-antd/tabs'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzTabComponent",
+        "moduleSpecifier": "ng-zorro-antd/tabs"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-collapse",
+      "title": "⟐ Import NzCollapseComponent from 'ng-zorro-antd/collapse'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzCollapseComponent",
+        "moduleSpecifier": "ng-zorro-antd/collapse"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-collapse-panel",
+      "title": "⟐ Import NzCollapsePanelComponent from 'ng-zorro-antd/collapse'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzCollapsePanelComponent",
+        "moduleSpecifier": "ng-zorro-antd/collapse"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-table",
+      "title": "⟐ Import NzTableComponent from 'ng-zorro-antd/table'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzTableComponent",
+        "moduleSpecifier": "ng-zorro-antd/table"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:th[nzSortFn]",
+      "title": "⟐ Import NzThAddOnComponent from 'ng-zorro-antd/table'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzThAddOnComponent",
+        "moduleSpecifier": "ng-zorro-antd/table"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:nz-modal",
+      "title": "⟐ Import NzModalComponent from 'ng-zorro-antd/modal'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzModalComponent",
+        "moduleSpecifier": "ng-zorro-antd/modal"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[nzModalContent]",
+      "title": "⟐ Import NzModalContentDirective from 'ng-zorro-antd/modal'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NzModalContentDirective",
+        "moduleSpecifier": "ng-zorro-antd/modal"
+      }
+    }
+  ]
+}

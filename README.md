@@ -220,13 +220,6 @@ Access these commands from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 2. Verify your `tsconfig.json` includes all source files
 3. Run `Angular Auto Import: Show Logs` to check for parsing errors
 
-## Requirements
-
-- **Angular**: 14.2+ (standalone component support required)
-- **TypeScript**: 4.8+
-- **VS Code**: 1.80+
-- **Node.js**: 16+ (for project indexing)
-
 ## Limitations
 
 - **Standalone Components Only**: This extension works exclusively with Angular standalone components. Traditional NgModule-based projects are not supported.

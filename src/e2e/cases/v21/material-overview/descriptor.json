@@ -1,0 +1,2340 @@
+{
+  "case": "material-overview",
+  "componentPath": "apps/angular-material-demo/src/app/overview/material-overview.component.ts",
+  "templatePath": "apps/angular-material-demo/src/app/overview/material-overview.component.html",
+  "diagnostics": [
+    {
+      "code": "missing-component-import:button[mat-flat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 8,
+      "startCharacter": 14,
+      "endLine": 8,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 9,
+      "startCharacter": 8,
+      "endLine": 9,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-component-import:button[mat-stroked-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 13,
+      "startCharacter": 14,
+      "endLine": 13,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 14,
+      "startCharacter": 8,
+      "endLine": 14,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-component-import:a[mat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 18,
+      "startCharacter": 9,
+      "endLine": 18,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-directive-import:[routerLink]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 18,
+      "startCharacter": 20,
+      "endLine": 18,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 19,
+      "startCharacter": 8,
+      "endLine": 19,
+      "endCharacter": 18
+    },
+    {
+      "code": "missing-component-import:mat-drawer-container",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 25,
+      "startCharacter": 2,
+      "endLine": 25,
+      "endCharacter": 50
+    },
+    {
+      "code": "missing-component-import:mat-drawer",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 26,
+      "startCharacter": 4,
+      "endLine": 26,
+      "endCharacter": 104
+    },
+    {
+      "code": "missing-component-import:button[mat-icon-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 29,
+      "startCharacter": 10,
+      "endLine": 29,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:[matTooltip]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 30,
+      "startCharacter": 10,
+      "endLine": 30,
+      "endCharacter": 20
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 33,
+      "startCharacter": 10,
+      "endLine": 33,
+      "endCharacter": 20
+    },
+    {
+      "code": "missing-component-import:button[mat-mini-fab]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 36,
+      "startCharacter": 16,
+      "endLine": 36,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:[matBadge]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 36,
+      "startCharacter": 45,
+      "endLine": 36,
+      "endCharacter": 53
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 37,
+      "startCharacter": 10,
+      "endLine": 37,
+      "endCharacter": 20
+    },
+    {
+      "code": "missing-component-import:mat-selection-list",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 41,
+      "startCharacter": 6,
+      "endLine": 41,
+      "endCharacter": 55
+    },
+    {
+      "code": "missing-component-import:mat-list-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 43,
+      "startCharacter": 10,
+      "endLine": 43,
+      "endCharacter": 57
+    },
+    {
+      "code": "missing-component-import:mat-divider",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 49,
+      "startCharacter": 6,
+      "endLine": 49,
+      "endCharacter": 19
+    },
+    {
+      "code": "missing-component-import:mat-nav-list",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 51,
+      "startCharacter": 6,
+      "endLine": 51,
+      "endCharacter": 20
+    },
+    {
+      "code": "missing-component-import:a[mat-list-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 52,
+      "startCharacter": 11,
+      "endLine": 52,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-directive-import:[routerLink]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 52,
+      "startCharacter": 25,
+      "endLine": 52,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 53,
+      "startCharacter": 10,
+      "endLine": 53,
+      "endCharacter": 36
+    },
+    {
+      "code": "missing-directive-import:[matListItemIcon]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 53,
+      "startCharacter": 20,
+      "endLine": 53,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-directive-import:[matListItemTitle]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 54,
+      "startCharacter": 16,
+      "endLine": 54,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-component-import:a[mat-list-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 56,
+      "startCharacter": 11,
+      "endLine": 56,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-directive-import:[routerLink]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 56,
+      "startCharacter": 25,
+      "endLine": 56,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 57,
+      "startCharacter": 10,
+      "endLine": 57,
+      "endCharacter": 36
+    },
+    {
+      "code": "missing-directive-import:[matListItemIcon]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 57,
+      "startCharacter": 20,
+      "endLine": 57,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-directive-import:[matListItemTitle]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 58,
+      "startCharacter": 16,
+      "endLine": 58,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-component-import:mat-drawer-content",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 63,
+      "startCharacter": 4,
+      "endLine": 63,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-component-import:mat-card",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 65,
+      "startCharacter": 8,
+      "endLine": 65,
+      "endCharacter": 63
+    },
+    {
+      "code": "missing-component-import:mat-card-header",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 66,
+      "startCharacter": 10,
+      "endLine": 66,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:mat-card-title",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 67,
+      "startCharacter": 12,
+      "endLine": 67,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:mat-card-subtitle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 68,
+      "startCharacter": 12,
+      "endLine": 68,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-directive-import:mat-card-content",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 71,
+      "startCharacter": 10,
+      "endLine": 71,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-component-import:button[mat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 73,
+      "startCharacter": 22,
+      "endLine": 73,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-component-import:button[mat-raised-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 74,
+      "startCharacter": 22,
+      "endLine": 74,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:button[mat-flat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 75,
+      "startCharacter": 22,
+      "endLine": 75,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-component-import:button[mat-stroked-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 76,
+      "startCharacter": 22,
+      "endLine": 76,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-component-import:button[mat-icon-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 77,
+      "startCharacter": 22,
+      "endLine": 77,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-directive-import:[matTooltip]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 77,
+      "startCharacter": 60,
+      "endLine": 77,
+      "endCharacter": 70
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 78,
+      "startCharacter": 16,
+      "endLine": 78,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:button[mat-fab]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 80,
+      "startCharacter": 22,
+      "endLine": 80,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 81,
+      "startCharacter": 16,
+      "endLine": 81,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-directive-import:mat-button-toggle-group",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 86,
+      "startCharacter": 14,
+      "endLine": 86,
+      "endCharacter": 94
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 86,
+      "startCharacter": 41,
+      "endLine": 86,
+      "endCharacter": 48
+    },
+    {
+      "code": "missing-component-import:mat-button-toggle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 87,
+      "startCharacter": 16,
+      "endLine": 87,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-component-import:mat-button-toggle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 88,
+      "startCharacter": 16,
+      "endLine": 88,
+      "endCharacter": 48
+    },
+    {
+      "code": "missing-component-import:button[mat-stroked-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 91,
+      "startCharacter": 22,
+      "endLine": 91,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-directive-import:[matMenuTriggerFor]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 91,
+      "startCharacter": 42,
+      "endLine": 91,
+      "endCharacter": 59
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 92,
+      "startCharacter": 16,
+      "endLine": 92,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:mat-menu",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 96,
+      "startCharacter": 14,
+      "endLine": 96,
+      "endCharacter": 46
+    },
+    {
+      "code": "missing-component-import:[mat-menu-item]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 98,
+      "startCharacter": 26,
+      "endLine": 98,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:mat-chip-set",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 103,
+      "startCharacter": 12,
+      "endLine": 103,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:mat-chip",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 105,
+      "startCharacter": 16,
+      "endLine": 105,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:mat-chip",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 108,
+      "startCharacter": 16,
+      "endLine": 108,
+      "endCharacter": 54
+    },
+    {
+      "code": "missing-directive-import:mat-card-actions",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 113,
+      "startCharacter": 10,
+      "endLine": 113,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-component-import:button[mat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 114,
+      "startCharacter": 20,
+      "endLine": 114,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-component-import:button[mat-flat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 115,
+      "startCharacter": 20,
+      "endLine": 115,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:mat-card",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 119,
+      "startCharacter": 8,
+      "endLine": 119,
+      "endCharacter": 61
+    },
+    {
+      "code": "missing-component-import:mat-card-header",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 120,
+      "startCharacter": 10,
+      "endLine": 120,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:mat-card-title",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 121,
+      "startCharacter": 12,
+      "endLine": 121,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:mat-card-subtitle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 122,
+      "startCharacter": 12,
+      "endLine": 122,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-directive-import:mat-card-content",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 125,
+      "startCharacter": 10,
+      "endLine": 125,
+      "endCharacter": 46
+    },
+    {
+      "code": "missing-component-import:mat-form-field",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 126,
+      "startCharacter": 12,
+      "endLine": 126,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-directive-import:mat-label",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 127,
+      "startCharacter": 14,
+      "endLine": 127,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:input[matInput]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 128,
+      "startCharacter": 21,
+      "endLine": 128,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 128,
+      "startCharacter": 32,
+      "endLine": 128,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-directive-import:[matTextPrefix]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 129,
+      "startCharacter": 20,
+      "endLine": 129,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 130,
+      "startCharacter": 14,
+      "endLine": 130,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-directive-import:[matSuffix]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 130,
+      "startCharacter": 24,
+      "endLine": 130,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:mat-hint",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 131,
+      "startCharacter": 14,
+      "endLine": 131,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-component-import:mat-form-field",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 134,
+      "startCharacter": 12,
+      "endLine": 134,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-directive-import:mat-label",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 135,
+      "startCharacter": 14,
+      "endLine": 135,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:input[matInput]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 137,
+      "startCharacter": 16,
+      "endLine": 137,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-directive-import:input[matAutocomplete]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 139,
+      "startCharacter": 17,
+      "endLine": 139,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-directive-import:[formControl]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 138,
+      "startCharacter": 17,
+      "endLine": 138,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:mat-hint",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 141,
+      "startCharacter": 14,
+      "endLine": 141,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-component-import:mat-autocomplete",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 142,
+      "startCharacter": 14,
+      "endLine": 142,
+      "endCharacter": 64
+    },
+    {
+      "code": "missing-pipe-import:async",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 143,
+      "startCharacter": 50,
+      "endLine": 143,
+      "endCharacter": 55
+    },
+    {
+      "code": "missing-component-import:mat-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 144,
+      "startCharacter": 18,
+      "endLine": 144,
+      "endCharacter": 45
+    },
+    {
+      "code": "missing-component-import:mat-form-field",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 149,
+      "startCharacter": 12,
+      "endLine": 149,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-directive-import:mat-label",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 150,
+      "startCharacter": 14,
+      "endLine": 150,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-component-import:mat-select",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 151,
+      "startCharacter": 14,
+      "endLine": 151,
+      "endCharacter": 81
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 151,
+      "startCharacter": 28,
+      "endLine": 151,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:mat-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 152,
+      "startCharacter": 16,
+      "endLine": 152,
+      "endCharacter": 45
+    },
+    {
+      "code": "missing-component-import:mat-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 153,
+      "startCharacter": 16,
+      "endLine": 153,
+      "endCharacter": 46
+    },
+    {
+      "code": "missing-component-import:mat-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 154,
+      "startCharacter": 16,
+      "endLine": 154,
+      "endCharacter": 45
+    },
+    {
+      "code": "missing-component-import:mat-form-field",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 158,
+      "startCharacter": 12,
+      "endLine": 158,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-directive-import:mat-label",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 159,
+      "startCharacter": 14,
+      "endLine": 159,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:input[matInput]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 160,
+      "startCharacter": 21,
+      "endLine": 160,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-directive-import:input[matDatepicker]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 160,
+      "startCharacter": 31,
+      "endLine": 160,
+      "endCharacter": 44
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 160,
+      "startCharacter": 57,
+      "endLine": 160,
+      "endCharacter": 64
+    },
+    {
+      "code": "missing-component-import:mat-datepicker-toggle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 161,
+      "startCharacter": 14,
+      "endLine": 161,
+      "endCharacter": 62
+    },
+    {
+      "code": "missing-directive-import:[matSuffix]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 161,
+      "startCharacter": 37,
+      "endLine": 161,
+      "endCharacter": 46
+    },
+    {
+      "code": "missing-component-import:mat-datepicker",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 162,
+      "startCharacter": 14,
+      "endLine": 162,
+      "endCharacter": 38
+    },
+    {
+      "code": "missing-component-import:mat-form-field",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 165,
+      "startCharacter": 12,
+      "endLine": 165,
+      "endCharacter": 68
+    },
+    {
+      "code": "missing-directive-import:mat-label",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 166,
+      "startCharacter": 14,
+      "endLine": 166,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:textarea[matInput]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 167,
+      "startCharacter": 24,
+      "endLine": 167,
+      "endCharacter": 32
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 167,
+      "startCharacter": 44,
+      "endLine": 167,
+      "endCharacter": 51
+    },
+    {
+      "code": "missing-directive-import:mat-hint",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 168,
+      "startCharacter": 14,
+      "endLine": 168,
+      "endCharacter": 36
+    },
+    {
+      "code": "missing-directive-import:mat-radio-group",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 173,
+      "startCharacter": 14,
+      "endLine": 173,
+      "endCharacter": 83
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 173,
+      "startCharacter": 33,
+      "endLine": 173,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-component-import:mat-radio-button",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 174,
+      "startCharacter": 16,
+      "endLine": 174,
+      "endCharacter": 46
+    },
+    {
+      "code": "missing-component-import:mat-radio-button",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 175,
+      "startCharacter": 16,
+      "endLine": 175,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-component-import:mat-radio-button",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 176,
+      "startCharacter": 16,
+      "endLine": 176,
+      "endCharacter": 47
+    },
+    {
+      "code": "missing-directive-import:mat-button-toggle-group",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 182,
+      "startCharacter": 14,
+      "endLine": 182,
+      "endCharacter": 69
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 182,
+      "startCharacter": 41,
+      "endLine": 182,
+      "endCharacter": 48
+    },
+    {
+      "code": "missing-component-import:mat-button-toggle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 183,
+      "startCharacter": 16,
+      "endLine": 183,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-component-import:mat-button-toggle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 184,
+      "startCharacter": 16,
+      "endLine": 184,
+      "endCharacter": 51
+    },
+    {
+      "code": "missing-component-import:mat-button-toggle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 185,
+      "startCharacter": 16,
+      "endLine": 185,
+      "endCharacter": 47
+    },
+    {
+      "code": "missing-component-import:mat-checkbox",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 190,
+      "startCharacter": 14,
+      "endLine": 190,
+      "endCharacter": 100
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 190,
+      "startCharacter": 30,
+      "endLine": 190,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-component-import:mat-slide-toggle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 193,
+      "startCharacter": 14,
+      "endLine": 193,
+      "endCharacter": 90
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 193,
+      "startCharacter": 34,
+      "endLine": 193,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-component-import:mat-slider",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 200,
+      "startCharacter": 14,
+      "endLine": 200,
+      "endCharacter": 63
+    },
+    {
+      "code": "missing-directive-import:input[matSliderThumb]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 201,
+      "startCharacter": 23,
+      "endLine": 201,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 201,
+      "startCharacter": 40,
+      "endLine": 201,
+      "endCharacter": 47
+    },
+    {
+      "code": "missing-component-import:mat-card",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 207,
+      "startCharacter": 8,
+      "endLine": 207,
+      "endCharacter": 65
+    },
+    {
+      "code": "missing-component-import:mat-card-header",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 208,
+      "startCharacter": 10,
+      "endLine": 208,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:mat-card-title",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 209,
+      "startCharacter": 12,
+      "endLine": 209,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:mat-card-subtitle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 210,
+      "startCharacter": 12,
+      "endLine": 210,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-directive-import:mat-card-content",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 213,
+      "startCharacter": 10,
+      "endLine": 213,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-component-import:mat-progress-spinner",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 215,
+      "startCharacter": 14,
+      "endLine": 215,
+      "endCharacter": 88
+    },
+    {
+      "code": "missing-component-import:mat-progress-bar",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 222,
+      "startCharacter": 12,
+      "endLine": 222,
+      "endCharacter": 95
+    },
+    {
+      "code": "missing-component-import:mat-form-field",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 224,
+      "startCharacter": 12,
+      "endLine": 224,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-directive-import:mat-label",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 225,
+      "startCharacter": 14,
+      "endLine": 225,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-component-import:mat-select",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 226,
+      "startCharacter": 14,
+      "endLine": 226,
+      "endCharacter": 75
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 226,
+      "startCharacter": 28,
+      "endLine": 226,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:mat-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 227,
+      "startCharacter": 16,
+      "endLine": 227,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-component-import:mat-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 228,
+      "startCharacter": 16,
+      "endLine": 228,
+      "endCharacter": 43
+    },
+    {
+      "code": "missing-component-import:mat-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 229,
+      "startCharacter": 16,
+      "endLine": 229,
+      "endCharacter": 44
+    },
+    {
+      "code": "missing-component-import:button[mat-flat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 234,
+      "startCharacter": 22,
+      "endLine": 234,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-component-import:button[mat-stroked-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 235,
+      "startCharacter": 22,
+      "endLine": 235,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-component-import:mat-card",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 240,
+      "startCharacter": 8,
+      "endLine": 240,
+      "endCharacter": 70
+    },
+    {
+      "code": "missing-component-import:mat-card-header",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 241,
+      "startCharacter": 10,
+      "endLine": 241,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:mat-card-title",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 242,
+      "startCharacter": 12,
+      "endLine": 242,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:mat-card-subtitle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 243,
+      "startCharacter": 12,
+      "endLine": 243,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-directive-import:mat-card-content",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 246,
+      "startCharacter": 10,
+      "endLine": 246,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-component-import:mat-grid-list",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 247,
+      "startCharacter": 12,
+      "endLine": 247,
+      "endCharacter": 76
+    },
+    {
+      "code": "missing-component-import:mat-grid-tile",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 248,
+      "startCharacter": 14,
+      "endLine": 248,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:button[mat-raised-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 249,
+      "startCharacter": 24,
+      "endLine": 249,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-component-import:mat-grid-tile",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 251,
+      "startCharacter": 14,
+      "endLine": 251,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:button[mat-stroked-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 252,
+      "startCharacter": 24,
+      "endLine": 252,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-component-import:mat-grid-tile",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 254,
+      "startCharacter": 14,
+      "endLine": 254,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:mat-chip-set",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 255,
+      "startCharacter": 16,
+      "endLine": 255,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-component-import:mat-chip-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 256,
+      "startCharacter": 18,
+      "endLine": 256,
+      "endCharacter": 44
+    },
+    {
+      "code": "missing-component-import:mat-chip-option",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 257,
+      "startCharacter": 18,
+      "endLine": 257,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:mat-grid-tile",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 260,
+      "startCharacter": 14,
+      "endLine": 260,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:button[mat-icon-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 261,
+      "startCharacter": 24,
+      "endLine": 261,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:mat-icon",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 262,
+      "startCharacter": 18,
+      "endLine": 262,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-component-import:mat-card",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 269,
+      "startCharacter": 8,
+      "endLine": 269,
+      "endCharacter": 70
+    },
+    {
+      "code": "missing-directive-import:mat-card-content",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 270,
+      "startCharacter": 10,
+      "endLine": 270,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-component-import:mat-tab-group",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 271,
+      "startCharacter": 12,
+      "endLine": 271,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-component-import:mat-tab",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 272,
+      "startCharacter": 14,
+      "endLine": 272,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-directive-import:mat-accordion",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 274,
+      "startCharacter": 18,
+      "endLine": 274,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-component-import:mat-expansion-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 275,
+      "startCharacter": 20,
+      "endLine": 275,
+      "endCharacter": 50
+    },
+    {
+      "code": "missing-component-import:mat-expansion-panel-header",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 276,
+      "startCharacter": 22,
+      "endLine": 276,
+      "endCharacter": 50
+    },
+    {
+      "code": "missing-directive-import:mat-panel-title",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 277,
+      "startCharacter": 24,
+      "endLine": 277,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-directive-import:mat-panel-description",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 278,
+      "startCharacter": 24,
+      "endLine": 278,
+      "endCharacter": 47
+    },
+    {
+      "code": "missing-component-import:mat-expansion-panel",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 286,
+      "startCharacter": 20,
+      "endLine": 286,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-component-import:mat-expansion-panel-header",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 287,
+      "startCharacter": 22,
+      "endLine": 287,
+      "endCharacter": 50
+    },
+    {
+      "code": "missing-directive-import:mat-panel-title",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 288,
+      "startCharacter": 24,
+      "endLine": 288,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-component-import:mat-tab",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 299,
+      "startCharacter": 14,
+      "endLine": 299,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:mat-stepper",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 301,
+      "startCharacter": 18,
+      "endLine": 301,
+      "endCharacter": 56
+    },
+    {
+      "code": "missing-component-import:mat-step",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 302,
+      "startCharacter": 20,
+      "endLine": 302,
+      "endCharacter": 43
+    },
+    {
+      "code": "missing-component-import:button[mat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 304,
+      "startCharacter": 30,
+      "endLine": 304,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-directive-import:button[matStepperNext]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 304,
+      "startCharacter": 41,
+      "endLine": 304,
+      "endCharacter": 55
+    },
+    {
+      "code": "missing-component-import:mat-step",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 306,
+      "startCharacter": 20,
+      "endLine": 306,
+      "endCharacter": 47
+    },
+    {
+      "code": "missing-component-import:button[mat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 309,
+      "startCharacter": 32,
+      "endLine": 309,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-directive-import:button[matStepperPrevious]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 309,
+      "startCharacter": 43,
+      "endLine": 309,
+      "endCharacter": 61
+    },
+    {
+      "code": "missing-component-import:button[mat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 310,
+      "startCharacter": 32,
+      "endLine": 310,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-directive-import:button[matStepperNext]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 310,
+      "startCharacter": 43,
+      "endLine": 310,
+      "endCharacter": 57
+    },
+    {
+      "code": "missing-component-import:mat-step",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 313,
+      "startCharacter": 20,
+      "endLine": 313,
+      "endCharacter": 45
+    },
+    {
+      "code": "missing-component-import:button[mat-button]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 315,
+      "startCharacter": 30,
+      "endLine": 315,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-directive-import:button[matStepperPrevious]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 315,
+      "startCharacter": 41,
+      "endLine": 315,
+      "endCharacter": 59
+    }
+  ],
+  "quickfixes": [
+    {
+      "diagnosticCode": "missing-component-import:button[mat-flat-button]",
+      "title": "⟐ Import MatButton from '@angular/material/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatButton",
+        "moduleSpecifier": "@angular/material/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-icon",
+      "title": "⟐ Import MatIcon from '@angular/material/icon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatIcon",
+        "moduleSpecifier": "@angular/material/icon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:button[mat-stroked-button]",
+      "title": "⟐ Import MatButton from '@angular/material/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatButton",
+        "moduleSpecifier": "@angular/material/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:a[mat-button]",
+      "title": "⟐ Import MatButton from '@angular/material/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatButton",
+        "moduleSpecifier": "@angular/material/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[routerLink]",
+      "title": "⟐ Import RouterLink from '@angular/router'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "RouterLink",
+        "moduleSpecifier": "@angular/router"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-drawer-container",
+      "title": "⟐ Import MatDrawerContainer from '@angular/material/sidenav'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatDrawerContainer",
+        "moduleSpecifier": "@angular/material/sidenav"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-drawer",
+      "title": "⟐ Import MatDrawer from '@angular/material/sidenav'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatDrawer",
+        "moduleSpecifier": "@angular/material/sidenav"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:button[mat-icon-button]",
+      "title": "⟐ Import MatIconButton from '@angular/material/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatIconButton",
+        "moduleSpecifier": "@angular/material/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[matTooltip]",
+      "title": "⟐ Import MatTooltip from '@angular/material/tooltip'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatTooltip",
+        "moduleSpecifier": "@angular/material/tooltip"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:button[mat-mini-fab]",
+      "title": "⟐ Import MatMiniFabButton from '@angular/material/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatMiniFabButton",
+        "moduleSpecifier": "@angular/material/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[matBadge]",
+      "title": "⟐ Import MatBadge from '@angular/material/badge'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatBadge",
+        "moduleSpecifier": "@angular/material/badge"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-selection-list",
+      "title": "⟐ Import MatSelectionList from '@angular/material/list'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatSelectionList",
+        "moduleSpecifier": "@angular/material/list"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-list-option",
+      "title": "⟐ Import MatListOption from '@angular/material/list'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatListOption",
+        "moduleSpecifier": "@angular/material/list"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-divider",
+      "title": "⟐ Import MatDivider from '@angular/material/divider'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatDivider",
+        "moduleSpecifier": "@angular/material/divider"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-nav-list",
+      "title": "⟐ Import MatNavList from '@angular/material/list'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatNavList",
+        "moduleSpecifier": "@angular/material/list"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:a[mat-list-item]",
+      "title": "⟐ Import MatListItem from '@angular/material/list'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatListItem",
+        "moduleSpecifier": "@angular/material/list"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[matListItemIcon]",
+      "title": "⟐ Import MatIcon from '@angular/material/icon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatIcon",
+        "moduleSpecifier": "@angular/material/icon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[matListItemIcon]",
+      "title": "⟐ Import MatListItemIcon from '@angular/material/list'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatListItemIcon",
+        "moduleSpecifier": "@angular/material/list"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[matListItemTitle]",
+      "title": "⟐ Import MatListItemTitle from '@angular/material/list'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatListItemTitle",
+        "moduleSpecifier": "@angular/material/list"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-drawer-content",
+      "title": "⟐ Import MatDrawerContent from '@angular/material/sidenav'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatDrawerContent",
+        "moduleSpecifier": "@angular/material/sidenav"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-card",
+      "title": "⟐ Import MatCard from '@angular/material/card'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatCard",
+        "moduleSpecifier": "@angular/material/card"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-card-header",
+      "title": "⟐ Import MatCardHeader from '@angular/material/card'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatCardHeader",
+        "moduleSpecifier": "@angular/material/card"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-card-title",
+      "title": "⟐ Import MatCardTitle from '@angular/material/card'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatCardTitle",
+        "moduleSpecifier": "@angular/material/card"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-card-subtitle",
+      "title": "⟐ Import MatCardSubtitle from '@angular/material/card'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatCardSubtitle",
+        "moduleSpecifier": "@angular/material/card"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-card-content",
+      "title": "⟐ Import MatCardContent from '@angular/material/card'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatCardContent",
+        "moduleSpecifier": "@angular/material/card"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:button[mat-button]",
+      "title": "⟐ Import MatButton from '@angular/material/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatButton",
+        "moduleSpecifier": "@angular/material/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:button[mat-raised-button]",
+      "title": "⟐ Import MatButton from '@angular/material/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatButton",
+        "moduleSpecifier": "@angular/material/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:button[mat-fab]",
+      "title": "⟐ Import MatFabButton from '@angular/material/button'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatFabButton",
+        "moduleSpecifier": "@angular/material/button"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-button-toggle-group",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-button-toggle-group",
+      "title": "⟐ Import MatButtonToggleGroup from '@angular/material/button-toggle'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatButtonToggleGroup",
+        "moduleSpecifier": "@angular/material/button-toggle"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "title": "⟐ Import MatButtonToggleGroup from '@angular/material/button-toggle'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatButtonToggleGroup",
+        "moduleSpecifier": "@angular/material/button-toggle"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-button-toggle",
+      "title": "⟐ Import MatButtonToggle from '@angular/material/button-toggle'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatButtonToggle",
+        "moduleSpecifier": "@angular/material/button-toggle"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[matMenuTriggerFor]",
+      "title": "⟐ Import MatMenuTrigger from '@angular/material/menu'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatMenuTrigger",
+        "moduleSpecifier": "@angular/material/menu"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-menu",
+      "title": "⟐ Import MatMenu from '@angular/material/menu'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatMenu",
+        "moduleSpecifier": "@angular/material/menu"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:[mat-menu-item]",
+      "title": "⟐ Import MatMenuItem from '@angular/material/menu'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatMenuItem",
+        "moduleSpecifier": "@angular/material/menu"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-chip-set",
+      "title": "⟐ Import MatChipSet from '@angular/material/chips'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatChipSet",
+        "moduleSpecifier": "@angular/material/chips"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-chip",
+      "title": "⟐ Import MatChip from '@angular/material/chips'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatChip",
+        "moduleSpecifier": "@angular/material/chips"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-card-actions",
+      "title": "⟐ Import MatCardActions from '@angular/material/card'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatCardActions",
+        "moduleSpecifier": "@angular/material/card"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-form-field",
+      "title": "⟐ Import MatFormField from '@angular/material/form-field'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatFormField",
+        "moduleSpecifier": "@angular/material/form-field"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-label",
+      "title": "⟐ Import MatLabel from '@angular/material/form-field'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatLabel",
+        "moduleSpecifier": "@angular/material/form-field"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[matInput]",
+      "title": "⟐ Import MatInput from '@angular/material/input'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatInput",
+        "moduleSpecifier": "@angular/material/input"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[matTextPrefix]",
+      "title": "⟐ Import MatPrefix from '@angular/material/form-field'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatPrefix",
+        "moduleSpecifier": "@angular/material/form-field"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[matSuffix]",
+      "title": "⟐ Import MatIcon from '@angular/material/icon'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatIcon",
+        "moduleSpecifier": "@angular/material/icon"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[matSuffix]",
+      "title": "⟐ Import MatSuffix from '@angular/material/form-field'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatSuffix",
+        "moduleSpecifier": "@angular/material/form-field"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-hint",
+      "title": "⟐ Import MatHint from '@angular/material/form-field'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatHint",
+        "moduleSpecifier": "@angular/material/form-field"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[matAutocomplete]",
+      "title": "⟐ Import MatAutocompleteTrigger from '@angular/material/autocomplete'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatAutocompleteTrigger",
+        "moduleSpecifier": "@angular/material/autocomplete"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[formControl]",
+      "title": "⟐ Import ReactiveFormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "ReactiveFormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-autocomplete",
+      "title": "⟐ Import MatAutocomplete from '@angular/material/autocomplete'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatAutocomplete",
+        "moduleSpecifier": "@angular/material/autocomplete"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:async",
+      "title": "⟐ Import AsyncPipe from '@angular/common'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "AsyncPipe",
+        "moduleSpecifier": "@angular/common"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-option",
+      "title": "⟐ Import MatOption from '@angular/material/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatOption",
+        "moduleSpecifier": "@angular/material/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-select",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-select",
+      "title": "⟐ Import MatSelect from '@angular/material/select'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatSelect",
+        "moduleSpecifier": "@angular/material/select"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[matDatepicker]",
+      "title": "⟐ Import MatDatepickerInput from '@angular/material/datepicker'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatDatepickerInput",
+        "moduleSpecifier": "@angular/material/datepicker"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-datepicker-toggle",
+      "title": "⟐ Import MatDatepickerToggle from '@angular/material/datepicker'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatDatepickerToggle",
+        "moduleSpecifier": "@angular/material/datepicker"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-datepicker-toggle",
+      "title": "⟐ Import MatSuffix from '@angular/material/form-field'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatSuffix",
+        "moduleSpecifier": "@angular/material/form-field"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-datepicker",
+      "title": "⟐ Import MatDatepicker from '@angular/material/datepicker'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatDatepicker",
+        "moduleSpecifier": "@angular/material/datepicker"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:textarea[matInput]",
+      "title": "⟐ Import MatInput from '@angular/material/input'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatInput",
+        "moduleSpecifier": "@angular/material/input"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-radio-group",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-radio-group",
+      "title": "⟐ Import MatRadioGroup from '@angular/material/radio'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatRadioGroup",
+        "moduleSpecifier": "@angular/material/radio"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-radio-button",
+      "title": "⟐ Import MatRadioButton from '@angular/material/radio'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatRadioButton",
+        "moduleSpecifier": "@angular/material/radio"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-checkbox",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-checkbox",
+      "title": "⟐ Import MatCheckbox from '@angular/material/checkbox'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatCheckbox",
+        "moduleSpecifier": "@angular/material/checkbox"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-slide-toggle",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-slide-toggle",
+      "title": "⟐ Import MatSlideToggle from '@angular/material/slide-toggle'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatSlideToggle",
+        "moduleSpecifier": "@angular/material/slide-toggle"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-slider",
+      "title": "⟐ Import MatSlider from '@angular/material/slider'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatSlider",
+        "moduleSpecifier": "@angular/material/slider"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[matSliderThumb]",
+      "title": "⟐ Import MatSliderThumb from '@angular/material/slider'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatSliderThumb",
+        "moduleSpecifier": "@angular/material/slider"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-progress-spinner",
+      "title": "⟐ Import MatProgressSpinner from '@angular/material/progress-spinner'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatProgressSpinner",
+        "moduleSpecifier": "@angular/material/progress-spinner"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-progress-bar",
+      "title": "⟐ Import MatProgressBar from '@angular/material/progress-bar'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatProgressBar",
+        "moduleSpecifier": "@angular/material/progress-bar"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-grid-list",
+      "title": "⟐ Import MatGridList from '@angular/material/grid-list'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatGridList",
+        "moduleSpecifier": "@angular/material/grid-list"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-grid-tile",
+      "title": "⟐ Import MatGridTile from '@angular/material/grid-list'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatGridTile",
+        "moduleSpecifier": "@angular/material/grid-list"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-chip-option",
+      "title": "⟐ Import MatChipOption from '@angular/material/chips'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatChipOption",
+        "moduleSpecifier": "@angular/material/chips"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-tab-group",
+      "title": "⟐ Import MatTabGroup from '@angular/material/tabs'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatTabGroup",
+        "moduleSpecifier": "@angular/material/tabs"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-tab",
+      "title": "⟐ Import MatTab from '@angular/material/tabs'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatTab",
+        "moduleSpecifier": "@angular/material/tabs"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-accordion",
+      "title": "⟐ Import MatAccordion from '@angular/material/expansion'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatAccordion",
+        "moduleSpecifier": "@angular/material/expansion"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-expansion-panel",
+      "title": "⟐ Import MatExpansionPanel from '@angular/material/expansion'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatExpansionPanel",
+        "moduleSpecifier": "@angular/material/expansion"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-expansion-panel-header",
+      "title": "⟐ Import MatExpansionPanelHeader from '@angular/material/expansion'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatExpansionPanelHeader",
+        "moduleSpecifier": "@angular/material/expansion"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-panel-title",
+      "title": "⟐ Import MatExpansionPanelTitle from '@angular/material/expansion'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatExpansionPanelTitle",
+        "moduleSpecifier": "@angular/material/expansion"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:mat-panel-description",
+      "title": "⟐ Import MatExpansionPanelDescription from '@angular/material/expansion'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatExpansionPanelDescription",
+        "moduleSpecifier": "@angular/material/expansion"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-stepper",
+      "title": "⟐ Import MatStepper from '@angular/material/stepper'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatStepper",
+        "moduleSpecifier": "@angular/material/stepper"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:mat-step",
+      "title": "⟐ Import MatStep from '@angular/material/stepper'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatStep",
+        "moduleSpecifier": "@angular/material/stepper"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:button[matStepperNext]",
+      "title": "⟐ Import MatStepperNext from '@angular/material/stepper'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatStepperNext",
+        "moduleSpecifier": "@angular/material/stepper"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:button[matStepperPrevious]",
+      "title": "⟐ Import MatStepperPrevious from '@angular/material/stepper'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "MatStepperPrevious",
+        "moduleSpecifier": "@angular/material/stepper"
+      }
+    }
+  ]
+}

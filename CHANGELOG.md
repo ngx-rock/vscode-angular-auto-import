@@ -4,6 +4,17 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [2.5.0] - 2026-06-20
+
+### Fixed
+- **False "not imported" warnings on WSL/Windows**: NgModule exports are now resolved by their syntactic name when the TypeScript TypeChecker cannot resolve the symbol (which happens on WSL/Windows mounts with symlinked or case-mismatched `node_modules`). Pipes and directives provided via an imported NgModule — e.g. `TranslatePipe`/`TranslateDirective` from `@ngx-translate/core`'s `TranslateModule` — are no longer reported as missing imports while their declaration is already indexed
+
+### Improved
+- **Diagnosability of external module indexing**: added debug logs that surface why a module's exports may be dropped from the index — TypeChecker resolution failure with syntactic fallback, export names that cannot be resolved, and resolved names missing from the collected library classes
+
+### Added
+- **Angular 21 & 22 coverage**: end-to-end test projects and per-version case descriptors for Angular 21 and 22, validated through a per-app parallel suite runner
+
 ## [2.4.0] - 2026-06-18
 
 ### Fixed

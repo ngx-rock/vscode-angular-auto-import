@@ -1,0 +1,8 @@
+{
+  "case": "material-overview-legacy-modules",
+  "componentPath": "apps/angular-material-demo/src/app/modules/overview/material-overview.component.ts",
+  "templatePath": "apps/angular-material-demo/src/app/modules/overview/material-overview.component.html",
+  "preserveImports": true,
+  "diagnostics": [],
+  "quickfixes": []
+}

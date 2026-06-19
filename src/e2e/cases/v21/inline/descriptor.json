@@ -1,0 +1,81 @@
+{
+  "case": "inline",
+  "componentPath": "apps/angular-demo/src/app/inline/inline.component.ts",
+  "templatePath": "apps/angular-demo/src/app/inline/inline.component.ts",
+  "diagnostics": [
+    {
+      "code": "missing-directive-import:[ngClass]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 6,
+      "startCharacter": 23,
+      "endLine": 6,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-directive-import:[ngStyle]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 6,
+      "startCharacter": 56,
+      "endLine": 6,
+      "endCharacter": 63
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 6,
+      "startCharacter": 10,
+      "endLine": 6,
+      "endCharacter": 14
+    },
+    {
+      "code": "missing-component-import:lib-ui-demo-one",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 10,
+      "startCharacter": 4,
+      "endLine": 10,
+      "endCharacter": 21
+    }
+  ],
+  "quickfixes": [
+    {
+      "diagnosticCode": "missing-directive-import:[ngClass]",
+      "title": "⟐ Import NgClass from '@angular/common'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NgClass",
+        "moduleSpecifier": "@angular/common"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngStyle]",
+      "title": "⟐ Import NgStyle from '@angular/common'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NgStyle",
+        "moduleSpecifier": "@angular/common"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngIf]",
+      "title": "⟐ Import NgIf from '@angular/common'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NgIf",
+        "moduleSpecifier": "@angular/common"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:lib-ui-demo-one",
+      "title": "⟐ Import UiDemoOneComponent from '@angular-demo/ui-demo-one'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "UiDemoOneComponent",
+        "moduleSpecifier": "@angular-demo/ui-demo-one"
+      }
+    }
+  ]
+}

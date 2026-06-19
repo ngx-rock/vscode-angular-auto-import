@@ -1,0 +1,30 @@
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+:root {
+  color-scheme: light;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(63, 81, 181, 0.16), transparent 32%),
+    linear-gradient(180deg, #f6f8ff 0%, #eef2f8 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  color: #1f2937;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}

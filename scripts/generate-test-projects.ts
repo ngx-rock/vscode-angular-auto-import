@@ -96,7 +96,7 @@ const VERSIONS: VersionConfig[] = [
 // ── Paths ────────────────────────────────────────────────────────────────────
 
 const ROOT_DIR = resolve(__dirname, "..");
-const PROJECTS_DIR = join(ROOT_DIR, "src", "test", "projects");
+const PROJECTS_DIR = join(ROOT_DIR, "src", "e2e", "projects");
 const V19_DIR = join(PROJECTS_DIR, "v19");
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

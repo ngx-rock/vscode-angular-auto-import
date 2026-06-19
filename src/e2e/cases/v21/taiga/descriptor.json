@@ -1,0 +1,1305 @@
+{
+  "case": "taiga",
+  "componentPath": "apps/taiga-demo/src/app/playground/taiga-playground.component.ts",
+  "templatePath": "apps/taiga-demo/src/app/playground/taiga-playground.component.html",
+  "diagnostics": [
+    {
+      "code": "missing-component-import:header[tuiNavigationHeader]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 1,
+      "startCharacter": 10,
+      "endLine": 1,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-component-import:[tuiNavigationLogo]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 2,
+      "startCharacter": 9,
+      "endLine": 2,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-directive-import:[tuiMessage]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 5,
+      "startCharacter": 11,
+      "endLine": 5,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-directive-import:button[tuiButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 7,
+      "startCharacter": 14,
+      "endLine": 7,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:[tuiHint]:not(ng-container):not(ng-template)",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 7,
+      "startCharacter": 55,
+      "endLine": 7,
+      "endCharacter": 62
+    },
+    {
+      "code": "missing-component-import:aside[tuiNavigationAside]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 11,
+      "startCharacter": 29,
+      "endLine": 11,
+      "endCharacter": 47
+    },
+    {
+      "code": "missing-directive-import:[tuiAsideItem]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 13,
+      "startCharacter": 9,
+      "endLine": 13,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-directive-import:[tuiAsideItem]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 14,
+      "startCharacter": 9,
+      "endLine": 14,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-component-import:tui-aside-group",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 15,
+      "startCharacter": 6,
+      "endLine": 15,
+      "endCharacter": 37
+    },
+    {
+      "code": "missing-directive-import:[tuiAsideItem]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 18,
+      "startCharacter": 18,
+      "endLine": 18,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-directive-import:[tuiAsideItem]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 19,
+      "startCharacter": 18,
+      "endLine": 19,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-component-import:main[tuiNavigationMain]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 25,
+      "startCharacter": 8,
+      "endLine": 25,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-component-import:[tuiNavigationSubheader]:not([compact])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 26,
+      "startCharacter": 9,
+      "endLine": 26,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:tui-breadcrumbs",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 27,
+      "startCharacter": 6,
+      "endLine": 27,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-directive-import:[tuiAvatar]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 42,
+      "startCharacter": 13,
+      "endLine": 42,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:[tuiBadge]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 43,
+      "startCharacter": 14,
+      "endLine": 43,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:[tuiChip]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 44,
+      "startCharacter": 14,
+      "endLine": 44,
+      "endCharacter": 21
+    },
+    {
+      "code": "missing-directive-import:button[tuiButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 53,
+      "startCharacter": 18,
+      "endLine": 53,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:button[tuiButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 54,
+      "startCharacter": 18,
+      "endLine": 54,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:button[tuiButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 55,
+      "startCharacter": 18,
+      "endLine": 55,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:button[tuiIconButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 56,
+      "startCharacter": 18,
+      "endLine": 56,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:tui-icon:not([tuiBadge])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 57,
+      "startCharacter": 12,
+      "endLine": 57,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-directive-import:tui-tabs:not([vertical])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 61,
+      "startCharacter": 8,
+      "endLine": 61,
+      "endCharacter": 55
+    },
+    {
+      "code": "missing-directive-import:button[tuiTab]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 63,
+      "startCharacter": 20,
+      "endLine": 63,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:progress[tuiProgressBar]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 68,
+      "startCharacter": 20,
+      "endLine": 68,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-component-import:tui-progress-circle",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 69,
+      "startCharacter": 10,
+      "endLine": 69,
+      "endCharacter": 62
+    },
+    {
+      "code": "missing-directive-import:[tuiMessage]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 72,
+      "startCharacter": 13,
+      "endLine": 72,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:[tuiStatus]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 73,
+      "startCharacter": 14,
+      "endLine": 73,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 79,
+      "startCharacter": 15,
+      "endLine": 79,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-component-import:input[type=checkbox][tuiCheckbox]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 81,
+      "startCharacter": 17,
+      "endLine": 81,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-component-import:input[type=checkbox][tuiCheckbox]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 81,
+      "startCharacter": 29,
+      "endLine": 81,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 81,
+      "startCharacter": 47,
+      "endLine": 81,
+      "endCharacter": 54
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 84,
+      "startCharacter": 15,
+      "endLine": 84,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-component-import:input[type=checkbox][tuiSwitch]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 86,
+      "startCharacter": 17,
+      "endLine": 86,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:input[type=checkbox][tuiSwitch]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 86,
+      "startCharacter": 27,
+      "endLine": 86,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 86,
+      "startCharacter": 45,
+      "endLine": 86,
+      "endCharacter": 52
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 89,
+      "startCharacter": 15,
+      "endLine": 89,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-component-import:input[type=range][tuiSlider]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 91,
+      "startCharacter": 17,
+      "endLine": 91,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-component-import:input[type=range][tuiSlider]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 91,
+      "startCharacter": 27,
+      "endLine": 91,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 91,
+      "startCharacter": 60,
+      "endLine": 91,
+      "endCharacter": 67
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 94,
+      "startCharacter": 15,
+      "endLine": 94,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-component-import:tui-rating",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 96,
+      "startCharacter": 10,
+      "endLine": 96,
+      "endCharacter": 58
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 96,
+      "startCharacter": 24,
+      "endLine": 96,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-component-import:tui-textfield:not([multi])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 99,
+      "startCharacter": 8,
+      "endLine": 99,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 100,
+      "startCharacter": 17,
+      "endLine": 100,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:input[tuiComboBox]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 101,
+      "startCharacter": 17,
+      "endLine": 101,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 101,
+      "startCharacter": 31,
+      "endLine": 101,
+      "endCharacter": 38
+    },
+    {
+      "code": "missing-component-import:tui-data-list-wrapper:not([labels])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 102,
+      "startCharacter": 10,
+      "endLine": 102,
+      "endCharacter": 56
+    },
+    {
+      "code": "missing-component-import:tui-textfield:not([multi])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 105,
+      "startCharacter": 8,
+      "endLine": 105,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-directive-import:[tuiChevron]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 105,
+      "startCharacter": 23,
+      "endLine": 105,
+      "endCharacter": 33
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 106,
+      "startCharacter": 17,
+      "endLine": 106,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:input[tuiSelect]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 107,
+      "startCharacter": 17,
+      "endLine": 107,
+      "endCharacter": 26
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 107,
+      "startCharacter": 29,
+      "endLine": 107,
+      "endCharacter": 36
+    },
+    {
+      "code": "missing-component-import:tui-data-list-wrapper:not([labels])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 108,
+      "startCharacter": 10,
+      "endLine": 108,
+      "endCharacter": 54
+    },
+    {
+      "code": "missing-component-import:tui-textfield:not([multi])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 111,
+      "startCharacter": 8,
+      "endLine": 111,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 112,
+      "startCharacter": 17,
+      "endLine": 112,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:input[tuiInputDate]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 113,
+      "startCharacter": 17,
+      "endLine": 113,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 113,
+      "startCharacter": 32,
+      "endLine": 113,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:tui-textfield:not([multi])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 116,
+      "startCharacter": 8,
+      "endLine": 116,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 117,
+      "startCharacter": 17,
+      "endLine": 117,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:input[tuiInputNumber]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 118,
+      "startCharacter": 17,
+      "endLine": 118,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 118,
+      "startCharacter": 34,
+      "endLine": 118,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-component-import:tui-textfield[multi]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 121,
+      "startCharacter": 23,
+      "endLine": 121,
+      "endCharacter": 28
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 122,
+      "startCharacter": 17,
+      "endLine": 122,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-directive-import:input[tuiInputChip]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 123,
+      "startCharacter": 17,
+      "endLine": 123,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 123,
+      "startCharacter": 32,
+      "endLine": 123,
+      "endCharacter": 39
+    },
+    {
+      "code": "missing-component-import:tui-textfield:not([multi])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 126,
+      "startCharacter": 8,
+      "endLine": 126,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:label[tuiLabel]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 127,
+      "startCharacter": 17,
+      "endLine": 127,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-component-import:textarea[tuiTextarea]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 128,
+      "startCharacter": 20,
+      "endLine": 128,
+      "endCharacter": 31
+    },
+    {
+      "code": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 128,
+      "startCharacter": 34,
+      "endLine": 128,
+      "endCharacter": 41
+    },
+    {
+      "code": "missing-component-import:tui-block-status",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 135,
+      "startCharacter": 8,
+      "endLine": 135,
+      "endCharacter": 49
+    },
+    {
+      "code": "missing-directive-import:[tuiSlot]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 136,
+      "startCharacter": 16,
+      "endLine": 136,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:button[tuiButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 139,
+      "startCharacter": 18,
+      "endLine": 139,
+      "endCharacter": 27
+    },
+    {
+      "code": "missing-directive-import:[tuiSlot]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 139,
+      "startCharacter": 28,
+      "endLine": 139,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-component-import:tui-accordion",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 142,
+      "startCharacter": 8,
+      "endLine": 142,
+      "endCharacter": 45
+    },
+    {
+      "code": "missing-directive-import:button[tuiAccordion]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 143,
+      "startCharacter": 18,
+      "endLine": 143,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-directive-import:button[tuiAccordion]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 143,
+      "startCharacter": 32,
+      "endLine": 143,
+      "endCharacter": 44
+    },
+    {
+      "code": "missing-component-import:tui-expand",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 144,
+      "startCharacter": 10,
+      "endLine": 144,
+      "endCharacter": 40
+    },
+    {
+      "code": "missing-directive-import:button[tuiAccordion]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 146,
+      "startCharacter": 18,
+      "endLine": 146,
+      "endCharacter": 30
+    },
+    {
+      "code": "missing-component-import:tui-expand",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 147,
+      "startCharacter": 10,
+      "endLine": 147,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:button[tuiButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 150,
+      "startCharacter": 16,
+      "endLine": 150,
+      "endCharacter": 25
+    },
+    {
+      "code": "missing-component-import:tui-expand",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 152,
+      "startCharacter": 8,
+      "endLine": 152,
+      "endCharacter": 42
+    },
+    {
+      "code": "missing-directive-import:[ngForOf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 161,
+      "startCharacter": 18,
+      "endLine": 161,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:[ngForOf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 161,
+      "startCharacter": 34,
+      "endLine": 161,
+      "endCharacter": 36
+    },
+    {
+      "code": "missing-pipe-import:tuiInitials",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 161,
+      "startCharacter": 54,
+      "endLine": 161,
+      "endCharacter": 65
+    },
+    {
+      "code": "missing-directive-import:[ngIf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 166,
+      "startCharacter": 18,
+      "endLine": 166,
+      "endCharacter": 22
+    },
+    {
+      "code": "missing-directive-import:button[tuiButton]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 167,
+      "startCharacter": 20,
+      "endLine": 167,
+      "endCharacter": 29
+    },
+    {
+      "code": "missing-pipe-import:tuiObfuscate",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 172,
+      "startCharacter": 33,
+      "endLine": 172,
+      "endCharacter": 45
+    },
+    {
+      "code": "missing-directive-import:[ngForOf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 182,
+      "startCharacter": 18,
+      "endLine": 182,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:[ngForOf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 182,
+      "startCharacter": 33,
+      "endLine": 182,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-directive-import:[ngForOf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 187,
+      "startCharacter": 18,
+      "endLine": 187,
+      "endCharacter": 23
+    },
+    {
+      "code": "missing-directive-import:[ngForOf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 187,
+      "startCharacter": 33,
+      "endLine": 187,
+      "endCharacter": 35
+    },
+    {
+      "code": "missing-directive-import:[ngForOf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 192,
+      "startCharacter": 19,
+      "endLine": 192,
+      "endCharacter": 24
+    },
+    {
+      "code": "missing-directive-import:[ngForOf]",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 192,
+      "startCharacter": 32,
+      "endLine": 192,
+      "endCharacter": 34
+    },
+    {
+      "code": "missing-pipe-import:tuiFormatNumber",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 197,
+      "startCharacter": 34,
+      "endLine": 197,
+      "endCharacter": 49
+    }
+  ],
+  "quickfixes": [
+    {
+      "diagnosticCode": "missing-component-import:header[tuiNavigationHeader]",
+      "title": "⟐ Import TuiHeaderComponent from '@taiga-ui/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiHeaderComponent",
+        "moduleSpecifier": "@taiga-ui/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:[tuiNavigationLogo]",
+      "title": "⟐ Import TuiLogoComponent from '@taiga-ui/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiLogoComponent",
+        "moduleSpecifier": "@taiga-ui/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiMessage]",
+      "title": "⟐ Import TuiMessage from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiMessage",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:button[tuiButton]",
+      "title": "⟐ Import TuiButton from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiButton",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiHint]:not(ng-container):not(ng-template)",
+      "title": "⟐ Import TuiHintDirective from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiHintDirective",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:aside[tuiNavigationAside]",
+      "title": "⟐ Import TuiAsideComponent from '@taiga-ui/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiAsideComponent",
+        "moduleSpecifier": "@taiga-ui/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiAsideItem]",
+      "title": "⟐ Import TuiAsideItemDirective from '@taiga-ui/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiAsideItemDirective",
+        "moduleSpecifier": "@taiga-ui/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-aside-group",
+      "title": "⟐ Import TuiAsideGroupComponent from '@taiga-ui/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiAsideGroupComponent",
+        "moduleSpecifier": "@taiga-ui/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:main[tuiNavigationMain]",
+      "title": "⟐ Import TuiMainComponent from '@taiga-ui/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiMainComponent",
+        "moduleSpecifier": "@taiga-ui/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:[tuiNavigationSubheader]:not([compact])",
+      "title": "⟐ Import TuiSubheaderComponent from '@taiga-ui/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiSubheaderComponent",
+        "moduleSpecifier": "@taiga-ui/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-breadcrumbs",
+      "title": "⟐ Import TuiBreadcrumbs from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiBreadcrumbs",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiAvatar]",
+      "title": "⟐ Import TuiAvatar from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiAvatar",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiBadge]",
+      "title": "⟐ Import TuiBadge from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiBadge",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiChip]",
+      "title": "⟐ Import TuiChip from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiChip",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:button[tuiIconButton]",
+      "title": "⟐ Import TuiButton from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiButton",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-icon:not([tuiBadge])",
+      "title": "⟐ Import TuiIcon from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiIcon",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:tui-tabs:not([vertical])",
+      "title": "⟐ Import TuiTabsHorizontal from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiTabsHorizontal",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:button[tuiTab]",
+      "title": "⟐ Import TuiTab from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiTab",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:progress[tuiProgressBar]",
+      "title": "⟐ Import TuiProgressBar from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiProgressBar",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-progress-circle",
+      "title": "⟐ Import TuiProgressCircle from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiProgressCircle",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiStatus]",
+      "title": "⟐ Import TuiStatus from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiStatus",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:label[tuiLabel]",
+      "title": "⟐ Import TuiLabel from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiLabel",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:input[type=checkbox][tuiCheckbox]",
+      "title": "⟐ Import TuiCheckbox from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiCheckbox",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngModel]:not([formControlName]):not([formControl])",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:input[type=checkbox][tuiSwitch]",
+      "title": "⟐ Import TuiSwitch from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiSwitch",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:input[type=range][tuiSlider]",
+      "title": "⟐ Import TuiSliderComponent from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiSliderComponent",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-rating",
+      "title": "⟐ Import FormsModule from '@angular/forms'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "FormsModule",
+        "moduleSpecifier": "@angular/forms"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-rating",
+      "title": "⟐ Import TuiRating from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiRating",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-textfield:not([multi])",
+      "title": "⟐ Import TuiTextfieldComponent from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiTextfieldComponent",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[tuiComboBox]",
+      "title": "⟐ Import TuiComboBoxDirective from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiComboBoxDirective",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-data-list-wrapper:not([labels])",
+      "title": "⟐ Import TuiDataListWrapperComponent from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiDataListWrapperComponent",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiChevron]",
+      "title": "⟐ Import TuiChevron from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiChevron",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiChevron]",
+      "title": "⟐ Import TuiTextfieldComponent from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiTextfieldComponent",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[tuiSelect]",
+      "title": "⟐ Import TuiSelectDirective from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiSelectDirective",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[tuiInputDate]",
+      "title": "⟐ Import TuiInputDateDirective from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiInputDateDirective",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[tuiInputNumber]",
+      "title": "⟐ Import TuiInputNumberDirective from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiInputNumberDirective",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-textfield[multi]",
+      "title": "⟐ Import TuiTextfieldMultiComponent from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiTextfieldMultiComponent",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:input[tuiInputChip]",
+      "title": "⟐ Import TuiInputChipDirective from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiInputChipDirective",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:textarea[tuiTextarea]",
+      "title": "⟐ Import TuiTextareaComponent from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiTextareaComponent",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-block-status",
+      "title": "⟐ Import TuiBlockStatusComponent from '@taiga-ui/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiBlockStatusComponent",
+        "moduleSpecifier": "@taiga-ui/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[tuiSlot]",
+      "title": "⟐ Import TuiAppBarDirective from '@taiga-ui/layout'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiAppBarDirective",
+        "moduleSpecifier": "@taiga-ui/layout"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-accordion",
+      "title": "⟐ Import TuiAccordionComponent from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiAccordionComponent",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:button[tuiAccordion]",
+      "title": "⟐ Import TuiAccordionDirective from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiAccordionDirective",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-component-import:tui-expand",
+      "title": "⟐ Import TuiExpand from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiExpand",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngForOf]",
+      "title": "⟐ Import NgForOf from '@angular/common'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NgForOf",
+        "moduleSpecifier": "@angular/common"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:tuiInitials",
+      "title": "⟐ Import TuiInitialsPipe from '@taiga-ui/kit'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiInitialsPipe",
+        "moduleSpecifier": "@taiga-ui/kit"
+      }
+    },
+    {
+      "diagnosticCode": "missing-directive-import:[ngIf]",
+      "title": "⟐ Import NgIf from '@angular/common'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "NgIf",
+        "moduleSpecifier": "@angular/common"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:tuiObfuscate",
+      "title": "⟐ Import TuiObfuscatePipe from '@taiga-ui/cdk'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiObfuscatePipe",
+        "moduleSpecifier": "@taiga-ui/cdk"
+      }
+    },
+    {
+      "diagnosticCode": "missing-pipe-import:tuiFormatNumber",
+      "title": "⟐ Import TuiFormatNumberPipe from '@taiga-ui/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TuiFormatNumberPipe",
+        "moduleSpecifier": "@taiga-ui/core"
+      }
+    }
+  ]
+}

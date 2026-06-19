@@ -1,0 +1,27 @@
+{
+  "case": "ngx-translate-missing",
+  "componentPath": "apps/angular-demo/src/app/ngx-translate/ngx-translate-missing.component.ts",
+  "templatePath": "apps/angular-demo/src/app/ngx-translate/ngx-translate-missing.component.ts",
+  "diagnostics": [
+    {
+      "code": "missing-pipe-import:translate",
+      "severity": "Warning",
+      "source": "angular-auto-import",
+      "startLine": 15,
+      "startCharacter": 37,
+      "endLine": 15,
+      "endCharacter": 46
+    }
+  ],
+  "quickfixes": [
+    {
+      "diagnosticCode": "missing-pipe-import:translate",
+      "title": "⟐ Import TranslatePipe from '@ngx-translate/core'",
+      "command": "angular-auto-import.importElement",
+      "expectedImport": {
+        "className": "TranslatePipe",
+        "moduleSpecifier": "@ngx-translate/core"
+      }
+    }
+  ]
+}

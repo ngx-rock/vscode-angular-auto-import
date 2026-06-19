@@ -17,7 +17,7 @@
       "!!**/*.min.js",
       "!!**/*.d.ts",
       "!!**/coverage/**",
-      "!!src/test/projects/**"
+      "!!src/e2e/projects/**"
     ]
   },
   "formatter": {

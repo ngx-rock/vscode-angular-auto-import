@@ -1,0 +1,64 @@
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 1rem;
+  padding: 0 1.25rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.toolbar-nav {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.toolbar-nav a {
+  border-radius: 999px;
+}
+
+.toolbar-nav a mat-icon {
+  margin-right: 0.25rem;
+}
+
+.active-link {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.app-content {
+  padding: 1.5rem;
+}
+
+@media (max-width: 720px) {
+  .app-toolbar {
+    align-items: flex-start;
+    min-height: auto;
+    padding: 0.75rem 1rem;
+  }
+
+  .toolbar-nav {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .app-content {
+    padding: 1rem;
+  }
+}

@@ -2225,11 +2225,17 @@ export class AngularIndexer {
     for (const element of exportsTuple.getElements()) {
       const exportedClassName = this._resolveExportedClassName(element, typeChecker);
       if (!exportedClassName) {
+        logger.debug(
+          `[ExternalModules] ${moduleName}: could not resolve export name from tuple entry '${element.getText()}' (skipped)`
+        );
         continue;
       }
 
       const exportedClassDecl = allLibraryClasses.get(exportedClassName);
       if (!exportedClassDecl) {
+        logger.debug(
+          `[ExternalModules] ${moduleName}: export '${exportedClassName}' not found in collected library classes (skipped)`
+        );
         continue;
       }
 
@@ -2257,7 +2263,19 @@ export class AngularIndexer {
   }
 
   /**
-   * Resolves the exported class name from a tuple element using TypeChecker.
+   * Resolves the exported class name from an NgModule `ɵmod` exports tuple element.
+   *
+   * Tuple elements look like `typeof i1.TranslatePipe` (TypeQuery) or `TranslatePipe`
+   * (TypeReference). Resolution prefers the TypeChecker (which follows re-export
+   * aliases), but falls back to the syntactic name when symbol resolution yields
+   * nothing. The fallback matters for environments where cross-file symbol
+   * resolution is unreliable (e.g. WSL/Windows mounts with symlinked or
+   * case-mismatched `node_modules`): without it, a module's exports are silently
+   * dropped, producing false-positive "not imported" diagnostics for pipes/directives
+   * that are actually provided via an imported NgModule (e.g. `TranslateModule`).
+   * The syntactic name (`TranslatePipe`) matches the keys in `allLibraryClasses`,
+   * which are collected without the TypeChecker and therefore stay available.
+   *
    * @param element The tuple element to resolve.
    * @param typeChecker The type checker to use.
    * @returns The exported class name or undefined.
@@ -2267,19 +2285,35 @@ export class AngularIndexer {
     element: import("ts-morph").TypeNode,
     typeChecker: TypeChecker
   ): string | undefined {
-    const exprName = element.isKind(SyntaxKind.TypeQuery)
-      ? element.asKindOrThrow(SyntaxKind.TypeQuery).getExprName()
-      : element.asKindOrThrow(SyntaxKind.TypeReference).getTypeName();
-
-    const type = typeChecker.getTypeAtLocation(exprName);
-    const symbol = type.getSymbol() ?? type.getAliasSymbol();
-    if (!symbol) {
+    let exprName: import("ts-morph").EntityName;
+    if (element.isKind(SyntaxKind.TypeQuery)) {
+      exprName = element.getExprName();
+    } else if (element.isKind(SyntaxKind.TypeReference)) {
+      exprName = element.getTypeName();
+    } else {
       return undefined;
     }
 
-    const aliased = symbol.getAliasedSymbol();
-    const finalSymbol = aliased || symbol;
-    return finalSymbol.getName();
+    // Syntactic name: the right-most identifier of the (possibly qualified) name,
+    // e.g. `i1.TranslatePipe` -> `TranslatePipe`. Used as a TypeChecker-independent fallback.
+    const syntacticName = exprName.isKind(SyntaxKind.QualifiedName)
+      ? exprName.getRight().getText()
+      : exprName.getText();
+
+    const type = typeChecker.getTypeAtLocation(exprName);
+    const symbol = type.getSymbol() ?? type.getAliasSymbol();
+    const resolvedName = symbol ? (symbol.getAliasedSymbol() ?? symbol).getName() : undefined;
+
+    if (!resolvedName && syntacticName) {
+      // TypeChecker could not resolve the symbol (e.g. WSL/Windows mounts with
+      // symlinked or case-mismatched node_modules). The syntactic fallback below
+      // recovers the export that would otherwise be silently dropped.
+      logger.debug(
+        `[ExternalModules] TypeChecker could not resolve export '${exprName.getText()}', using syntactic name '${syntacticName}'`
+      );
+    }
+
+    return resolvedName ?? syntacticName ?? undefined;
   }
 
   /**
