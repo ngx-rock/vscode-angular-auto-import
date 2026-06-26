@@ -1,0 +1,8 @@
+{
+  "case": "translate-pipe-collision",
+  "componentPath": "apps/angular-demo/src/app/translate-pipe-collision/translate-pipe-collision.component.ts",
+  "templatePath": "apps/angular-demo/src/app/translate-pipe-collision/translate-pipe-collision.component.html",
+  "preserveImports": true,
+  "diagnostics": [],
+  "quickfixes": []
+}

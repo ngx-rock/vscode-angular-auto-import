@@ -69,6 +69,30 @@ describe("DiagnosticProvider", function () {
         }),
       ],
     ],
+    [
+      "translate",
+      [
+        new AngularElementData({
+          path: "@org/internal-lib",
+          name: "RedactedPipe2",
+          type: "pipe",
+          originalSelector: "translate",
+          selectors: ["translate"],
+          isStandalone: true,
+          isExternal: true,
+        }),
+        new AngularElementData({
+          path: "@ngx-translate/core",
+          name: "TranslatePipe",
+          type: "pipe",
+          originalSelector: "translate",
+          selectors: ["translate"],
+          isStandalone: false,
+          isExternal: true,
+          exportingModuleName: "TranslateModule",
+        }),
+      ],
+    ],
   ]);
 
   const mockIndexer = {
@@ -147,7 +171,8 @@ describe("DiagnosticProvider", function () {
     );
 
     (provider as any).isElementImported = (_sourceFile: import("ts-morph").SourceFile, element: AngularElementData) =>
-      importedNames.has(element.name);
+      importedNames.has(element.name) ||
+      Boolean(element.exportingModuleName && importedNames.has(element.exportingModuleName));
   });
 
   afterEach(() => {
@@ -199,6 +224,247 @@ describe("DiagnosticProvider", function () {
     );
   });
 
+  it("suppresses pipe diagnostics when another pipe candidate for the same selector is imported", async () => {
+    importedNames = new Set(["TranslateModule"]);
+
+    const element = createPipeElement("translate");
+
+    const diagnostics = await (provider as any).checkElement(
+      element,
+      mockIndexer,
+      vscode.DiagnosticSeverity.Warning,
+      sourceFile,
+      cssSelectorCtor,
+      selectorMatcherCtor
+    );
+
+    assert.deepStrictEqual(
+      diagnostics,
+      [],
+      "translate should not report a missing pipe when TranslatePipe is available through TranslateModule"
+    );
+  });
+
+  it("treats an imported exporting module as an import for its non-standalone pipe", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    const moduleSourceFile = project.createSourceFile(
+      path.join(testProjectPath, "src/app/translate-playground.component.ts"),
+      `
+import { Component } from "@angular/core";
+import { TranslateModule } from "@ngx-translate/core";
+
+@Component({
+  selector: "app-translate-playground",
+  standalone: true,
+  template: "{{ 'demo.title' | translate }}",
+  imports: [TranslateModule],
+})
+export class TranslatePlaygroundComponent {}
+`,
+      { overwrite: true }
+    );
+    const translatePipe = new AngularElementData({
+      path: "@ngx-translate/core",
+      name: "TranslatePipe",
+      type: "pipe",
+      originalSelector: "translate",
+      selectors: ["translate"],
+      isStandalone: false,
+      isExternal: true,
+      exportingModuleName: "TranslateModule",
+    });
+
+    const isImported = (DiagnosticProvider.prototype as any).isElementImported.call(
+      provider,
+      moduleSourceFile,
+      translatePipe
+    );
+
+    assert.strictEqual(isImported, true, "TranslateModule should make TranslatePipe available");
+  });
+
+  it("suppresses pipe diagnostics when a matching module is imported from the pipe package", async () => {
+    (provider as any).isElementImported = (DiagnosticProvider.prototype as any).isElementImported.bind(provider);
+
+    const project = new Project({ useInMemoryFileSystem: true });
+    const moduleSourceFile = project.createSourceFile(
+      path.join(testProjectPath, "src/app/standalone-translate-playground.component.ts"),
+      `
+import { Component } from "@angular/core";
+import { TranslateModule } from "@ngx-translate/core";
+
+@Component({
+  selector: "app-standalone-translate-playground",
+  standalone: true,
+  template: "{{ 'demo.title' | translate }}",
+  imports: [TranslateModule],
+})
+export class StandaloneTranslatePlaygroundComponent {}
+`,
+      { overwrite: true }
+    );
+    const moduleBackedIndexer = {
+      getElements: (selector: string) =>
+        selector === "translate"
+          ? [
+              new AngularElementData({
+                path: "src/app/workspace-translate.pipe",
+                name: "WorkspaceTranslatePipe",
+                type: "pipe",
+                originalSelector: "translate",
+                selectors: ["translate"],
+                isStandalone: true,
+                isExternal: false,
+              }),
+              new AngularElementData({
+                path: "@ngx-translate/core",
+                name: "TranslatePipe",
+                type: "pipe",
+                originalSelector: "translate",
+                selectors: ["translate"],
+                isStandalone: true,
+                isExternal: true,
+              }),
+            ]
+          : [],
+      getExternalModuleExports: () => undefined,
+    };
+
+    const diagnostics = await (provider as any).checkElement(
+      createPipeElement("translate"),
+      moduleBackedIndexer,
+      vscode.DiagnosticSeverity.Warning,
+      moduleSourceFile,
+      cssSelectorCtor,
+      selectorMatcherCtor
+    );
+
+    assert.deepStrictEqual(
+      diagnostics,
+      [],
+      "translate should not report a missing pipe when TranslateModule is imported from the TranslatePipe package"
+    );
+  });
+
+  it("keeps pipe diagnostics when a matching module import is from a different package", async () => {
+    (provider as any).isElementImported = (DiagnosticProvider.prototype as any).isElementImported.bind(provider);
+
+    const project = new Project({ useInMemoryFileSystem: true });
+    const moduleSourceFile = project.createSourceFile(
+      path.join(testProjectPath, "src/app/module-name-translate-playground.component.ts"),
+      `
+import { Component } from "@angular/core";
+import { TranslateModule } from "@ngx-translate/core";
+
+@Component({
+  selector: "app-module-name-translate-playground",
+  standalone: true,
+  template: "{{ 'demo.title' | translate }}",
+  imports: [TranslateModule],
+})
+export class ModuleNameTranslatePlaygroundComponent {}
+`,
+      { overwrite: true }
+    );
+    const workspaceOnlyIndexer = {
+      getElements: (selector: string) =>
+        selector === "translate"
+          ? [
+              new AngularElementData({
+                path: "src/app/workspace-translate.pipe",
+                name: "WorkspaceTranslatePipe",
+                type: "pipe",
+                originalSelector: "translate",
+                selectors: ["translate"],
+                isStandalone: true,
+                isExternal: false,
+              }),
+            ]
+          : [],
+      getExternalModuleExports: () => undefined,
+    };
+
+    const diagnostics = await (provider as any).checkElement(
+      createPipeElement("translate"),
+      workspaceOnlyIndexer,
+      vscode.DiagnosticSeverity.Warning,
+      moduleSourceFile,
+      cssSelectorCtor,
+      selectorMatcherCtor
+    );
+
+    assert.strictEqual(
+      diagnostics.length,
+      1,
+      "translate should still report a missing local pipe when TranslateModule is from another package"
+    );
+    assert.strictEqual(
+      diagnostics[0].code,
+      "missing-pipe-import:translate",
+      "the unrelated module-name match should not suppress the pipe diagnostic"
+    );
+  });
+
+  it("keeps pipe diagnostics when a matching module has explicit exports without the pipe", async () => {
+    (provider as any).isElementImported = (DiagnosticProvider.prototype as any).isElementImported.bind(provider);
+
+    const project = new Project({ useInMemoryFileSystem: true });
+    const moduleSourceFile = project.createSourceFile(
+      path.join(testProjectPath, "src/app/date-playground.component.ts"),
+      `
+import { Component } from "@angular/core";
+import { DateModule } from "@org/date";
+
+@Component({
+  selector: "app-date-playground",
+  standalone: true,
+  template: "{{ today | date }}",
+  imports: [DateModule],
+})
+export class DatePlaygroundComponent {}
+`,
+      { overwrite: true }
+    );
+    const dateIndexer = {
+      getElements: (selector: string) =>
+        selector === "date"
+          ? [
+              new AngularElementData({
+                path: "@org/date",
+                name: "DatePipe",
+                type: "pipe",
+                originalSelector: "date",
+                selectors: ["date"],
+                isStandalone: true,
+                isExternal: true,
+              }),
+            ]
+          : [],
+      getExternalModuleExports: (moduleName: string) =>
+        moduleName === "DateModule" ? new Set(["UnrelatedPipe"]) : undefined,
+    };
+
+    const diagnostics = await (provider as any).checkElement(
+      createPipeElement("date"),
+      dateIndexer,
+      vscode.DiagnosticSeverity.Warning,
+      moduleSourceFile,
+      cssSelectorCtor,
+      selectorMatcherCtor
+    );
+
+    assert.strictEqual(
+      diagnostics.length,
+      1,
+      "date should still report a missing pipe when DateModule is indexed and does not export DatePipe"
+    );
+    assert.strictEqual(
+      diagnostics[0].code,
+      "missing-pipe-import:date",
+      "explicit module export data should win over the module-name fallback"
+    );
+  });
+
   it("refreshOpenDocuments clears the import resolution cache", async () => {
     // Simulate a previously cached (stale) "not imported" result, e.g. captured
     // before a library was indexed. After the external index is rebuilt this
@@ -232,5 +498,23 @@ function createElement(
     range: new vscode.Range(0, 0, 0, name.length),
     tagName,
     attributes,
+  };
+}
+
+function createPipeElement(name: string): {
+  type: "pipe";
+  name: string;
+  isAttribute: false;
+  range: vscode.Range;
+  tagName: string;
+  attributes: Array<{ name: string; value: string }>;
+} {
+  return {
+    type: "pipe",
+    name,
+    isAttribute: false,
+    range: new vscode.Range(0, 0, 0, name.length),
+    tagName: "pipe",
+    attributes: [],
   };
 }

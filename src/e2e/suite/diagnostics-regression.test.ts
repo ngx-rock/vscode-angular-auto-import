@@ -162,11 +162,17 @@ describe("E2E Diagnostics Regression", function () {
         const diagnostics = vscode.languages
           .getDiagnostics(ctx.templateUri)
           .filter((d) => d.source === DIAGNOSTIC_SOURCE);
+        const actualDiagnostics = diagnostics
+          .map(
+            (d) =>
+              `${String(d.code)} [${d.range.start.line}:${d.range.start.character}-${d.range.end.line}:${d.range.end.character}] ${d.message}`
+          )
+          .join("\n");
 
         assert.strictEqual(
           diagnostics.length,
           descriptor.diagnostics.length,
-          `Expected ${descriptor.diagnostics.length} diagnostics, got ${diagnostics.length}`
+          `Expected ${descriptor.diagnostics.length} diagnostics, got ${diagnostics.length}\n${actualDiagnostics}`
         );
 
         for (const expected of descriptor.diagnostics) {

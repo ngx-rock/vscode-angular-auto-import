@@ -615,6 +615,13 @@ export class DiagnosticProvider {
     const processedCandidatesThisCall = new Set<string>();
 
     const candidates = getAngularElements(element.name, indexer);
+    if (
+      element.type === "pipe" &&
+      this.hasPipeSelectorMatchingImportedModule(element.name, candidates, indexer, sourceFile)
+    ) {
+      this.logOperationDuration("checkElement", element.name, checkElementStartTime);
+      return diagnostics;
+    }
 
     for (const candidate of candidates) {
       if (!this.shouldProcessCandidate(candidate, processedCandidatesThisCall)) {
@@ -636,6 +643,14 @@ export class DiagnosticProvider {
         candidate.type !== "pipe" &&
         !this.candidateNameMatchesSelector(element.name, candidate.name) &&
         this.hasImportedAlternativeMatch(element, candidate, indexer, sourceFile, CssSelector, SelectorMatcher)
+      ) {
+        continue;
+      }
+
+      if (
+        diagnostic &&
+        candidate.type === "pipe" &&
+        this.hasImportedPipeAlternativeMatch(element, candidate, indexer, sourceFile)
       ) {
         continue;
       }
@@ -777,6 +792,109 @@ export class DiagnosticProvider {
     }
 
     return false;
+  }
+
+  /**
+   * Suppresses pipe diagnostics when another pipe with the same selector is already available.
+   */
+  private hasImportedPipeAlternativeMatch(
+    element: ParsedHtmlFullElement,
+    candidate: AngularElementData,
+    indexer: AngularIndexer,
+    sourceFile: SourceFile
+  ): boolean {
+    if (element.type !== "pipe") {
+      return false;
+    }
+
+    const alternatives = getAngularElements(element.name, indexer);
+    for (const alternative of alternatives) {
+      if (alternative.type !== "pipe") {
+        continue;
+      }
+
+      if (alternative.name === candidate.name && alternative.path === candidate.path) {
+        continue;
+      }
+
+      if (this.isElementImported(sourceFile, alternative)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Fallback for external libraries whose NgModule exports were not indexed.
+   * Angular makes NgModule exports available through standalone component imports,
+   * so a `TranslateModule` imported from the same package as a `translate` pipe is
+   * treated as sufficient only when no explicit export data exists to verify it.
+   */
+  private hasPipeSelectorMatchingImportedModule(
+    pipeName: string,
+    candidates: AngularElementData[],
+    indexer: AngularIndexer,
+    sourceFile: SourceFile
+  ): boolean {
+    const normalizedPipeName = this.normalizeSelectorForNameMatch(pipeName);
+    if (!normalizedPipeName) {
+      return false;
+    }
+
+    for (const importName of this.getComponentImportNames(sourceFile)) {
+      if (!importName.endsWith("Module") || this.normalizeCandidateName(importName) !== normalizedPipeName) {
+        continue;
+      }
+
+      if (getStandardModuleExports(importName) ?? indexer.getExternalModuleExports(importName)) {
+        continue;
+      }
+
+      const moduleSpecifiers = this.getNamedImportModuleSpecifiers(sourceFile, importName);
+      if (moduleSpecifiers.length === 0) {
+        continue;
+      }
+
+      if (candidates.some((candidate) => candidate.type === "pipe" && moduleSpecifiers.includes(candidate.path))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private getNamedImportModuleSpecifiers(sourceFile: SourceFile, importName: string): string[] {
+    const moduleSpecifiers: string[] = [];
+
+    for (const declaration of sourceFile.getImportDeclarations()) {
+      if (!declaration.getNamedImports().some((namedImport) => namedImport.getName() === importName)) {
+        continue;
+      }
+
+      moduleSpecifiers.push(declaration.getModuleSpecifierValue());
+    }
+
+    return moduleSpecifiers;
+  }
+
+  private getComponentImportNames(sourceFile: SourceFile): string[] {
+    const importNames = new Set<string>();
+
+    for (const classDeclaration of sourceFile.getClasses()) {
+      const importsArray = this.getComponentImportsArray(classDeclaration);
+      if (!importsArray) {
+        continue;
+      }
+
+      for (const element of importsArray.getElements()) {
+        if (element.isKind(SyntaxKind.Identifier)) {
+          importNames.add(element.getText().trim());
+        }
+      }
+    }
+
+    return [...importNames];
   }
 
   private candidateNameMatchesSelector(selectorName: string, candidateName: string): boolean {
@@ -1057,20 +1175,30 @@ export class DiagnosticProvider {
         continue;
       }
 
-      const isInImportsArray = importsArray
-        .getElements()
-        .some((el: Expression) => el.getText().trim() === element.name);
+      for (const importName of this.getImportNamesForElement(element)) {
+        const isInImportsArray = importsArray
+          .getElements()
+          .some((el: Expression) => el.getText().trim() === importName);
 
-      if (isInImportsArray) {
-        const hasTopLevelImport = sourceFile.getImportDeclarations().some((imp) => {
-          return imp.getNamedImports().some((named) => named.getName() === element.name);
-        });
-        if (hasTopLevelImport) {
-          return true;
+        if (isInImportsArray) {
+          const hasTopLevelImport = sourceFile.getImportDeclarations().some((imp) => {
+            return imp.getNamedImports().some((named) => named.getName() === importName);
+          });
+          if (hasTopLevelImport) {
+            return true;
+          }
         }
       }
     }
     return false;
+  }
+
+  private getImportNamesForElement(element: AngularElementData): string[] {
+    const names = [element.name];
+    if (element.exportingModuleName && element.exportingModuleName !== element.name) {
+      names.push(element.exportingModuleName);
+    }
+    return names;
   }
 
   /**
