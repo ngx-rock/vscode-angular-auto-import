@@ -4,6 +4,15 @@ All notable changes to the "angular-auto-import" extension will be documented in
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [2.6.0] - 2026-06-26
+
+### Fixed
+- **Module-backed pipe diagnostics**: standalone components that import an NgModule exporting a pipe, such as `TranslateModule`, no longer get false missing-pipe diagnostics when another indexed pipe uses the same selector
+- **Pipe selector fallback safety**: module-name fallback is now limited to unindexed external module exports from the same package, avoiding suppression for unrelated `*Module` imports
+
+### Added
+- **Angular 22 regression coverage**: added an e2e reproduction for `translate` pipe selector collisions
+
 ## [2.5.0] - 2026-06-20
 
 ### Fixed
